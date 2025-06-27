@@ -40,6 +40,7 @@ class PipelineReporter:
         self.components: Dict[str, Any] = {}
         self.component_reports: Dict[str, Dict] = {}
         self.chart_paths: Dict[str, list] = {}
+        self.static_reports: Dict[str, Dict] = {}
 
     def _report_outlier_detector(self, name: str, component: Any) -> Dict:
         report = component.report if hasattr(component, "report") else {}
@@ -161,12 +162,9 @@ class PipelineReporter:
 
     def generate_report(self, output_name: str = "pipeline_report") -> Dict:
         final_report = {}
+
         markdown = ["# 🧾 Full Pipeline Diagnostic Report\n"]
-        if hasattr(comp, "plot_summary"):
-            chart_path = comp.plot_summary()
-            markdown.append(f"![{name}]({chart_path})\n")
-            if self.enable_mlflow and mlflow:
-                mlflow.log_artifact(chart_path)
+
         # Static report blocks
         for name, report in self.static_reports.items():
             markdown.append(f"## 📌 {name} (static report)\n")
@@ -181,6 +179,15 @@ class PipelineReporter:
         for name, comp in self.components.items():
             cls_name = comp.__class__.__name__
             markdown.append(f"## 📦 {name} ({cls_name})\n")
+
+            if hasattr(comp, "plot_summary"):
+                try:
+                    chart_path = comp.plot_summary()
+                    markdown.append(f"![{name}]({chart_path})\n")
+                    if self.enable_mlflow and mlflow:
+                        mlflow.log_artifact(chart_path)
+                except Exception as e:
+                    log.warning(f"[{name}] plot_summary failed: {e}")
 
             result = self._extract_summary_and_charts(name, comp)
             if result["summary"]:

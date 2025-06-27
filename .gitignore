@@ -10,3 +10,11 @@ mlruns
 logs
 epda_output
 health_report
+models
+mlartifacts
+*.csv
+*.parquet
+*.json
+*.pkl
+*.pickle
+*.log

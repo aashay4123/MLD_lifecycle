@@ -1,3 +1,4 @@
+from src.utils.PipelineReporter import PipelineReporter
 from pathlib import Path
 import pandas as pd
 from zenml import step
@@ -16,7 +17,7 @@ def missing_imputer(
     test: pd.DataFrame,
     val: pd.DataFrame,
 ) -> Tuple[Annotated[pd.DataFrame, "train"], Annotated[pd.DataFrame, "test"], Annotated[pd.DataFrame, "Val"]]:
-
+    reporter = PipelineReporter()
     missing_imputer = MissingImputer(
         max_missing_frac_drop=0.8,
         knn_neighbors=2,
@@ -32,6 +33,10 @@ def missing_imputer(
     test_imp = missing_imputer.transform(test)
     val_imp = missing_imputer.transform(val)
 
+    reporter.register("missing_imputer", missing_imputer)
+    reporter.generate_report(
+        "missing_imputer_report",
+    )
     print("\nImputed Training DataFrame:")
     print("train_imp", train_imp.shape)
     print("test_imp", test_imp.shape)
@@ -61,6 +66,8 @@ def outlier_detector(
         verbose=True
     )
 
+    reporter = PipelineReporter()
+
     train_clean = detector.fit_transform(train)
 
     print(detector.report["univariate_outliers"])
@@ -85,6 +92,11 @@ def outlier_detector(
     val_outliers = detector.outlier_flags_
     print("Test Outliers:", val_outliers.sum(),
           "out of", len(val_clean))
+
+    reporter.register("missing_imputer", missing_imputer)
+    reporter.generate_report(
+        "missing_imputer_report",
+    )
     return train_clean, test_clean, val_clean
 
 

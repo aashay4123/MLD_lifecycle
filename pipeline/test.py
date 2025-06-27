@@ -1,3 +1,4 @@
+import mlflow
 import warnings
 import pandas as pd
 from zenml import pipeline
@@ -13,6 +14,7 @@ warnings.filterwarnings("ignore")
 @pipeline
 def main():
     # Load the data
+    mlflow.set_tracking_uri('http://localhost:5000')
     data_loader = dataLoader(
         global_conf.CSV_PATH, "Breast Cancer")
     # reporter = PipelineReporter()
