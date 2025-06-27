@@ -1,237 +1,221 @@
-import pandas as pd
+import os
+import json
+import logging
 import numpy as np
-import scipy.stats as ss
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+from typing import Optional, List
 from itertools import combinations
 from statsmodels.stats.outliers_influence import variance_inflation_factor
-from functools import partial
 
-# TODO: ADD Constant from .yaml file from config.basic.DATASET_TARGET_COLUMN_NAME
-DATASET_TARGET_COLUMN_NAME = "label"
+try:
+    import mlflow
+except ImportError:
+    mlflow = None
+
+logger = logging.getLogger("DataHealthLogger")
+logger.setLevel(logging.INFO)
 
 
 class DataHealthCheck:
-    def __init__(self, df: pd.DataFrame,
-                 target_col: str = DATASET_TARGET_COLUMN_NAME,  # Get Target Column
-                 batch_col: str = None,
-                 datetime_cols: list = None):
+    """
+    ✅ World-class data diagnostics tool.
+    - Outputs JSON, Markdown, and diagnostic PNG charts
+    - Supports MLflow integration
+    - Use `.get_results()` and `.get_chart_paths()` for PipelineReporter
+    """
+
+    def __init__(
+        self,
+        df: pd.DataFrame,
+        target_col: str = "label",
+        batch_col: Optional[str] = None,
+        datetime_cols: Optional[List[str]] = None,
+        max_charts: int = 50,
+        save_dir: str = "health_report"
+    ):
         self.df = df.copy()
-        self.n_rows, self.n_cols = df.shape
-        self.p = self.n_cols
-        self.n = self.n_rows
         self.target_col = target_col
         self.batch_col = batch_col
         self.datetime_cols = datetime_cols or []
+        self.max_charts = max_charts
+        self.save_dir = save_dir
         self.results = {}
 
-    def detect_dimensionality(self):
-        ratio = self.p / self.n
-        tag = "p≫n" if self.p > self.n else (
-            "n≫p" if self.n > self.p else "p≈n")
-        self.results['dimensionality'] = {
-            'n_rows': self.n,
-            'n_cols': self.p,
-            'ratio': f"{self.p}/{self.n}={ratio:.2f}",
-            'regime': tag
+        os.makedirs(save_dir, exist_ok=True)
+        logger.info("DataHealthCheck initialized.")
+
+    def run_all(self):
+        """Run all checks and write report files."""
+        self._check_dimensions()
+        self._check_missingness()
+        self._check_dtypes()
+        self._check_skewness()
+        self._check_cardinality()
+        self._check_outliers()
+        self._check_correlations()
+        self._check_vif()
+        self._check_target_imbalance()
+        self._check_datetime_coverage()
+        self._check_batch_distribution()
+        self._save_all_reports()
+        logger.info("DataHealthCheck completed.")
+
+    def _check_dimensions(self):
+        n, p = self.df.shape
+        self.results["dimensions"] = {
+            "rows": n,
+            "columns": p,
+            "ratio": round(p / n, 2),
+            "regime": "p≫n" if p > n else "n≫p" if n > p else "p≈n"
         }
 
-    def detect_missingness(self):
-        miss = self.df.isna().mean().sort_values(ascending=False)
-        self.results['missingness'] = {
-            'overall_pct': miss.mean(),
-            'top_missing_cols': miss.head(10).to_dict()
-        }
+    def _check_missingness(self):
+        miss = self.df.isna().mean()
+        self.results["missingness"] = miss.sort_values(
+            ascending=False).head(20).to_dict()
+        self._plot_bar(miss, "Missingness per column", "missingness.png")
 
-    def detect_dtypes(self):
-        counts = self.df.dtypes.value_counts().to_dict()
-        self.results['dtypes'] = counts
+    def _check_dtypes(self):
+        self.results["dtypes"] = self.df.dtypes.value_counts().astype(
+            str).to_dict()
 
-    def detect_skew_scale(self):
-        num = self.df.select_dtypes(include=[np.number])
-        skew = num.skew().sort_values(ascending=False).head(10).to_dict()
-        self.results['skewness'] = skew
+    def _check_skewness(self):
+        num = self.df.select_dtypes(include=np.number)
+        skew = num.skew()
+        self.results["skewness"] = skew.sort_values(
+            ascending=False).head(10).to_dict()
+        self._plot_bar(
+            skew.abs(), "Skewness of numeric columns", "skewness.png")
 
-    def detect_categorical_cardinality(self):
-        cats = self.df.select_dtypes(include=['object', 'category'])
-        card = {c: cats[c].nunique() for c in cats.columns}
-        card = dict(
-            sorted(card.items(), key=lambda kv: kv[1], reverse=True)[:10])
-        self.results['cardinality'] = card
+    def _check_cardinality(self):
+        cat = self.df.select_dtypes(include=["object", "category"])
+        card = {col: cat[col].nunique() for col in cat.columns}
+        top_card = dict(
+            sorted(card.items(), key=lambda x: x[1], reverse=True)[:10])
+        self.results["cardinality"] = top_card
+        self._plot_bar(pd.Series(top_card),
+                       "Categorical cardinality", "cardinality.png")
 
-    def detect_outliers(self):
+    def _check_outliers(self):
         out = {}
-        num = self.df.select_dtypes(include=[np.number])
-        for col in num.columns[:50]:  # limit to first 50 for speed
+        num = self.df.select_dtypes(include=np.number)
+        for col in num.columns[:self.max_charts]:
             q1, q3 = np.nanpercentile(num[col], [25, 75])
             iqr = q3 - q1
             low, high = q1 - 1.5 * iqr, q3 + 1.5 * iqr
-            out[col] = int(((num[col] < low) | (num[col] > high)).sum())
-        # top 10 outlier counts
-        self.results['outliers'] = dict(
-            sorted(out.items(), key=lambda kv: kv[1], reverse=True)[:10])
+            out[col] = ((num[col] < low) | (num[col] > high)).sum()
+        self.results["outliers"] = dict(
+            sorted(out.items(), key=lambda x: x[1], reverse=True)[:10])
 
-    def detect_collinearity(self, thresh=0.9):
-        num = self.df.select_dtypes(
-            include=[np.number]).iloc[:, :200]  # cap for performance
-        corr = num.corr().abs()
-        pairs = [(i, j, corr.loc[i, j]) for i, j in combinations(
-            corr.columns, 2) if corr.loc[i, j] > thresh]
-        pairs = sorted(pairs, key=lambda x: x[2], reverse=True)[:10]
-        self.results['collinearity'] = [
-            {'pair': (i, j), 'corr': f"{c:.2f}"} for i, j, c in pairs]
+    def _check_correlations(self):
+        num = self.df.select_dtypes(include=np.number)
+        if num.shape[1] > 1:
+            corr = num.corr().abs()
+            pairs = [(i, j, corr.loc[i, j])
+                     for i, j in combinations(corr.columns, 2)
+                     if corr.loc[i, j] > 0.9]
+            self.results["correlations"] = [
+                {"pair": (i, j), "corr": round(c, 2)}
+                for i, j, c in sorted(pairs, key=lambda x: x[2], reverse=True)[:10]
+            ]
+            self._plot_heatmap(corr, "correlation_matrix.png")
 
-    def detect_vif(self):
-        num = self.df.select_dtypes(
-            include=[np.number]).dropna().iloc[:, :20]  # small subset
+    def _check_vif(self):
+        num = self.df.select_dtypes(include=np.number).dropna().iloc[:, :20]
         X = num.values
-        vifs = {num.columns[i]: variance_inflation_factor(
-            X, i) for i in range(X.shape[1])}
-        self.results['vif'] = dict(
-            sorted(vifs.items(), key=lambda kv: kv[1], reverse=True)[:10])
+        vifs = {
+            num.columns[i]: variance_inflation_factor(X, i)
+            for i in range(X.shape[1])
+        }
+        self.results["vif"] = dict(
+            sorted(vifs.items(), key=lambda x: x[1], reverse=True)[:10])
 
-    def detect_imbalance(self):
-        if self.target_col and self.target_col in self.df:
-            vc = self.df[self.target_col].value_counts(
-                normalize=True).to_dict()
-            self.results['imbalance'] = vc
+    def _check_target_imbalance(self):
+        if self.target_col in self.df.columns:
+            counts = self.df[self.target_col].value_counts(normalize=True)
+            self.results["imbalance"] = counts.round(3).to_dict()
+            self._plot_bar(counts, "Target Imbalance", "imbalance.png")
 
-    def detect_date_issues(self):
+    def _check_datetime_coverage(self):
         info = {}
         for col in self.datetime_cols:
             if col in self.df:
-                dates = pd.to_datetime(self.df[col], errors='coerce')
+                dates = pd.to_datetime(self.df[col], errors="coerce")
                 info[col] = {
-                    'parsed_pct': dates.notna().mean(),
-                    'min': str(dates.min()),
-                    'max': str(dates.max())
+                    "parsed_pct": round(dates.notna().mean(), 2),
+                    "min": str(dates.min()),
+                    "max": str(dates.max())
                 }
-        self.results['date_issues'] = info
+        self.results["datetime_coverage"] = info
 
-    def detect_batch_summary(self):
+    def _check_batch_distribution(self):
         if self.batch_col and self.batch_col in self.df:
-            vc = self.df[self.batch_col].value_counts(normalize=True).to_dict()
-            self.results['batch_distribution'] = vc
+            counts = self.df[self.batch_col].value_counts(normalize=True)
+            self.results["batch_distribution"] = counts.round(3).to_dict()
+            self._plot_bar(counts, "Batch Distribution",
+                           "batch_distribution.png")
 
-    def generate_report(self) -> str:
-        html = ['<html><head><style>',
-                'body{font-family:sans-serif;padding:20px;}',
-                'h2{border-bottom:1px solid #ddd;}',
-                'table{border-collapse:collapse;margin-bottom:20px;}',
-                'th,td{border:1px solid #ccc;padding:4px 8px;}',
-                '</style></head><body>']
-        html.append(f"<h1>DataFrame Health Report</h1>")
-        # Dimensionality
-        d = self.results['dimensionality']
-        html.append("<h2>1. Dimensionality</h2>")
-        html.append(
-            f"<p>Rows: {d['n_rows']}, Columns: {d['n_cols']} &nbsp; (<strong>{d['regime']}</strong>, ratio={d['ratio']})</p>")
+    def _plot_bar(self, series: pd.Series, title: str, filename: str):
+        try:
+            plt.figure(figsize=(10, 6))
+            sns.barplot(x=series.values[:self.max_charts],
+                        y=series.index[:self.max_charts])
+            plt.title(title)
+            plt.tight_layout()
+            plt.savefig(os.path.join(self.save_dir, filename))
+            plt.close()
+        except Exception as e:
+            logger.warning(f"Plotting failed for {title}: {e}")
 
-        # Missingness
-        m = self.results['missingness']
-        html.append("<h2>2. Missingness</h2>")
-        html.append(f"<p>Overall missing: {m['overall_pct']*100:.2f}%</p>")
-        html.append("<table><tr><th>Column</th><th>% Missing</th></tr>")
-        for col, pct in m['top_missing_cols'].items():
-            html.append(f"<tr><td>{col}</td><td>{pct*100:.1f}%</td></tr>")
-        html.append("</table>")
+    def _plot_heatmap(self, corr_df, filename: str):
+        try:
+            plt.figure(figsize=(12, 10))
+            sns.heatmap(corr_df, cmap="coolwarm", annot=False)
+            plt.title("Correlation Matrix")
+            plt.tight_layout()
+            plt.savefig(os.path.join(self.save_dir, filename))
+            plt.close()
+        except Exception as e:
+            logger.warning(f"Heatmap failed: {e}")
 
-        # dtypes
-        html.append(
-            "<h2>3. Data Types</h2><table><tr><th>dtype</th><th>count</th></tr>")
-        for dt, cnt in self.results['dtypes'].items():
-            html.append(f"<tr><td>{dt}</td><td>{cnt}</td></tr>")
-        html.append("</table>")
+    def _save_all_reports(self):
+        json_path = os.path.join(self.save_dir, "report.json")
+        md_path = os.path.join(self.save_dir, "report.md")
 
-        # Skewness
-        html.append(
-            "<h2>4. Top Skewed Numeric Features</h2><table><tr><th>Feature</th><th>Skew</th></tr>")
-        for col, sk in self.results['skewness'].items():
-            html.append(f"<tr><td>{col}</td><td>{sk:.2f}</td></tr>")
-        html.append("</table>")
+        with open(json_path, "w") as f:
+            json.dump(self.results, f, indent=2)
 
-        # Cardinality
-        html.append(
-            "<h2>5. Categorical Cardinality (Top 10)</h2><table><tr><th>Feature</th><th>#Levels</th></tr>")
-        for col, lvl in self.results['cardinality'].items():
-            html.append(f"<tr><td>{col}</td><td>{lvl}</td></tr>")
-        html.append("</table>")
+        with open(md_path, "w") as f:
+            f.write("# 📋 Data Health Report\n")
+            for key, val in self.results.items():
+                f.write(f"\n## {key}\n")
+                if isinstance(val, dict):
+                    for k, v in val.items():
+                        f.write(f"- **{k}**: {v}\n")
+                elif isinstance(val, list):
+                    for item in val:
+                        f.write(f"- {item}\n")
 
-        # Outliers
-        html.append(
-            "<h2>6. Univariate Outlier Counts (Top 10)</h2><table><tr><th>Feature</th><th>Outliers</th></tr>")
-        for col, cnt in self.results['outliers'].items():
-            html.append(f"<tr><td>{col}</td><td>{cnt}</td></tr>")
-        html.append("</table>")
+        if mlflow:
+            try:
+                mlflow.log_artifact(json_path)
+                mlflow.log_artifact(md_path)
+                for f in os.listdir(self.save_dir):
+                    if f.endswith(".png"):
+                        mlflow.log_artifact(os.path.join(self.save_dir, f))
+            except Exception as e:
+                logger.warning(f"MLflow logging failed: {e}")
 
-        # Collinearity
-        html.append(
-            "<h2>7. Strongly Correlated Pairs (r>0.9)</h2><table><tr><th>Pair</th><th>Correlation</th></tr>")
-        for rec in self.results['collinearity']:
-            html.append(
-                f"<tr><td>{rec['pair']}</td><td>{rec['corr']}</td></tr>")
-        html.append("</table>")
+    def get_results(self) -> dict:
+        """Return the health check results dictionary."""
+        return self.results
 
-        # VIF
-        html.append(
-            "<h2>8. VIF (Top 10)</h2><table><tr><th>Feature</th><th>VIF</th></tr>")
-        for col, v in self.results['vif'].items():
-            html.append(f"<tr><td>{col}</td><td>{v:.2f}</td></tr>")
-        html.append("</table>")
-
-        # Imbalance
-        if 'imbalance' in self.results:
-            html.append(
-                "<h2>9. Target Imbalance</h2><table><tr><th>Class</th><th>Pct</th></tr>")
-            for cls, pct in self.results['imbalance'].items():
-                html.append(f"<tr><td>{cls}</td><td>{pct*100:.1f}%</td></tr>")
-            html.append("</table>")
-
-        # Date issues
-        if 'date_issues' in self.results:
-            html.append("<h2>10. Date Columns</h2><table><tr><th>Column</th><th>Parsed %</th>"
-                        "<th>Min</th><th>Max</th></tr>")
-            for col, info in self.results['date_issues'].items():
-                html.append(f"<tr><td>{col}</td><td>{info['parsed_pct']*100:.1f}%</td>"
-                            f"<td>{info['min']}</td><td>{info['max']}</td></tr>")
-            html.append("</table>")
-
-        # Batch summary
-        if 'batch_distribution' in self.results:
-            html.append(
-                "<h2>11. Batch Distribution</h2><table><tr><th>Batch</th><th>Pct</th></tr>")
-            for b, pct in self.results['batch_distribution'].items():
-                html.append(f"<tr><td>{b}</td><td>{pct*100:.1f}%</td></tr>")
-            html.append("</table>")
-
-        html.append("</body></html>")
-        html_report = "\n".join(html)
-        with open("DataHealthReport.html", "w") as f:
-            f.write(html_report)
-        return html_report
-
-    def run_all_checks(self):
-        """Run all health checks and generate a report."""
-        print("Running data health checks...")
-        self.detect_dimensionality()
-        print("Running data health detect_dimensionality...")
-        self.detect_missingness()
-        print("Running data health detect_missingness...")
-        self.detect_dtypes()
-        print("Running data health detect_dtypes...")
-        self.detect_skew_scale()
-        print("Running data health detect_skew_scale...")
-        self.detect_categorical_cardinality()
-        print("Running data health detect_categorical_cardinality...")
-        self.detect_outliers()
-        print("Running data health detect_outliers...")
-        self.detect_collinearity()
-        print("Running data health detect_collinearity...")
-        self.detect_vif()
-        print("Running data health detect_multi_Collinearity...")
-        self.detect_imbalance()
-        print("Running data health detect_imbalance...")
-        self.detect_date_issues()
-        print("Running data health detect_date_issues...")
-        self.detect_batch_summary()
-        print("Running data health detect_batch_summary...")
-        print("Generating HTML report...")
-        return self.generate_report()
+    def get_chart_paths(self) -> list:
+        """Return list of all generated PNG chart paths."""
+        return [
+            os.path.join(self.save_dir, f)
+            for f in os.listdir(self.save_dir)
+            if f.endswith(".png")
+        ]

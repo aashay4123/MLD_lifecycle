@@ -6,7 +6,7 @@ from typing_extensions import Annotated
 from src.Stage_4_Preprocessor.Outlier_Detection import OutlierDetector
 from src.Stage_4_Preprocessor.Missing_Imputer import MissingImputer
 from src.utils.monitor import monitor
-
+from src.utils.PipelineReporter import PipelineReporter
 DATASET_TARGET_COLUMN_NAME = "label"
 
 
@@ -16,9 +16,10 @@ def missing_imputer(
     train: pd.DataFrame,
     test: pd.DataFrame,
     val: pd.DataFrame,
+    reporter: PipelineReporter = None
 ) -> Tuple[Annotated[pd.DataFrame, "train"], Annotated[pd.DataFrame, "test"], Annotated[pd.DataFrame, "Val"]]:
 
-    imputer = MissingImputer(
+    missing_imputer = MissingImputer(
         max_missing_frac_drop=0.8,
         knn_neighbors=2,
         knn_mice_max_rows=10,
@@ -29,19 +30,20 @@ def missing_imputer(
         random_state=0,
         verbose=True
     )
-    train_imp = imputer.fit_transform(train)
-    test_imp = imputer.transform(test)
-    val_imp = imputer.transform(val)
+    train_imp = missing_imputer.fit_transform(train)
+    test_imp = missing_imputer.transform(test)
+    val_imp = missing_imputer.transform(val)
+    reporter.register(name="missing_imputer", component=missing_imputer)
 
     print("\nImputed Training DataFrame:")
     print("train_imp", train_imp.shape)
     print("test_imp", test_imp.shape)
     print("val_imp", val_imp.shape)
-    print("\nDropped columns:", imputer.cols_to_drop)
-    print("Numeric columns:", imputer.numeric_cols)
-    print("Categorical columns:", imputer.categorical_cols)
-    print("Numeric imputers:", imputer.numeric_imputers)
-    print("Categorical imputers:", imputer.categorical_imputers)
+    print("\nDropped columns:", missing_imputer.cols_to_drop)
+    print("Numeric columns:", missing_imputer.numeric_cols)
+    print("Categorical columns:", missing_imputer.categorical_cols)
+    print("Numeric imputers:", missing_imputer.numeric_imputers)
+    print("Categorical imputers:", missing_imputer.categorical_imputers)
 
     return train_imp, test_imp, val_imp
 
@@ -51,6 +53,7 @@ def outlier_imputer(
     train: pd.DataFrame,
     test: pd.DataFrame,
     val: pd.DataFrame,
+    reporter: PipelineReporter = None
 ) -> Tuple[Annotated[pd.DataFrame, "train"], Annotated[pd.DataFrame, "test"], Annotated[pd.DataFrame, "Val"]]:
 
     detector = OutlierDetector(
@@ -63,6 +66,7 @@ def outlier_imputer(
     )
 
     train_clean = detector.fit_transform(train)
+    reporter.register(name="Outlier Detector", component=detector)
 
     print(detector.report["univariate_outliers"])
     # chosen method, etc.

@@ -1,23 +1,4 @@
 #!/usr/bin/env python3
-"""
-auto_baseline.py
-
-Automatically fits and evaluates multiple baseline strategies on train/test splits
-without any user intervention.
-
-Usage:
-
-    from auto_baseline import AutoBaseline
-
-    # Assume `train_df` and `test_df` are pandas.DataFrames containing your data,
-    # and `target_col` is the name of the target column.
-
-    baseline = AutoBaseline(target=target_col, verbose=True)
-    results = baseline.run(train_df, test_df)
-
-    # `results` is a dict mapping each baseline name to its metric dict.
-    # When verbose=True, metrics are printed as they’re computed.
-"""
 from pathlib import Path
 import pandas as pd
 from typing import Dict, Any
@@ -27,6 +8,7 @@ from sklearn.metrics import (
     mean_absolute_error, mean_squared_error, r2_score
 )
 import warnings
+import matplotlib.pyplot as plt
 
 warnings.filterwarnings("ignore", category=UserWarning)
 
@@ -98,6 +80,15 @@ class AutoBaseline:
         if self.verbose:
             print(f"[median_regressor] MAE={metrics_med['mae']:.4f}, "
                   f"MSE={metrics_med['mse']:.4f}, R2={metrics_med['r2']:.4f}")
+
+    def plot_summary(self):
+        df = pd.DataFrame.from_dict(self.results, orient='index')
+        df.plot(kind='bar', figsize=(10, 6), title='Baseline Model Comparison')
+        plt.tight_layout()
+        path = self.REPORT_DIR / "baseline_summary.png"
+        plt.savefig(path)
+        plt.close()
+        return str(path)
 
     def _run_classification_baselines(
         self,

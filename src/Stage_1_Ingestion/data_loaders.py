@@ -2,13 +2,14 @@ import pandas as pd
 from zenml import step
 from .DataCollector import DataCollector
 from .DataHealthCheck import DataHealthCheck
+from src.utils.PipelineReporter import PipelineReporter
 
 
 DATASET_TARGET_COLUMN_NAME = "label"
 
 
 @step
-def dataCheck(df: pd.DataFrame):
+def dataCheck(df: pd.DataFrame, reporter: PipelineReporter = None) -> pd.DataFrame:
     if df is None or df.empty:
         raise ValueError(
             "DataFrame is None or empty. Cannot perform health check.")
@@ -18,6 +19,10 @@ def dataCheck(df: pd.DataFrame):
 
     health_check = DataHealthCheck(df)
     health_check.run_all_checks()
+    # 3. Register the health report and charts
+    reporter.register(name="DataHealthCheck", report=health_check.get_results(
+    ), charts=health_check.get_chart_paths())
+
     return df
 
 

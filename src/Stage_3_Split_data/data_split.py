@@ -9,9 +9,10 @@ DATASET_TARGET_COLUMN_NAME = "label"
 
 
 @step
-def baseline(train, test):
+def baseline(train, test, reporter=None):
     baselineModel = AutoBaseline(target=DATASET_TARGET_COLUMN_NAME)
     baselineModel.run(train, test)
+    reporter.register("auto_baseline", baseline)
 
 
 @step
