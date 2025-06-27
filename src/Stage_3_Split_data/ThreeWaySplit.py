@@ -6,7 +6,7 @@ from pathlib import Path
 from datetime import datetime
 from sklearn.model_selection import train_test_split
 from imblearn.over_sampling import SMOTE
-
+from configs import global_conf
 log = None  # you can configure Python logging if desired
 
 
@@ -25,12 +25,12 @@ class SplitThreeWay:
         self.oversample = oversample
         self.df = data
         # ─── Paths ─────────────────────────────────────────────────────────────
-        self.PROC = Path("Data/raw/data.parquet")
-        self.SPLIT_DIR = Path("Data/splits")
+        self.PROC = Path(f"{global_conf.RAW_PARQUET_PATH}/data.parquet")
+        self.SPLIT_DIR = Path(global_conf.SPLIT_PARQUET_PATH)
         self.SPLIT_DIR.mkdir(parents=True, exist_ok=True)
 
         # ─── Load processed data ─────────────────────────────────────────────────
-        if not self.PROC.exists() and self.df == None:
+        if not self.PROC.exists() and self.df is None:
             raise FileNotFoundError(f"Expected processed data at {self.PROC}")
         else:
             self.df = pd.read_parquet(self.PROC)

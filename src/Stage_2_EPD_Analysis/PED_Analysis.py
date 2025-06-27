@@ -1,8 +1,8 @@
 import pandas as pd
 from zenml import step
 from src.Stage_2_EPD_Analysis.EDAnalyzer import EDAnalyzer
-from src.Stage_2_EPD_Analysis.UnifiedEPDA import UnifiedEPDA
-from src.Stage_2_EPD_Analysis.PDAnalysis import UnifiedEPDA
+from src.Stage_2_EPD_Analysis.EPDA import UnifiedEPDA
+from src.Stage_2_EPD_Analysis.PDAnalysis import ProbabilisticAnalysis
 
 
 @step
@@ -24,7 +24,7 @@ def PDAnalyze(df: pd.DataFrame, project: str = "Default") -> pd.DataFrame:
     Currently just returns the DataFrame unchanged.
     """
     print(f"PD Analysis completed for project '{project}'.")
-    EDAnalyse = EDAnalyzer(df)
+    EDAnalyse = ProbabilisticAnalysis(df)
     asasa = EDAnalyse.run()
     return df
 

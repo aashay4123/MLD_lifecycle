@@ -23,7 +23,7 @@ with contextlib.suppress(ImportError):
     import great_expectations as ge
 
 # ─── Logging & Directories ─────────────────────────────────────────────────────
-LOG_DIR = Path.Path("logs")
+LOG_DIR = Path.Path("reports/logs")
 REPORT_DIR = Path.Path("reports/profiling")
 REPORT_DIR.mkdir(parents=True, exist_ok=True)
 LOG_DIR.mkdir(exist_ok=True, parents=True)

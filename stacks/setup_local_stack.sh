@@ -7,7 +7,12 @@ poetry run zenml integration install sklearn xgboost lightgbm mlflow great_expec
 poetry run zenml data-validator register ge_validator --flavor=great_expectations
 poetry run zenml data-validator register evidently_validator --flavor=evidently
 
-poetry run zenml experiment-tracker register local_mlflow_tracker  --flavor=mlflow
+poetry run zenml secret create mlflow_secret \
+    --username=USERNAME \
+    --password=PASSWORD
+    
+poetry run zenml experiment-tracker register local_mlflow_tracker  --flavor=mlflow   --tracking_username={{mlflow_secret.username}} --tracking_password={{mlflow_secret.password}} --tracking_uri=http://localhost:5000
+
 poetry run zenml model-deployer register local_mlflow_deployer  --flavor=mlflow
 
 poetry run zenml stack register local_stack \

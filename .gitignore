@@ -6,3 +6,7 @@ _Data/
 .DS_Store
 __pycache__
 reports
+mlruns
+logs
+epda_output
+health_report

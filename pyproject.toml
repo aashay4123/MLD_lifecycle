@@ -31,6 +31,8 @@ mypy = "^1.16.0"
 statsmodels = "^0.14.4"
 pingouin = "^0.5.5"
 copulas = "^0.12.3"
+tqdm = "^4.67.1"
+imbalanced-learn = "^0.13.0"
 
 
 [tool.poetry.scripts]

@@ -6,7 +6,7 @@ from src.Stage_2_EPD_Analysis.PED_Analysis import UnifiedPEDAnalyze
 from src.Stage_3_Split_data.data_split import data_splitter, baseline
 from src.Stage_4_Preprocessor.preprocessor import missing_imputer, outlier_detector
 from src.utils.PipelineReporter import PipelineReporter
-
+from configs import global_conf
 warnings.filterwarnings("ignore")
 
 
@@ -14,22 +14,22 @@ warnings.filterwarnings("ignore")
 def main():
     # Load the data
     data_loader = dataLoader(
-        "Data/merged_all_3_datasets.csv", "Breast Cancer")
-    reporter = PipelineReporter(step_name="Data Health Reporting")
+        global_conf.CSV_PATH, "Breast Cancer")
+    # reporter = PipelineReporter()
 
     # TODO: Add parellel processing for data Analysis
 
-    dataCheck(data_loader, reporter=reporter)
+    dataCheck(data_loader)
     print("Data health check completed successfully.")
     UnifiedPEDAnalyze(data_loader)
     train, test, val = data_splitter(data=data_loader)
-    baseline(train, pd.concat(test, val), reporter=reporter)
+    baseline(train, val)
     print("Data split and baseline model training completed successfully.")
 
     # Register components with `.report` or `.get_pipeline_report()` method
-    train, test, val = missing_imputer(train, test, val, reporter=reporter)
-    train, test, val = outlier_detector(train, test, val, reporter=reporter)
+    train, test, val = missing_imputer(train, test, val)
+    train, test, val = outlier_detector(train, test, val)
 
     # Generate Markdown + HTML + JSON reports and log to MLflow
-    report = reporter.generate_report(output_name="final_pipeline_report")
+    # report = reporter.generate_report(output_name="final_pipeline_report")
     print("Pipeline reporting completed successfully.")

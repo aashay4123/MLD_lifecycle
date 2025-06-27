@@ -11,6 +11,8 @@ import pandas as pd
 import scipy.stats as stats
 from src.utils.perfkit import perfclass, PerfMixin
 from sklearn.base import clone
+# needed for IterativeImputer
+from sklearn.experimental import enable_iterative_imputer  # noqa: F401
 from sklearn.impute import SimpleImputer, KNNImputer, IterativeImputer
 from sklearn.linear_model import BayesianRidge, LogisticRegression
 from sklearn.covariance import EmpiricalCovariance
@@ -170,7 +172,7 @@ class MissingImputer(PerfMixin):
         rare_freq_cutoff: float = RARE_FREQ_CUTOFF,
         random_state: int = RANDOM_STATE,
         verbose: bool = False,
-        n_jobs: Union[int, float, None] = None,
+        n_jobs: Union[int, float, None] = -1,
         use_gpu: Optional[bool] = None,
         model_path: Union[str, Path] = DEFAULT_MODEL_PATH,
     ):
@@ -186,6 +188,8 @@ class MissingImputer(PerfMixin):
         self.random_state = random_state
         self.verbose = verbose
         self.model_path = Path(model_path)
+        self.n_jobs = n_jobs
+
         # To be populated in fit()
         self.cols_to_drop: List[str] = []
         self.numeric_cols: List[str] = []

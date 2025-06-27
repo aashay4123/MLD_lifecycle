@@ -180,12 +180,26 @@ class DataHealthCheck:
         except Exception as e:
             logger.warning(f"Heatmap failed: {e}")
 
+    @staticmethod
+    def _convert_json_serializable(obj):
+        """Recursively convert pandas/numpy types to Python types."""
+        if isinstance(obj, dict):
+            return {str(DataHealthCheck._convert_json_serializable(k)): DataHealthCheck._convert_json_serializable(v) for k, v in obj.items()}
+        elif isinstance(obj, (list, tuple)):
+            return [DataHealthCheck._convert_json_serializable(i) for i in obj]
+        elif hasattr(obj, "item"):  # catches numpy scalars like np.int64, np.float64
+            return obj.item()
+        else:
+            return obj
+
     def _save_all_reports(self):
         json_path = os.path.join(self.save_dir, "report.json")
         md_path = os.path.join(self.save_dir, "report.md")
 
+        serializable_results = self._convert_json_serializable(self.results)
+
         with open(json_path, "w") as f:
-            json.dump(self.results, f, indent=2)
+            json.dump(serializable_results, f, indent=2)
 
         with open(md_path, "w") as f:
             f.write("# 📋 Data Health Report\n")

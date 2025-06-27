@@ -10,7 +10,7 @@ import inspect
 import json
 import os
 import joblib
-
+from typing import Any
 try:
     import psutil
 except ImportError:
@@ -76,10 +76,10 @@ def log_model_artifact(obj, name: str = "model.joblib"):
 
 
 def monitor(name: str = None,
-            log_args: bool = False,
-            log_result: bool = False,
-            track_memory: bool = False,
-            track_input_size: bool = False,
+            log_args: bool = True,
+            log_result: bool = True,
+            track_memory: bool = True,
+            track_input_size: bool = True,
             retries: int = 0,
             enabled: bool = True,
             mlflow_report: dict = None,

@@ -3,10 +3,9 @@ import pandas as pd
 from zenml import step
 from typing import Tuple
 from typing_extensions import Annotated
-from src.Stage_4_Preprocessor.Outlier_Detection import OutlierDetector
-from src.Stage_4_Preprocessor.Missing_Imputer import MissingImputer
+from .Outlier_Detection import OutlierDetector
+from .Missing_Imputer import MissingImputer
 from src.utils.monitor import monitor
-from src.utils.PipelineReporter import PipelineReporter
 DATASET_TARGET_COLUMN_NAME = "label"
 
 
@@ -16,7 +15,6 @@ def missing_imputer(
     train: pd.DataFrame,
     test: pd.DataFrame,
     val: pd.DataFrame,
-    reporter: PipelineReporter = None
 ) -> Tuple[Annotated[pd.DataFrame, "train"], Annotated[pd.DataFrame, "test"], Annotated[pd.DataFrame, "Val"]]:
 
     missing_imputer = MissingImputer(
@@ -33,7 +31,6 @@ def missing_imputer(
     train_imp = missing_imputer.fit_transform(train)
     test_imp = missing_imputer.transform(test)
     val_imp = missing_imputer.transform(val)
-    reporter.register(name="missing_imputer", component=missing_imputer)
 
     print("\nImputed Training DataFrame:")
     print("train_imp", train_imp.shape)
@@ -49,11 +46,10 @@ def missing_imputer(
 
 
 @step
-def outlier_imputer(
+def outlier_detector(
     train: pd.DataFrame,
     test: pd.DataFrame,
     val: pd.DataFrame,
-    reporter: PipelineReporter = None
 ) -> Tuple[Annotated[pd.DataFrame, "train"], Annotated[pd.DataFrame, "test"], Annotated[pd.DataFrame, "Val"]]:
 
     detector = OutlierDetector(
@@ -66,7 +62,6 @@ def outlier_imputer(
     )
 
     train_clean = detector.fit_transform(train)
-    reporter.register(name="Outlier Detector", component=detector)
 
     print(detector.report["univariate_outliers"])
     # chosen method, etc.
@@ -84,12 +79,12 @@ def outlier_imputer(
     test_outliers = detector.outlier_flags_
 
     print("Test Outliers:", test_outliers.sum(),
-          "out of", len(test_clean).sum())
+          "out of", len(test_clean))
 
     val_clean = detector.transform(val)
     val_outliers = detector.outlier_flags_
     print("Test Outliers:", val_outliers.sum(),
-          "out of", len(val_clean).sum())
+          "out of", len(val_clean))
     return train_clean, test_clean, val_clean
 
 

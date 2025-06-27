@@ -26,8 +26,8 @@ from statsmodels.stats.outliers_influence import variance_inflation_factor
 from statsmodels.tsa.stattools import acf, pacf
 from statsmodels.tsa.seasonal import seasonal_decompose
 
-from utils.monitor import monitor
-from utils.perfkit import PerfMixin, perfclass
+from src.utils.monitor import monitor
+from src.utils.perfkit import PerfMixin, perfclass
 
 import warnings
 warnings.filterwarnings("ignore")
@@ -435,7 +435,7 @@ class UnifiedEPDA(PerfMixin):
         except Exception:
             return
 
-    @monitor(component="UnifiedEPDA", log_plot=True, log_artifact=True)
+    @monitor(name="UnifiedEPDA")
     def run(self):
         print(
             f"[UnifiedEPDA] Running in {self.mode.upper()} mode — {len(self.df)} rows, {self.df.shape[1]} columns")

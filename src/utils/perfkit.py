@@ -165,7 +165,7 @@ class ParallelMixin:
 
     def __init__(self,
                  *a,
-                 n_jobs: Union[int, float, None] = None,
+                 n_jobs: Union[int, float, None] = -1,
                  **kw):
         super().__init__(*a, **kw)  # cooperative
 

@@ -72,6 +72,7 @@ class OutlierDetector(BaseEstimator, TransformerMixin, PerfMixin):
         model_family: str = None,
         random_state: int = 42,
         verbose: bool = False,
+        n_jobs: int = 1  # Number of parallel jobs for scoring rules
     ):
         self.outlier_threshold = outlier_threshold
         self.robust_covariance = robust_covariance
@@ -88,6 +89,7 @@ class OutlierDetector(BaseEstimator, TransformerMixin, PerfMixin):
         self.mahal_threshold = None
         self.lof_model = None
         self.iso_model = None
+        self._n_jobs = n_jobs
 
         # After fit, we store:
         self.train_clean_: pd.DataFrame = None       # post-treatment training set
