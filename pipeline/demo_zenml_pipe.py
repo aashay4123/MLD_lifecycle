@@ -1,3 +1,8 @@
+from sklearn.model_selection import train_test_split
+from sklearn.datasets import load_iris
+from sklearn.ensemble import RandomForestClassifier
+from zenml import pipeline, step
+from zenml.integrations.sklearn.steps import sklearn_trainer, sklearn_evaluator
 from zenml import step, pipeline, log_metadata
 import numpy as np
 from typing import Annotated, Tuple
@@ -7,7 +12,8 @@ from sklearn.linear_model import LinearRegression
 @step
 def load_data() -> (
     Tuple[
-        Annotated[np.ndarray, "training_data"], Annotated[np.ndarray, "training_labels"]
+        Annotated[np.ndarray, "training_data"], Annotated[np.ndarray,
+                                                          "training_labels"]
     ]
 ):
     data = np.random.rand(100, 2)
@@ -36,15 +42,8 @@ def basic_pipeline():
     train_model(*load_data())
 
 
-if __name__ == "__main__":
-    basic_pipeline()
-
-
-from zenml.integrations.sklearn.steps import sklearn_trainer, sklearn_evaluator
-from zenml import pipeline, step
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.datasets import load_iris
-from sklearn.model_selection import train_test_split
+# if __name__ == "__main__":
+#     basic_pipeline()
 
 
 @step
@@ -59,7 +58,8 @@ def data_loader():
 @step
 def get_model():
     # Here you define which sklearn model and params to use
-    model = RandomForestClassifier(n_estimators=100, max_depth=3, random_state=42)
+    model = RandomForestClassifier(
+        n_estimators=100, max_depth=3, random_state=42)
     return model
 
 
@@ -67,8 +67,10 @@ def get_model():
 def sklearn_pipeline(data_loader, get_model, trainer, evaluator):
     X_train, X_test, y_train, y_test = data_loader()
     model = get_model()
-    trained_model = trainer(X_train, y_train, model=model)  # trainer trains the model
-    evaluator(model=trained_model, X=X_test, y=y_test)  # evaluator evaluates it
+    # trainer trains the model
+    trained_model = trainer(X_train, y_train, model=model)
+    evaluator(model=trained_model, X=X_test,
+              y=y_test)  # evaluator evaluates it
 
 
 if __name__ == "__main__":

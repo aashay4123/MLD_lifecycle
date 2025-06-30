@@ -7,7 +7,7 @@ from zenml import step
 from zenml.steps import StepContext
 from src.utils.monitor import monitor
 from typing import Tuple, List
-from src.Stage_2_EPD_Analysis.EDAnalyzer import EDAnalyzer
+from src.Stage_2_EPD_Analysis.EDAnalyzer import EDAnalyze
 from src.Stage_2_EPD_Analysis.EPDA import UnifiedEPDA
 from src.Stage_2_EPD_Analysis.PDAnalysis import ProbabilisticAnalysis
 
@@ -31,45 +31,46 @@ def serialize(obj):
 
 
 @step
-def EDAnalyze(df: pd.DataFrame, project: str = "Default") -> pd.DataFrame:
-
+def FullPEDPipeline(df: pd.DataFrame, project: str = "Default") -> pd.DataFrame:
     if df is None or df.empty:
-        raise ValueError("DataFrame is None or empty. Cannot run ED Analysis.")
-    context = StepContext.get_context()
-    ed_analyze = EDAnalyzer(df)
-    ed_analyze.run()
+        raise ValueError(
+            "DataFrame is None or empty. Cannot run Full PED Pipeline.")
 
-    # Save report/artifacts if available
-    if hasattr(ed_analyze, "summary_report_path"):
-        context.log_artifact("ed_report", ed_analyze.summary_report_path)
+    # 1️⃣ Run ED Analysis
+    print(f"[DEBUG] EDAnalyzer type: {EDAnalyze}")
+    print("[DEBUG] EDAnalyzer:", EDAnalyze)
 
-    with mlflow.start_run(run_name="ed_analyze", nested=True):
-        mlflow.log_param("project", project)
-        mlflow.log_metric("num_columns", len(df.columns))
-        if hasattr(ed_analyze, "summary_report_path"):
-            mlflow.log_artifact(ed_analyze.summary_report_path)
+    ed_analyze = EDAnalyze(df)
+    ed_analyze.run_all()
+    # ed_report_path = os.path.join(
+    #     global_conf.EPDA_REPORT_PATH, "ed_summary.json")
+    # os.makedirs(global_conf.EPDA_REPORT_PATH, exist_ok=True)
+    # with open(ed_report_path, "w") as f:
+    #     json.dump(serialize(ed_report), f, indent=2)
 
-    return df
-
-
-@step
-def PDAnalyze(df: pd.DataFrame, project: str = "Default") -> pd.DataFrame:
-    if df is None or df.empty:
-        raise ValueError("DataFrame is None or empty. Cannot run PD Analysis.")
-    context = StepContext.get_context()
-
+    # 2️⃣ Run Probabilistic Analysis
     pd_analyze = ProbabilisticAnalysis(df)
-    pd_analyze.run()
+    pd_report = pd_analyze.run()
+    pd_report_path = os.path.join(
+        global_conf.EPDA_REPORT_PATH, "pd_summary.json")
+    with open(pd_report_path, "w") as f:
+        json.dump(serialize(pd_report), f, indent=2)
 
-    # Save report/artifacts if available
-    if hasattr(pd_analyze, "summary_report_path"):
-        context.log_artifact("pd_report", pd_analyze.summary_report_path)
+    # 3️⃣ Run Unified EPDA Analysis
+    unified_ped = UnifiedEPDA(df)
+    unified_report = unified_ped.run()
+    unified_report_path = os.path.join(
+        global_conf.EPDA_REPORT_PATH, "unified_epda_summary.json")
+    with open(unified_report_path, "w") as f:
+        json.dump(serialize(unified_report), f, indent=2)
 
-    with mlflow.start_run(run_name="pd_analyze", nested=True):
+    # MLflow tracking
+    with mlflow.start_run(run_name="full_ped_pipeline", nested=True):
         mlflow.log_param("project", project)
         mlflow.log_metric("num_columns", len(df.columns))
-        if hasattr(pd_analyze, "summary_report_path"):
-            mlflow.log_artifact(pd_analyze.summary_report_path)
+        # mlflow.log_artifact(ed_report_path)
+        mlflow.log_artifact(pd_report_path)
+        mlflow.log_artifact(unified_report_path)
 
     return df
 
@@ -78,7 +79,8 @@ def PDAnalyze(df: pd.DataFrame, project: str = "Default") -> pd.DataFrame:
 @monitor(name="unified_ped_analyze_step", track_memory=True, track_input_size=True)
 def UnifiedPEDAnalyze(df: pd.DataFrame, project: str = "Default") -> pd.DataFrame:
     if df is None or df.empty:
-        raise ValueError("DataFrame is None or empty. Cannot run UnifiedPED Analysis.")
+        raise ValueError(
+            "DataFrame is None or empty. Cannot run UnifiedPED Analysis.")
 
     unified_ped = UnifiedEPDA(df)
     report = unified_ped.run()

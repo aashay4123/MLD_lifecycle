@@ -22,8 +22,7 @@ env:
 install:
 	@echo "\033[1;34m🔹 Installing dependencies...\033[0m"
 	poetry install
-	poetry run zenml integration install sklearn xgboost lightgbm mlflow great_expectations evidently whylogs  -y
-
+	poetry run zenml integration install sklearn xgboost lightgbm mlflow great_expectations evidently -y
 
 # ───────────────
 # 🚀 Developer stack
@@ -31,7 +30,9 @@ install:
 
 devup:
 	@echo "\033[1;34m🔹 Starting ZenML stack & MLflow server (foreground)...\033[0m"
-	poetry run PYTHONWARNINGS="ignore:pkg_resources is deprecated"  zenml login --local
+	poetry run zenml login --local
+	lsof -ti tcp:7000 | xargs -r kill -9 && echo "✅ Killed processes on port 7000" || echo "🚫 No processes found."
+	@echo "\033[1;31m🔹 Stopping ZenML stack...\033[0m"
 	poetry run mlflow server \
 		--backend-store-uri sqlite:///.zen/mlflow.db \
 		--default-artifact-root ./.zen/mlruns \
@@ -39,14 +40,17 @@ devup:
 		--port 7000
 
 devup_bg:
-	@echo "\033[1;34m🔹 Starting dev stack in background (logs in devup.log)...\033[0m"
+	@echo "\033[1;34m🔹 Starting ZenML stack in background (logs in devup.log)...\033[0m"
 	nohup make devup > devup.log 2>&1 &
+	@echo "\033[1;34m🔹 ZenML background process started (check devup.log for logs).\033[0m"
 
 devdown:
 	@echo "\033[1;31m🛑 Stopping ZenML and MLflow services...\033[0m"
 	poetry run zenml logout --local || true
 	@echo "\033[1;31m🔹 Killing MLflow server (if running)...\033[0m"
-	-pkill -f "mlflow server" || true
+	lsof -ti tcp:7000 | xargs -r kill -9 && echo "✅ Killed processes on port 7000" || echo "🚫 No processes found."
+
+	@echo "\033[1;31m🔹 Stopping ZenML stack...\033[0m"
 
 wait_for_devup:
 	@echo "\033[1;33m🔸 Waiting for ZenML stack to become ready...\033[0m"
@@ -85,6 +89,12 @@ predict:
 # 🧹 Maintenance
 # ───────────────
 
+maintain:
+	@echo "\033[1;34m🔹 Running maintenance tasks: fmt, lint, check...\033[0m"
+	make fmt
+	make lint
+	make check
+
 fmt:
 	@echo "\033[1;34m🔹 Formatting code with black...\033[0m"
 	poetry run black .
@@ -110,19 +120,21 @@ clean:
 
 help:
 	@echo "\033[1;36mAvailable targets:\033[0m"
-	@echo "  all       → Setup env, install dependencies, and run tests"
+	@echo "  all       → Setup env, install dependencies, and run test pipeline"
 	@echo "  env       → Create or activate poetry environment"
 	@echo "  install   → Install dependencies and ZenML integrations"
 	@echo "  devup     → Start ZenML & MLflow in foreground"
 	@echo "  devup_bg  → Start ZenML & MLflow in background (logs in devup.log)"
 	@echo "  devdown   → Stop ZenML & MLflow services"
+	@echo "  wait_for_devup → Wait until dev services are ready"
 	@echo "  train     → Run the training pipeline"
 	@echo "  test      → Run the test pipeline"
-	@echo "  tune      → Placeholder for hyperparameter tuning"
-	@echo "  predict   → Placeholder for inference scripts"
+	@echo "  tune      → hyperparameter tuning (placeholder)"
+	@echo "  predict   → inference scripts (placeholder)"
 	@echo "  fmt       → Format code with black"
 	@echo "  lint      → Lint code with flake8"
+	@echo "  check     → Type-check code with mypy"
 	@echo "  clean     → Remove caches & stop dev services (devdown)"
 	@echo "  help      → Show this help message"
 
-.PHONY: all env install devup devup_bg devdown train test tune predict fmt lint clean help
+.PHONY: all env install devup devup_bg devdown wait_for_devup train test tune predict fmt lint check clean help maintain

@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
+from src.utils.perfkit import perfclass
+from src.utils.monitor import monitor
 import json
-from pathlib import Path
-from multiprocessing import cpu_count
-
+import matplotlib.pyplot as plt
+import seaborn as sns
 import numpy as np
 import pandas as pd
 import scipy.stats as stats
+
 from statsmodels.distributions.empirical_distribution import ECDF
 
 from sklearn.feature_selection import (
@@ -19,17 +21,18 @@ from joblib import Parallel, delayed
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.inspection import permutation_importance
 
-from scipy.spatial.distance import jensenshannon
 from sklearn.metrics import mutual_info_score
 from itertools import combinations
 from scipy.stats import entropy as kl_entropy
-from scipy.stats import anderson
 from statsmodels.distributions.empirical_distribution import ECDF
+from configs import global_conf
+from pathlib import Path
+
+REPORT_DIR = Path(f"{global_conf.EPDA_REPORT_PATH}/probalistic")
 
 
-REPORT_DIR = "reports/probalistic"  # set in main()
-
-
+@monitor(name="ProbabilisticAnalysis")
+@perfclass
 class ProbabilisticAnalysis:
     def __init__(
         self,
@@ -45,7 +48,8 @@ class ProbabilisticAnalysis:
             raise TypeError("`df` must be a pandas DataFrame")
 
         if target and target not in df.columns:
-            print(f"⚠️ Warning: Target '{target}' not found in dataframe. Ignoring.")
+            print(
+                f"⚠️ Warning: Target '{target}' not found in dataframe. Ignoring.")
             target = None
 
         self.df = df.copy().reset_index(drop=True)
@@ -66,18 +70,22 @@ class ProbabilisticAnalysis:
         self.group_stats: pd.DataFrame | None = None
         self.copula_model = None
         self.perm_importance_: pd.Series | None = None
+        REPORT_DIR.mkdir(parents=True, exist_ok=True)
 
+    @staticmethod
     def detect_nonlinearity(x, y):
         # Remove NaNs
         mask = ~np.isnan(x) & ~np.isnan(y)
         if np.sum(mask) < 30:
             return False  # too small for reliable test
         x, y = x[mask], y[mask]
+        if np.var(x) == 0 or np.var(y) == 0:
+            return False  # no variation → can't detect non-linearity
 
         # Pearson ~ linear, Spearman ~ monotonic (non-linear)
         try:
-            pearson_corr, _ = pearsonr(x, y)
-            spearman_corr, _ = spearmanr(x, y)
+            pearson_corr, _ = stats.pearsonr(x, y)
+            spearman_corr, _ = stats.spearmanr(x, y)
             # Large delta means likely non-linear
             if abs(spearman_corr - pearson_corr) > 0.2:
                 return True
@@ -86,7 +94,6 @@ class ProbabilisticAnalysis:
 
         return False
 
-    @staticmethod
     def _fit_one_distribution(self, col: str, values: np.ndarray):
         """Helper for parallel distribution fitting on a single column."""
 
@@ -128,7 +135,8 @@ class ProbabilisticAnalysis:
             # Add Anderson-Darling test for normality as extra info
         try:
             fitted_cdf = dist.cdf
-            ad_stat = self._generic_ad_stat(values, lambda x: fitted_cdf(x, *params))
+            ad_stat = self._generic_ad_stat(
+                values, lambda x: fitted_cdf(x, *params))
         except Exception:
             ad_stat = None
 
@@ -137,13 +145,15 @@ class ProbabilisticAnalysis:
 
         return col, best, ad_stat
 
+    @monitor(name="fit_all_distributions")
     def fit_all_distributions(self) -> dict[str, tuple]:
         """
         Fit distributions in parallel.
         In 'auto' mode, only columns with >= min_dist_count non-null values are fitted.
         In 'full' mode, all numeric columns (with at least one non-null) are attempted.
         """
-        numeric_cols = self.df.select_dtypes(include=np.number).columns.tolist()
+        numeric_cols = self.df.select_dtypes(
+            include=np.number).columns.tolist()
         # filter by count if auto
         if self.mode == "auto":
             numeric_cols = [
@@ -223,6 +233,18 @@ class ProbabilisticAnalysis:
         print(f"→ Shannon entropy saved to {REPORT_DIR/'shannon_entropy.csv'}")
         return ent
 
+    def _compute_correlations_pair(self, c1, c2):
+        try:
+            x, y = self.df[c1].dropna(), self.df[c2].dropna()
+            idx = x.index.intersection(y.index)
+            if len(idx) < 10:  # skip if not enough overlapping data
+                return c1, c2, np.nan, np.nan
+            tau, _ = stats.kendalltau(x.loc[idx], y.loc[idx])
+            spear, _ = stats.spearmanr(x.loc[idx], y.loc[idx])
+        except Exception:
+            tau, spear = np.nan, np.nan
+        return c1, c2, tau, spear
+
     def cramers_v_matrix(self) -> pd.DataFrame:
         """Pairwise Cramér's V for all object columns (categorical ↔ categorical)."""
         obj_cols = self.df.select_dtypes(include="object").columns
@@ -267,10 +289,12 @@ class ProbabilisticAnalysis:
                 if col1 == col2:
                     result.loc[col1, col2] = 1.0
                 else:
-                    result.loc[col1, col2] = theils_u(self.df[col1], self.df[col2])
+                    result.loc[col1, col2] = theils_u(
+                        self.df[col1], self.df[col2])
 
         result.to_csv(REPORT_DIR / "theils_u_matrix.csv")
-        print(f"→ Theil’s U matrix saved to {REPORT_DIR/'theils_u_matrix.csv'}")
+        print(
+            f"→ Theil’s U matrix saved to {REPORT_DIR/'theils_u_matrix.csv'}")
         return result
 
     def rank_correlations(self) -> pd.DataFrame:
@@ -279,15 +303,12 @@ class ProbabilisticAnalysis:
         tau_df = pd.DataFrame(index=num_cols, columns=num_cols, dtype=float)
         spear_df = pd.DataFrame(index=num_cols, columns=num_cols, dtype=float)
 
-        for c1, c2 in combinations(num_cols, 2):
-            try:
-                x = self.df[c1].dropna()
-                y = self.df[c2].dropna()
-                idx = x.index.intersection(y.index)
-                tau, _ = stats.kendalltau(x.loc[idx], y.loc[idx])
-                spear, _ = stats.spearmanr(x.loc[idx], y.loc[idx])
-            except Exception:
-                tau, spear = np.nan, np.nan
+        results = Parallel(n_jobs=self.jobs)(
+            delayed(self._compute_correlations_pair)(c1, c2)
+            for c1, c2 in combinations(num_cols, 2)
+        )
+
+        for c1, c2, tau, spear in results:
             tau_df.loc[c1, c2] = tau_df.loc[c2, c1] = tau
             spear_df.loc[c1, c2] = spear_df.loc[c2, c1] = spear
 
@@ -344,14 +365,16 @@ class ProbabilisticAnalysis:
             try:
                 if y.nunique() <= 10:  # Classification
                     if nonlinear:
-                        score = mutual_info_classif(X[[col]], y, random_state=0)[0]
+                        score = mutual_info_classif(
+                            X[[col]], y, random_state=0)[0]
                         method = "mutual_info"
                     else:
                         score = f_classif(X[[col]], y)[0][0]
                         method = "f_classif"
                 else:  # Regression
                     if nonlinear:
-                        score = mutual_info_regression(X[[col]], y, random_state=0)[0]
+                        score = mutual_info_regression(
+                            X[[col]], y, random_state=0)[0]
                         method = "mutual_info"
                     else:
                         score = f_classif(X[[col]], y)[0][0]
@@ -384,7 +407,8 @@ class ProbabilisticAnalysis:
 
         tables = {}
         for col in self.df.select_dtypes(include="object").columns:
-            ct = pd.crosstab(self.df[col], self.df[self.target], normalize="index")
+            ct = pd.crosstab(
+                self.df[col], self.df[self.target], normalize="index")
             count = self.df[col].value_counts()
             ct["__count"] = count
             tables[col] = ct
@@ -423,6 +447,7 @@ class ProbabilisticAnalysis:
             print("→ No numeric cols: skipping quantile_transform()")
             return pd.DataFrame()
         if self.df[nums].shape[0] < 100:
+            print("⚠️ Too few rows for quantile transform (<100), skipping.")
             return pd.DataFrame()  # Warning suppressed, but logic flaw noted
 
         qt = QuantileTransformer(
@@ -447,7 +472,8 @@ class ProbabilisticAnalysis:
 
         stats_list = []
         for col in self.df.select_dtypes(include="object").columns:
-            grp = self.df.dropna(subset=[self.target]).groupby(col)[self.target]
+            grp = self.df.dropna(subset=[self.target]).groupby(col)[
+                self.target]
             for name, series in grp:
                 arr = series.values
                 mu = float(arr.mean())
@@ -475,10 +501,11 @@ class ProbabilisticAnalysis:
         """
         Fit Gaussian copula on all numeric columns (drop NA rows).
         """
-        numeric_df = self.df.select_dtypes(include=np.number).dropna()
-        if numeric_df.shape[1] < 2:
+        numeric_cols = self.df.select_dtypes(include=np.number).columns
+        if len(numeric_cols) < 2:
             print("→ Not enough numeric cols: skipping copula_modeling()")
             return None
+        numeric_df = self.df[numeric_cols].dropna()
 
         model = GaussianMultivariate()
         model.fit(numeric_df)
@@ -496,7 +523,8 @@ class ProbabilisticAnalysis:
         Saves figure to reports/probabilistic/qqpp_<feature>.png
         """
         if feature not in self.distributions:
-            print(f"→ Skipping QQ/PP for '{feature}': no fitted distribution found.")
+            print(
+                f"→ Skipping QQ/PP for '{feature}': no fitted distribution found.")
             return
 
         dist_name, params, _, _, _ = self.distributions[feature]
@@ -536,7 +564,8 @@ class ProbabilisticAnalysis:
             return None
         df_nonmiss = self.df.dropna(subset=[self.target])
         y = df_nonmiss[self.target]
-        X = pd.get_dummies(df_nonmiss.drop(columns=[self.target]), drop_first=True)
+        X = pd.get_dummies(df_nonmiss.drop(
+            columns=[self.target]), drop_first=True)
         if X.shape[1] == 0:
             print(
                 "→ Skipping feature importance: no features left after one‐hot encoding."
@@ -551,7 +580,8 @@ class ProbabilisticAnalysis:
         model.fit(X, y)
         self.model_score = model.score(X, y)
 
-        perm = permutation_importance(model, X, y, n_repeats=10, random_state=0)
+        perm = permutation_importance(
+            model, X, y, n_repeats=10, random_state=0)
         imp_series = pd.Series(perm.importances_mean, index=X.columns).sort_values(
             ascending=False
         )
@@ -625,12 +655,11 @@ class ProbabilisticAnalysis:
                 continue
             try:
                 jsd = self.jensen_shannon_divergence(
-                    self,
                     np.histogram(base_vals, bins=20, density=True)[0],
                     np.histogram(curr_vals, bins=20, density=True)[0],
                 )
                 psi = self.population_stability_index(
-                    self, base_vals, curr_vals, bins=20
+                    base_vals, curr_vals, bins=20
                 )
                 kl = kl_entropy(
                     np.histogram(base_vals, bins=20, density=True)[0] + 1e-9,
@@ -649,6 +678,25 @@ class ProbabilisticAnalysis:
         )
         return df_out
 
+    def _bootstrap_ci_single(self, col, n_iter, ci_level):
+        vals = self.df[col].dropna().values
+        if len(vals) < 30:
+            return None  # skip unreliable estimates
+        samples = np.random.choice(
+            vals, size=(n_iter, len(vals)), replace=True)
+        means = np.mean(samples, axis=1)
+        medians = np.median(samples, axis=1)
+        alpha = (100 - ci_level) / 2
+        ci_mean = np.percentile(means, [alpha, 100 - alpha])
+        ci_median = np.percentile(medians, [alpha, 100 - alpha])
+        return {
+            "feature": col,
+            "mean_lower": ci_mean[0],
+            "mean_upper": ci_mean[1],
+            "median_lower": ci_median[0],
+            "median_upper": ci_median[1],
+        }
+
     def bootstrap_column_ci(self, n_iter=1000, ci_level=95) -> pd.DataFrame:
         """
         For each numeric column, compute bootstrap CI for mean & median.
@@ -658,29 +706,10 @@ class ProbabilisticAnalysis:
         results = []
         alpha = (100 - ci_level) / 2
 
-        for col in num_cols:
-            vals = self.df[col].dropna().values
-            if len(vals) < 30:
-                continue  # Avoid unstable CI estimates
-
-            # Bootstrap samples
-            samples = np.random.choice(vals, size=(n_iter, len(vals)), replace=True)
-            means = np.mean(samples, axis=1)
-            medians = np.median(samples, axis=1)
-
-            ci_mean = np.percentile(means, [alpha, 100 - alpha])
-            ci_median = np.percentile(medians, [alpha, 100 - alpha])
-
-            results.append(
-                {
-                    "feature": col,
-                    "mean_lower": ci_mean[0],
-                    "mean_upper": ci_mean[1],
-                    "median_lower": ci_median[0],
-                    "median_upper": ci_median[1],
-                }
-            )
-
+        results = Parallel(n_jobs=self.jobs)(
+            delayed(self._bootstrap_ci_single)(col, n_iter, ci_level) for col in num_cols
+        )
+        results = [r for r in results if r is not None]
         df_out = pd.DataFrame(results)
         df_out.to_csv(REPORT_DIR / "bootstrap_cis.csv", index=False)
         print("→ Bootstrap confidence intervals saved.")
@@ -776,12 +805,12 @@ class ProbabilisticAnalysis:
 
             flags[col] = f
             csv_rows.append({"feature": col, "flags": ", ".join(f)})
-        # Optional: nonlinear pattern flag from MI scoring
+
         if self.mi_scores is not None:
-            mi_df = pd.read_csv(REPORT_DIR / "target_dependency_scores.csv")
-            for _, row in mi_df.iterrows():
+            mi_df = pd.read_csv(
+                REPORT_DIR / "target_dependency_scores.csv", index_col=0)
+            for col, row in mi_df.iterrows():
                 if row["method"] == "mutual_info":
-                    col = row["score"]
                     if col in flags:
                         flags[col].append("nonlinear_dependency")
                         for row_ in csv_rows:
@@ -793,10 +822,12 @@ class ProbabilisticAnalysis:
         csv_path = REPORT_DIR / "final_summary.csv"
         json_path.write_text(json.dumps(flags, indent=2))
         pd.DataFrame(csv_rows).to_csv(csv_path, index=False)
-        print(f"✅ Final report written to {json_path.name} and {csv_path.name}")
+        print(
+            f"✅ Final report written to {json_path.name} and {csv_path.name}")
         return flags
 
     def run_all(self):
+
         self.fit_all_distributions()
         self.shannon_entropy()
         self.mutual_info_scores()
@@ -814,51 +845,10 @@ class ProbabilisticAnalysis:
         if self.target:
             self.feature_importance()
 
-        for col in self.distributions:
-            self.qq_pp_plots(col)
-            self.diagnostic_plots(col)
+        Parallel(n_jobs=self.jobs)(
+            delayed(self.diagnostic_plots)(col) for col in self.distributions
+        )
 
-
-"""
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--data", required=True,
-                        help="Path to cleaned parquet file")
-    parser.add_argument("--outdir", default="reports/probabilistic_v2",
-                        help="Directory for outputs")
-    parser.add_argument("--mode", choices=["auto", "full"], default="auto",
-                        help="auto: filter by thresholds; full: run every test")
-    parser.add_argument("--target", default=None, help="Target column name")
-    parser.add_argument("--quantile-output", choices=["normal", "uniform"],
-                        default="normal", help="Quantile transform distribution")
-    parser.add_argument("--min-dist-count", type=int, default=50,
-                        help="Minimum non-null count to fit distributions in auto mode")
-    parser.add_argument("--entropy-bins", type=int, default=20,
-                        help="Number of bins for numeric entropy in auto mode")
-    parser.add_argument("--jobs", type=int, default=cpu_count(),
-                        help="Number of parallel jobs for distribution fitting")
-    args = parser.parse_args()
-
-    global REPORT_DIR
-    REPORT_DIR = Path(args.outdir)
-    REPORT_DIR.mkdir(parents=True, exist_ok=True)
-
-    df = pd.read_parquet(args.data)
-    print(f"→ Loaded {args.data} with shape {df.shape}")
-
-    pa = ProbabilisticAnalysis(
-        df=df,
-        target=args.target,
-        mode=args.mode,
-        quantile_output=args.quantile_output,
-        min_dist_count=args.min_dist_count,
-        entropy_bins=args.entropy_bins,
-        jobs=args.jobs,
-    )
-    pa.run_all()
-    print("✅ Probabilistic analysis complete.")
-
-
-if __name__ == "__main__":
-    main()
-"""
+        Parallel(n_jobs=self.jobs)(
+            delayed(self.qq_pp_plots)(col) for col in self.distributions
+        )

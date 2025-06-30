@@ -8,13 +8,11 @@ SPLIT_PARQUET_PATH = "Data/split"
 
 INJESTION_LOGS_PATH = "reports/logs/ingest.log"
 HEALTH_CHECK_REPORT_PATH = "reports/health_report"
-EPDA_REPORT_PATH = "reports/epda_output"
+EPDA_REPORT_PATH = "reports/epda"
 BASELINE_REPORT_PATH = "reports/baseline_report"
 PREPROCESSOR_REPORT_PATH = "reports/preprocessor_report"
 
 MODEL_ARTIFACTS_PATH = "reports/Models"
-MISSING_IMPUTER_STATE_FILE = "reports/Models/missing_imputer.pkl"
-OUTLIER_IMPUTER_STATE_FILE = "reports/Models/outlier_model_state.pkl"
 
 PIPELINE_LOGS_PATH = "reports/logs/pipeline_monitor.log"
 

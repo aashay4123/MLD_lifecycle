@@ -20,11 +20,6 @@ poetry run zenml stack register local_stack \
     -o default \
     -e local_mlflow_tracker \
     -d local_mlflow_deployer \
-    -dv ge_validator \
     -dv evidently_validator \
-    -c sklearn \
-    -c xgboost \
-    -c lightgbm \
-    -c whylogs
 
 poetry run zenml stack set local_stack

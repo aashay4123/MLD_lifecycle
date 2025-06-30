@@ -48,7 +48,7 @@ def missing_imputer(
     reporter.register("missing_imputer", missing_imputer)
     report = reporter.generate_report("missing_imputer_report")
 
-    preprocessor_report_dir = global_conf.PREPROCESSOR_REPORT_PATH
+    preprocessor_report_dir = global_conf.MODEL_ARTIFACTS_PATH
     os.makedirs(preprocessor_report_dir, exist_ok=True)
 
     missing_imputer_path = os.path.join(
@@ -95,7 +95,7 @@ def outlier_detector(
     reporter.register("outlier_detector", detector)
     report = reporter.generate_report("outlier_detector_report")
 
-    preprocessor_report_dir = global_conf.PREPROCESSOR_REPORT_PATH
+    preprocessor_report_dir = global_conf.MODEL_ARTIFACTS_PATH
     os.makedirs(preprocessor_report_dir, exist_ok=True)
 
     outlier_detector_path = os.path.join(

@@ -34,6 +34,7 @@ copulas = "^0.12.3"
 tqdm = "^4.67.1"
 imbalanced-learn = "^0.13.0"
 dabl = "^0.3.2"
+scipy = "1.11.3"
 
 
 [tool.poetry.scripts]
