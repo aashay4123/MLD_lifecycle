@@ -59,7 +59,7 @@ def perfclass(
 
         @functools.wraps(orig_init)
         def __init__(self, *a, **kw):
-            self._perf_log: List[Dict[str, Any]] = []
+            self._perf_log = []
             self._perf_price = price_per_min
             orig_init(self, *a, **kw)
 
@@ -96,7 +96,8 @@ def perfclass(
                         dict(
                             method=name,
                             seconds=dt,
-                            delta_mb=round((rss_after - rss_before) / 2**20, 3),
+                            delta_mb=round(
+                                (rss_after - rss_before) / 2**20, 3),
                             rss_mb=round(rss_after / 2**20, 1),
                         )
                     )
@@ -116,7 +117,8 @@ def perfclass(
             agg: Dict[str, Dict] = {}
             for rec in self._perf_log:
                 d = agg.setdefault(
-                    rec["method"], dict(calls=0, seconds=0.0, delta_mb=0.0, rss_mb=0.0)
+                    rec["method"], dict(
+                        calls=0, seconds=0.0, delta_mb=0.0, rss_mb=0.0)
                 )
                 d["calls"] += 1
                 d["seconds"] += rec["seconds"]
@@ -218,7 +220,8 @@ class ParallelMixin:
             prefer = self._auto_prefer(items)
 
         log.debug(
-            "Parallel → %d jobs (%s) × %d tasks", self._n_jobs, prefer, len(items)
+            "Parallel → %d jobs (%s) × %d tasks", self._n_jobs, prefer, len(
+                items)
         )
         return Parallel(n_jobs=self._n_jobs, prefer=prefer)(
             delayed(fn)(x) for x in items
@@ -229,7 +232,11 @@ class ParallelMixin:
 # 3 ▸  GPU MIX-IN                         idea #2 (lazy CuPy cache)
 # ═══════════════════════════════════════════════════════════════
 class _CuPyLoader:
-    """Singleton-style loader to avoid repeated heavy imports."""
+    """Singleton-style loader to avoid repeated heavy imports.
+
+    On macOS/Apple Silicon → use PyTorch MPS if available,
+    else fallback to NumPy (CPU).
+    """
 
     _cached: Optional[Any] = None
 
@@ -237,15 +244,27 @@ class _CuPyLoader:
     def load(cls):
         if cls._cached is not None:
             return cls._cached
-        try:
-            import cupy as cp
 
-            _ = cp.arange(1)  # sanity probe
-            cls._cached = cp
-            log.info("CuPy detected – GPU fast-path enabled.")
+        # 1️⃣ Try PyTorch + MPS (Apple Silicon)
+        try:
+            import torch
+            if torch.backends.mps.is_available():
+                class TorchArrayWrapper:
+                    def array(self, data):
+                        return torch.tensor(data, device="mps")
+
+                    def to_numpy(self, t):
+                        return t.cpu().numpy()
+                cls._cached = TorchArrayWrapper()
+                log.info(
+                    "PyTorch MPS detected – GPU fast-path enabled on macOS/Apple Silicon.")
+                return cls._cached
         except Exception:
-            cls._cached = None
-            log.info("CuPy not available – CPU path.")
+            pass
+
+        # 2️⃣ Fallback to NumPy (CPU)
+        cls._cached = np
+        log.info("GPU not available – using NumPy (CPU path).")
         return cls._cached
 
 
@@ -258,9 +277,10 @@ class GPUMixin:
         · rand_choice(arr,size,seed)
     """
 
-    def __init__(self, *a, use_gpu: Optional[bool] = None, **kw):
+    def __init__(self, *a, use_gpu: Optional[bool] = True, **kw):
         super().__init__(*a, **kw)
 
+        # Always "enable" GPU mode
         if use_gpu is None:
             env = os.getenv("PERF_USE_GPU")
             use_gpu = env and env.lower() in {"1", "true", "yes"}

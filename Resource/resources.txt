@@ -1,3 +1,0 @@
-
-https://medium.com/@tushar_aggarwal/unlocking-the-secrets-of-zenml-an-in-depth-guide-to-mastering-its-power-b965e9f640d8
-https://github.com/zenml-io/zenml-projects

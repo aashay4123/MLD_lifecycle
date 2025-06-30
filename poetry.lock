@@ -881,6 +881,27 @@ docs = ["ipython", "matplotlib", "numpydoc", "sphinx"]
 tests = ["pytest", "pytest-cov", "pytest-xdist"]
 
 [[package]]
+name = "dabl"
+version = "0.3.2"
+description = "Data Analysis Baseline Library"
+optional = false
+python-versions = ">=3.8"
+groups = ["main"]
+files = [
+    {file = "dabl-0.3.2-py3-none-any.whl", hash = "sha256:9aaec7cd1d9c478b31078c095a2795647b87683a509d294c970dfaed44cb8437"},
+    {file = "dabl-0.3.2.tar.gz", hash = "sha256:0d299a9cd46e0cbf3e4cdd8580d0232bb37aa2a1f59299aec2ab0d7615a59a53"},
+]
+
+[package.dependencies]
+matplotlib = {version = ">=3.8", markers = "python_version >= \"3.9\""}
+numpy = "*"
+packaging = "*"
+pandas = "*"
+scikit-learn = {version = ">=1.3", markers = "python_version >= \"3.9\""}
+scipy = "*"
+seaborn = "*"
+
+[[package]]
 name = "debugpy"
 version = "1.8.14"
 description = "An implementation of the Debug Adapter Protocol for Python"
@@ -5074,4 +5095,4 @@ vertex = ["google-cloud-aiplatform (>=1.34.0)", "google-cloud-pipeline-component
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11,<3.12"
-content-hash = "325bd620330fb854f111602b4c6b27033284432a7e94ab744a70b11fb0b5b3d6"
+content-hash = "426353dfa3b0cd261e4a4c57ab3b94c6c6fd8cf2b38d93478ded39e873901704"
