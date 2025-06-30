@@ -277,8 +277,7 @@ def _semantic_type_profile(df: pd.DataFrame, source: str) -> pd.DataFrame:
     }
 
     # Write JSON report
-    timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-    outpath = REPORT_DIR / f"{source}_{timestamp}.json"
+    outpath = REPORT_DIR / f"dtypes.json"
     with open(outpath, "w") as f:
         json.dump(report, f, indent=2)
     log.info(f"Semantic profiling → {outpath}")

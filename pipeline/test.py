@@ -17,6 +17,7 @@ secret_response = Client().get_secret("mlflow_secret")
 
 # Access as a dict of key-value pairs
 secrets = secret_response.values
+
 os.environ["MLFLOW_TRACKING_URI"] = "http://localhost:7000"
 print(mlflow.get_tracking_uri())
 

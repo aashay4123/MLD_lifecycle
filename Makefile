@@ -8,6 +8,7 @@ all:
 	make env
 	make install
 	make devup_bg
+	make wait_for_devup
 	make test
 
 # ───────────────
@@ -21,7 +22,8 @@ env:
 install:
 	@echo "\033[1;34m🔹 Installing dependencies...\033[0m"
 	poetry install
-	poetry run zenml integration install s3 sklearn mlflow -y
+	poetry run zenml integration install sklearn xgboost lightgbm mlflow great_expectations evidently whylogs  -y
+
 
 # ───────────────
 # 🚀 Developer stack
@@ -29,7 +31,7 @@ install:
 
 devup:
 	@echo "\033[1;34m🔹 Starting ZenML stack & MLflow server (foreground)...\033[0m"
-	poetry run zenml up
+	poetry run PYTHONWARNINGS="ignore:pkg_resources is deprecated"  zenml login --local
 	poetry run mlflow server \
 		--backend-store-uri sqlite:///.zen/mlflow.db \
 		--default-artifact-root ./.zen/mlruns \
@@ -42,9 +44,22 @@ devup_bg:
 
 devdown:
 	@echo "\033[1;31m🛑 Stopping ZenML and MLflow services...\033[0m"
-	poetry run zenml down || true
+	poetry run zenml logout --local || true
 	@echo "\033[1;31m🔹 Killing MLflow server (if running)...\033[0m"
 	-pkill -f "mlflow server" || true
+
+wait_for_devup:
+	@echo "\033[1;33m🔸 Waiting for ZenML stack to become ready...\033[0m"
+	@sleep 5
+	@echo "\033[1;33m🔸 Waiting for MLflow server at localhost:7000...\033[0m"
+	@SECONDS=0; \
+	while ! curl -s http://127.0.0.1:7000/ >/dev/null; do \
+		if [ $$SECONDS -gt 30 ]; then \
+			echo "❌ Timeout waiting for MLflow server!"; exit 1; \
+		fi; \
+		sleep 1; \
+	done; \
+	echo "✅ MLflow server is up!"
 
 # ───────────────
 # 🏗️ Pipeline execution

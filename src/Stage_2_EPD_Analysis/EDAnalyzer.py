@@ -42,7 +42,6 @@ from sklearn.feature_selection import mutual_info_classif, mutual_info_regressio
 
 import pingouin as pg
 
-# from pandas_profiling import ProfileReport
 
 
 def hopkins_statistic(X, m=None, random_state=0):

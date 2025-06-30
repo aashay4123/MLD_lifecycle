@@ -24,12 +24,6 @@ from statsmodels.stats import diagnostic as sm_diag
 from copulas.multivariate import GaussianMultivariate
 from joblib import Parallel, delayed
 
-# optional libraries
-# try:
-#     from ydata_profiling import ProfileReport
-# except ImportError:
-#     ProfileReport = None
-
 try:
     import dabl
 except ImportError:
@@ -90,7 +84,8 @@ class ExploratoryDataAnalysis:
         self.report["memory_MB"] = df.memory_usage(deep=True).sum() / (1024**2)
 
         num_cols = df.select_dtypes(include=[np.number]).columns.tolist()
-        cat_cols = df.select_dtypes(include=["object", "category"]).columns.tolist()
+        cat_cols = df.select_dtypes(
+            include=["object", "category"]).columns.tolist()
 
         # univariate numeric
         desc = (
@@ -126,7 +121,8 @@ class ExploratoryDataAnalysis:
                     continue
                 if cls.nunique() <= 2:
                     r, p = stats.pointbiserialr(df[c], cls)
-                    corr_num.append({"feature": c, "pointbiserial_r": r, "p": p})
+                    corr_num.append(
+                        {"feature": c, "pointbiserial_r": r, "p": p})
                 else:
                     r, p = stats.pearsonr(df[c], cls)
                     corr_num.append({"feature": c, "pearson_r": r, "p": p})
@@ -161,7 +157,8 @@ class ExploratoryDataAnalysis:
             for i, col in enumerate(X.columns)
             if col != "const"
         }
-        _, p_mardia, _ = pg.multivariate_normality(df[num_cols].dropna(), alpha=0.05)
+        _, p_mardia, _ = pg.multivariate_normality(
+            df[num_cols].dropna(), alpha=0.05)
         mva["mardia_p"] = float(p_mardia)
         mva["hopkins"] = hopkins_stat(df[num_cols].dropna())
         pca = PCA().fit(df[num_cols].dropna())
@@ -173,7 +170,8 @@ class ExploratoryDataAnalysis:
         plt.tight_layout()
         plt.savefig("pca_scree.png")
         plt.close()
-        bp_p = sm_diag.het_breuschpagan(df[num_cols].fillna(0).iloc[:, 0], X)[3]
+        bp_p = sm_diag.het_breuschpagan(
+            df[num_cols].fillna(0).iloc[:, 0], X)[3]
         mva["breusch_pagan_p"] = float(bp_p)
 
         self.report["multivariate"] = mva
@@ -184,7 +182,8 @@ class ExploratoryDataAnalysis:
                 lambda x: x.view(int)
             )
             if not dates.empty:
-                auc = roc_auc_score(df[target_col], dates.fillna(0), average="macro")
+                auc = roc_auc_score(
+                    df[target_col], dates.fillna(0), average="macro")
                 self.report["leakage_auc"] = float(auc)
 
         # # HTML profiling
@@ -214,7 +213,8 @@ class AdvancedEDA:
         self.report.clear()
 
         num_cols = df.select_dtypes(include=[np.number]).columns.tolist()
-        cat_cols = df.select_dtypes(include=["object", "category"]).columns.tolist()
+        cat_cols = df.select_dtypes(
+            include=["object", "category"]).columns.tolist()
 
         # 1. Cramér-V heatmap
         if cat_cols:
@@ -231,14 +231,16 @@ class AdvancedEDA:
 
         # 2. Mutual Information vs target
         if target_col and target_col in df.columns:
-            Xn = df[num_cols].drop(columns=[target_col], errors="ignore").fillna(0)
+            Xn = df[num_cols].drop(columns=[target_col],
+                                   errors="ignore").fillna(0)
             Xm = (
                 pd.get_dummies(df[cat_cols], drop_first=True).fillna(0)
                 if cat_cols
                 else None
             )
             mi_num = (
-                mutual_info_regression(Xn, df[target_col].fillna(0)) if num_cols else []
+                mutual_info_regression(
+                    Xn, df[target_col].fillna(0)) if num_cols else []
             )
             mi_cat = (
                 mutual_info_classif(Xm, df[target_col].fillna(0))
@@ -247,7 +249,8 @@ class AdvancedEDA:
             )
             mi = pd.Series(
                 np.concatenate([mi_num, mi_cat]) if Xm is not None else mi_num,
-                index=list(Xn.columns) + (list(Xm.columns) if Xm is not None else []),
+                index=list(Xn.columns) + (list(Xm.columns)
+                                          if Xm is not None else []),
             ).sort_values(ascending=False)
             mi.to_csv(od / "mutual_info.csv")
             plt.figure()
@@ -260,7 +263,8 @@ class AdvancedEDA:
         # 3. Leakage sniff (future-timestamp ratio)
         if target_col and {"last_login", target_col}.issubset(df.columns):
             future_ratio = (
-                pd.to_datetime(df["last_login"]) > pd.to_datetime(df[target_col])
+                pd.to_datetime(df["last_login"]) > pd.to_datetime(
+                    df[target_col])
             ).mean()
             with open(od / "leakage_check.txt", "w") as f:
                 f.write(f"future_ratio: {future_ratio:.4f}\n")
@@ -317,7 +321,8 @@ class AdvancedEDA:
             ed = pd.DataFrame(emb, columns=["tsne1", "tsne2"])
             ed[target_col] = df[target_col].values
             plt.figure(figsize=(6, 5))
-            sns.scatterplot(x="tsne1", y="tsne2", hue=target_col, data=ed, s=10)
+            sns.scatterplot(x="tsne1", y="tsne2",
+                            hue=target_col, data=ed, s=10)
             plt.tight_layout()
             plt.savefig(od / "tsne_embedding.png")
             plt.close()
@@ -386,7 +391,8 @@ class ProbabilisticAnalysis:
             ):
                 try:
                     params = dist.fit(data)
-                    aic = 2 * (len(params) + 1) - 2 * dist.logpdf(data, *params).sum()
+                    aic = 2 * (len(params) + 1) - 2 * \
+                        dist.logpdf(data, *params).sum()
                     if aic < best[1]:
                         best = (dist.name, aic, params)
                 except Exception:
@@ -400,7 +406,8 @@ class ProbabilisticAnalysis:
     def shannon_entropy(self) -> dict:
         ent = {}
         for col in self.df.columns:
-            p, _ = np.histogram(self.df[col].dropna(), bins="auto", density=True)
+            p, _ = np.histogram(
+                self.df[col].dropna(), bins="auto", density=True)
             p = p[p > 0]
             ent[col] = -np.sum(p * np.log2(p))
         self.entropy = ent
@@ -426,9 +433,11 @@ class ProbabilisticAnalysis:
         def _mi(col):
             arr = X[col].values.reshape(-1, 1)
             if y.dtype.kind in "ifu" and y.nunique() > 20:
-                score = mutual_info_regression(arr, y_enc, discrete_features=False)[0]
+                score = mutual_info_regression(
+                    arr, y_enc, discrete_features=False)[0]
             else:
-                score = mutual_info_classif(arr, y_enc, discrete_features=True)[0]
+                score = mutual_info_classif(
+                    arr, y_enc, discrete_features=True)[0]
             return col, float(score)
 
         results = Parallel(n_jobs=-1)(delayed(_mi)(c) for c in cols)
@@ -446,7 +455,8 @@ class ProbabilisticAnalysis:
             return {}
 
         def _cpt(col):
-            tbl = pd.crosstab(self.df[col], self.df[self.target], normalize="index")
+            tbl = pd.crosstab(
+                self.df[col], self.df[self.target], normalize="index")
             return col, tbl
 
         results = Parallel(n_jobs=-1)(delayed(_cpt)(c) for c in cat_cols)
@@ -463,7 +473,8 @@ class ProbabilisticAnalysis:
         qt = QuantileTransformer(output_distribution=output_distribution)
         arr = qt.fit_transform(self.imputed.select_dtypes(include=[np.number]))
         return pd.DataFrame(
-            arr, columns=self.imputed.select_dtypes(include=[np.number]).columns
+            arr, columns=self.imputed.select_dtypes(
+                include=[np.number]).columns
         )
 
     def bayesian_group_comparison(self, col: str) -> dict:
@@ -562,7 +573,8 @@ class UnifiedEPDA:
                 drop=True
             )
 
-        self.basic.analyze(self.df, self.target, profile=profile, pairplots=pairplots)
+        self.basic.analyze(self.df, self.target,
+                           profile=profile, pairplots=pairplots)
         self.report["basic"] = self.basic.report
 
         # Advanced EDA
