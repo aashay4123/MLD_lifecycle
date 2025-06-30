@@ -827,7 +827,6 @@ class ProbabilisticAnalysis:
         return flags
 
     def run_all(self):
-
         self.fit_all_distributions()
         self.shannon_entropy()
         self.mutual_info_scores()

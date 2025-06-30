@@ -1,7 +1,7 @@
 import warnings
 from zenml import pipeline
 from src.Stage_1_Ingestion.data_loaders import dataLoader, dataCheck
-from src.Stage_2_EPD_Analysis.PED_Analysis import FullPEDPipeline
+from src.Stage_2_EPD_Analysis.PED_Analysis import UnifiedPEDAnalyze
 from src.Stage_3_Split_data.data_split import data_splitter, baseline
 from src.Stage_4_Preprocessor.preprocessor import missing_imputer, outlier_detector
 from src.utils.PipelineReporter import PipelineReporter
@@ -31,7 +31,7 @@ def Pipeline():
     # dataCheck(data_df)
 
     # ────────────── Step 3: Unified EPD Analyze ──────────────
-    FullPEDPipeline(data_df)
+    UnifiedPEDAnalyze(data_df)
 
     # ────────────── Step 4: Data Split ──────────────
     train, test, val = data_splitter(data=data_df)
