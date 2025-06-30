@@ -5010,14 +5010,14 @@ propcache = ">=0.2.1"
 
 [[package]]
 name = "zenml"
-version = "0.83.0"
+version = "0.83.1"
 description = "ZenML: Write production-ready ML code."
 optional = false
 python-versions = "<3.13,>=3.9"
 groups = ["main"]
 files = [
-    {file = "zenml-0.83.0-py3-none-any.whl", hash = "sha256:a71e9f312bf2024901a7bf8f700aff0ae1ae3077f8cafd92d765b1eb601f0701"},
-    {file = "zenml-0.83.0.tar.gz", hash = "sha256:4b9782ccfe7586a13f22bf99ae1e54cff78031c4e5f8906b67c4b9e8e38d0d9c"},
+    {file = "zenml-0.83.1-py3-none-any.whl", hash = "sha256:4256aacb7bd2f23e9e7df2732425572a7e31432d28924cadd4f89c8a08b84583"},
+    {file = "zenml-0.83.1.tar.gz", hash = "sha256:a1944fa52606d42256851e38386c3ae2c809c1d74b9697a7d8d0f989531ed260"},
 ]
 
 [package.dependencies]

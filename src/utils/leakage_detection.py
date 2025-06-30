@@ -13,13 +13,13 @@ class LeakageDetector(BaseEstimator, TransformerMixin):
 
       1) Pearson correlation (numeric → numeric target) or “constant‐target‐in‐group”
          (categorical → categorical target) as before.
-      2) AUC(target‐leakage): For each feature, compute AUC(feature → target). 
+      2) AUC(target‐leakage): For each feature, compute AUC(feature → target).
          If AUC ≥ self.auc_threshold, flag as “target leakage.”
       3) AUC(train/test separation): concatenate train/test with a 0/1 label,
          compute AUC(feature → is_train); if ≥ self.auc_threshold, flag as “train/test leakage.”
       4) “Unseen categories” in categorical features (test vs train), as before.
 
-    Any findings are collected in self.leakage_report_ after .fit(...).  .transform(X) 
+    Any findings are collected in self.leakage_report_ after .fit(...).  .transform(X)
     just returns X unchanged so you can integrate it into an sklearn Pipeline.
 
     Example:
@@ -71,8 +71,8 @@ class LeakageDetector(BaseEstimator, TransformerMixin):
         categorical_cols: List[str],
     ) -> None:
         """
-        1) If target is numeric with >2 levels: compute Pearson(feature, y). 
-           If |corr| ≥ corr_threshold, flag that feature. 
+        1) If target is numeric with >2 levels: compute Pearson(feature, y).
+           If |corr| ≥ corr_threshold, flag that feature.
         2) Else (classification): For each feature (cat or num), check if any single
            value or bin of that feature yields only one target class (i.e. constant‐target group).
         """
@@ -87,8 +87,7 @@ class LeakageDetector(BaseEstimator, TransformerMixin):
                 if X[col].var(ddof=0) == 0:
                     continue
                 try:
-                    corr = np.corrcoef(X[col].astype(
-                        float), y.astype(float))[0, 1]
+                    corr = np.corrcoef(X[col].astype(float), y.astype(float))[0, 1]
                 except Exception:
                     continue
                 if np.isnan(corr):
@@ -141,7 +140,7 @@ class LeakageDetector(BaseEstimator, TransformerMixin):
     ) -> None:
         """
         For each feature in numeric_cols + categorical_cols:
-          – If numeric: scale to [0,1], compute AUC(feature → y). 
+          – If numeric: scale to [0,1], compute AUC(feature → y).
           – If categorical: one‐hot each level, compute AUC(dummy → y) per level, take max.
         If max AUC ≥ auc_threshold, flag as potential leakage.
         """
@@ -156,8 +155,7 @@ class LeakageDetector(BaseEstimator, TransformerMixin):
             try:
                 if col in categorical_cols:
                     # one‐hot encode, find per‐level AUC
-                    dummies = pd.get_dummies(
-                        X[col], prefix=col, dummy_na=False)
+                    dummies = pd.get_dummies(X[col], prefix=col, dummy_na=False)
                     per_level_aucs: List[float] = []
                     for dummy_col in dummies.columns:
                         try:
@@ -208,11 +206,8 @@ class LeakageDetector(BaseEstimator, TransformerMixin):
         """
         from sklearn.metrics import roc_auc_score
 
-        combined = pd.concat([train_df, test_df],
-                             axis=0).reset_index(drop=True)
-        labels = np.concatenate(
-            [np.zeros(len(train_df)), np.ones(len(test_df))]
-        )
+        combined = pd.concat([train_df, test_df], axis=0).reset_index(drop=True)
+        labels = np.concatenate([np.zeros(len(train_df)), np.ones(len(test_df))])
         sep_feats: List[str] = []
         auc_scores: Dict[str, float] = {}
 
@@ -220,14 +215,11 @@ class LeakageDetector(BaseEstimator, TransformerMixin):
             try:
                 values = combined[col]
                 if col in categorical_cols:
-                    dummies = pd.get_dummies(
-                        values, prefix=col, dummy_na=False
-                    )
+                    dummies = pd.get_dummies(values, prefix=col, dummy_na=False)
                     per_level_aucs: List[float] = []
                     for dummy_col in dummies.columns:
                         try:
-                            auc_val = roc_auc_score(
-                                labels, dummies[dummy_col].values)
+                            auc_val = roc_auc_score(labels, dummies[dummy_col].values)
                             per_level_aucs.append(float(auc_val))
                         except Exception:
                             continue
@@ -240,8 +232,7 @@ class LeakageDetector(BaseEstimator, TransformerMixin):
                     if xv.nunique() <= 1:
                         continue
                     xv_scaled = (xv - xv.min()) / (xv.max() - xv.min() + 1e-9)
-                    max_auc = float(roc_auc_score(
-                        labels, xv_scaled.fillna(0.5)))
+                    max_auc = float(roc_auc_score(labels, xv_scaled.fillna(0.5)))
 
                 auc_scores[col] = max_auc
                 if max_auc >= self.auc_threshold:
@@ -339,7 +330,8 @@ class LeakageDetector(BaseEstimator, TransformerMixin):
         if X_train_df is not None:
             if numeric_cols is None:
                 numeric_cols = X_train_df.select_dtypes(
-                    include=[np.number]).columns.tolist()
+                    include=[np.number]
+                ).columns.tolist()
             if categorical_cols is None:
                 categorical_cols = [
                     c for c in X_train_df.columns if c not in numeric_cols
@@ -367,7 +359,8 @@ class LeakageDetector(BaseEstimator, TransformerMixin):
             )
         else:
             self.leakage_report_["target_leakage_auc"] = {
-                "auc_per_feature": {}, "leaky_features": []
+                "auc_per_feature": {},
+                "leaky_features": [],
             }
 
         # 3) AUC(train/test separation)
@@ -382,7 +375,8 @@ class LeakageDetector(BaseEstimator, TransformerMixin):
             )
         else:
             self.leakage_report_["train_test_leakage_auc"] = {
-                "auc_per_feature": {}, "leaky_features": []
+                "auc_per_feature": {},
+                "leaky_features": [],
             }
 
         # 4) Unseen categories (if categoricals present)
@@ -398,14 +392,17 @@ class LeakageDetector(BaseEstimator, TransformerMixin):
         self._fitted = True
         return self
 
-    def transform(self, X: Union[pd.DataFrame, np.ndarray]) -> Union[pd.DataFrame, np.ndarray]:
+    def transform(
+        self, X: Union[pd.DataFrame, np.ndarray]
+    ) -> Union[pd.DataFrame, np.ndarray]:
         """
         This transformer does not modify X; it only flags leakage during fit().
         Returns X unchanged. Must be called after .fit(...).
         """
         if not self._fitted:
             raise RuntimeError(
-                "LeakageDetector must be fitted before calling transform().")
+                "LeakageDetector must be fitted before calling transform()."
+            )
         return X
 
     def fit_transform(

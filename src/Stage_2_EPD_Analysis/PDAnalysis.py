@@ -1,19 +1,4 @@
 #!/usr/bin/env python3
-"""
-probabilistic_analysis_v2.py – Probabilistic Analysis with auto vs full modes
-
-Usage:
-    python probabilistic_analysis_v2.py --data clean.parquet \
-        --outdir reports/probabilistic_v2 \
-        --mode auto \
-        [--target TARGET_COLUMN] \
-        [--quantile-output normal|uniform] \
-        [--min-dist-count 50] \
-        [--entropy-bins 20] \
-        [--jobs -1]
-"""
-
-import argparse
 import json
 from pathlib import Path
 from multiprocessing import cpu_count
@@ -23,7 +8,11 @@ import pandas as pd
 import scipy.stats as stats
 from statsmodels.distributions.empirical_distribution import ECDF
 
-from sklearn.feature_selection import mutual_info_classif, mutual_info_regression, f_classif
+from sklearn.feature_selection import (
+    mutual_info_classif,
+    mutual_info_regression,
+    f_classif,
+)
 from sklearn.preprocessing import QuantileTransformer
 from copulas.multivariate import GaussianMultivariate
 from joblib import Parallel, delayed
@@ -56,8 +45,7 @@ class ProbabilisticAnalysis:
             raise TypeError("`df` must be a pandas DataFrame")
 
         if target and target not in df.columns:
-            print(
-                f"⚠️ Warning: Target '{target}' not found in dataframe. Ignoring.")
+            print(f"⚠️ Warning: Target '{target}' not found in dataframe. Ignoring.")
             target = None
 
         self.df = df.copy().reset_index(drop=True)
@@ -103,17 +91,17 @@ class ProbabilisticAnalysis:
         """Helper for parallel distribution fitting on a single column."""
 
         candidate_distros = [
-            "norm",        # Normal (Gaussian) — symmetric bell curve
-            "lognorm",     # Log-Normal — positive-skewed data, e.g., income
-            "gamma",       # Gamma — positive-only, skewed data rainfall, time
-            "beta",        # Beta — bounded between 0 and 1, e.g., proportions, probabilities
+            "norm",  # Normal (Gaussian) — symmetric bell curve
+            "lognorm",  # Log-Normal — positive-skewed data, e.g., income
+            "gamma",  # Gamma — positive-only, skewed data rainfall, time
+            "beta",  # Beta — bounded between 0 and 1, e.g., proportions, probabilities
             "weibull_min",  # Weibull — versatile, survival/failure analysis
-            "expon",       # Exponential — memoryless events, time between Poisson events
-            "pareto",      # Pareto — long tail distributions wealth, file sizes
-            "t",           # Student's t — ~ normal, but  heavier tails - small samples
-            "cauchy",      # Cauchy — very heavy-tailed, no mean/variance, use with caution
-            "rayleigh",    # Rayleigh — positive values, magnitude of 2D vectors signal noise
-            "triang"       # Triangular — known min/mode/max shape, simple bounded distribution
+            "expon",  # Exponential — memoryless events, time between Poisson events
+            "pareto",  # Pareto — long tail distributions wealth, file sizes
+            "t",  # Student's t — ~ normal, but  heavier tails - small samples
+            "cauchy",  # Cauchy — very heavy-tailed, no mean/variance, use with caution
+            "rayleigh",  # Rayleigh — positive values, magnitude of 2D vectors signal noise
+            "triang",  # Triangular — known min/mode/max shape, simple bounded distribution
         ]
 
         best = None  # (dist_name, params, aic, ks_stat, ks_p)
@@ -140,8 +128,7 @@ class ProbabilisticAnalysis:
             # Add Anderson-Darling test for normality as extra info
         try:
             fitted_cdf = dist.cdf
-            ad_stat = self._generic_ad_stat(
-                values, lambda x: fitted_cdf(x, *params))
+            ad_stat = self._generic_ad_stat(values, lambda x: fitted_cdf(x, *params))
         except Exception:
             ad_stat = None
 
@@ -156,13 +143,11 @@ class ProbabilisticAnalysis:
         In 'auto' mode, only columns with >= min_dist_count non-null values are fitted.
         In 'full' mode, all numeric columns (with at least one non-null) are attempted.
         """
-        numeric_cols = self.df.select_dtypes(
-            include=np.number).columns.tolist()
+        numeric_cols = self.df.select_dtypes(include=np.number).columns.tolist()
         # filter by count if auto
         if self.mode == "auto":
             numeric_cols = [
-                c for c in numeric_cols
-                if self.df[c].count() >= self.min_dist_count
+                c for c in numeric_cols if self.df[c].count() >= self.min_dist_count
             ]
 
         # prepare tasks
@@ -174,8 +159,7 @@ class ProbabilisticAnalysis:
 
         # parallel execution
         results = Parallel(n_jobs=self.jobs)(
-            delayed(self._fit_one_distribution)(self, col, vals)
-            for col, vals in tasks
+            delayed(self._fit_one_distribution)(self, col, vals) for col, vals in tasks
         )
 
         # collect best fits
@@ -191,7 +175,7 @@ class ProbabilisticAnalysis:
                 "aic": float(aic),
                 "ks_stat": float(ks),
                 "ks_p": float(pval),
-                "anderson_darling": float(ad_stat) if ad_stat is not None else None
+                "anderson_darling": float(ad_stat) if ad_stat is not None else None,
             }
 
         # save JSON
@@ -207,8 +191,9 @@ class ProbabilisticAnalysis:
         n = len(sample)
         i = np.arange(1, n + 1)
         cdf_vals = np.clip(cdf_fn(sample), 1e-9, 1 - 1e-9)
-        s = -n - np.sum((2 * i - 1) * (np.log(cdf_vals)
-                        + np.log(1 - cdf_vals[::-1])) / n)
+        s = -n - np.sum(
+            (2 * i - 1) * (np.log(cdf_vals) + np.log(1 - cdf_vals[::-1])) / n
+        )
         return s
 
     def shannon_entropy(self) -> dict[str, float]:
@@ -227,7 +212,8 @@ class ProbabilisticAnalysis:
                 ent[col] = float(-np.sum(probs * np.log(probs + 1e-9)))
             else:
                 hist, _ = np.histogram(
-                    vals.values, bins=self.entropy_bins, density=True)
+                    vals.values, bins=self.entropy_bins, density=True
+                )
                 # Avoid log(0) by adding a small epsilon
                 ent[col] = float(stats.entropy(hist + 1e-9))
         self.entropy = ent
@@ -239,7 +225,7 @@ class ProbabilisticAnalysis:
 
     def cramers_v_matrix(self) -> pd.DataFrame:
         """Pairwise Cramér's V for all object columns (categorical ↔ categorical)."""
-        obj_cols = self.df.select_dtypes(include='object').columns
+        obj_cols = self.df.select_dtypes(include="object").columns
         result = pd.DataFrame(index=obj_cols, columns=obj_cols, dtype=float)
 
         for col1, col2 in combinations(obj_cols, 2):
@@ -266,13 +252,14 @@ class ProbabilisticAnalysis:
 
     def theils_u_matrix(self) -> pd.DataFrame:
         """Theil's U matrix (asymmetrical) for all categorical pairs."""
+
         def theils_u(x, y):
             s_xy = mutual_info_score(x, y)
             x_enc = pd.factorize(x.dropna())[0]
             hx = stats.entropy(np.bincount(x_enc))
             return s_xy / hx if hx != 0 else 1.0
 
-        obj_cols = self.df.select_dtypes(include='object').columns
+        obj_cols = self.df.select_dtypes(include="object").columns
         result = pd.DataFrame(index=obj_cols, columns=obj_cols, dtype=float)
 
         for col1 in obj_cols:
@@ -280,12 +267,10 @@ class ProbabilisticAnalysis:
                 if col1 == col2:
                     result.loc[col1, col2] = 1.0
                 else:
-                    result.loc[col1, col2] = theils_u(
-                        self.df[col1], self.df[col2])
+                    result.loc[col1, col2] = theils_u(self.df[col1], self.df[col2])
 
         result.to_csv(REPORT_DIR / "theils_u_matrix.csv")
-        print(
-            f"→ Theil’s U matrix saved to {REPORT_DIR/'theils_u_matrix.csv'}")
+        print(f"→ Theil’s U matrix saved to {REPORT_DIR/'theils_u_matrix.csv'}")
         return result
 
     def rank_correlations(self) -> pd.DataFrame:
@@ -359,16 +344,14 @@ class ProbabilisticAnalysis:
             try:
                 if y.nunique() <= 10:  # Classification
                     if nonlinear:
-                        score = mutual_info_classif(
-                            X[[col]], y, random_state=0)[0]
+                        score = mutual_info_classif(X[[col]], y, random_state=0)[0]
                         method = "mutual_info"
                     else:
                         score = f_classif(X[[col]], y)[0][0]
                         method = "f_classif"
                 else:  # Regression
                     if nonlinear:
-                        score = mutual_info_regression(
-                            X[[col]], y, random_state=0)[0]
+                        score = mutual_info_regression(X[[col]], y, random_state=0)[0]
                         method = "mutual_info"
                     else:
                         score = f_classif(X[[col]], y)[0][0]
@@ -386,7 +369,8 @@ class ProbabilisticAnalysis:
         df_out = df_out.sort_values("score", ascending=False)
         df_out.to_csv(REPORT_DIR / "target_dependency_scores.csv")
         print(
-            f"→ Target dependency scores saved to {REPORT_DIR/'target_dependency_scores.csv'}")
+            f"→ Target dependency scores saved to {REPORT_DIR/'target_dependency_scores.csv'}"
+        )
         self.mi_scores = mi_series
         return mi_series
 
@@ -400,8 +384,7 @@ class ProbabilisticAnalysis:
 
         tables = {}
         for col in self.df.select_dtypes(include="object").columns:
-            ct = pd.crosstab(
-                self.df[col], self.df[self.target], normalize="index")
+            ct = pd.crosstab(self.df[col], self.df[self.target], normalize="index")
             count = self.df[col].value_counts()
             ct["__count"] = count
             tables[col] = ct
@@ -415,6 +398,7 @@ class ProbabilisticAnalysis:
         Probability Integral Transform for each numeric column via ECDF.
         """
         from statsmodels.distributions.empirical_distribution import ECDF
+
         transformed = {}
         for col in self.df.select_dtypes(include=np.number).columns:
             vals = self.df[col].dropna().values
@@ -422,7 +406,8 @@ class ProbabilisticAnalysis:
                 continue
             ecdf = ECDF(vals)
             transformed[col] = self.df[col].map(
-                lambda x: ecdf(x) if pd.notna(x) else np.nan)
+                lambda x: ecdf(x) if pd.notna(x) else np.nan
+            )
         pit_df = pd.DataFrame(transformed, index=self.df.index)
         pit_df.to_csv(REPORT_DIR / "pit_transformed.csv", index=False)
         print(f"→ PIT transform saved to {REPORT_DIR/'pit_transformed.csv'}")
@@ -441,11 +426,13 @@ class ProbabilisticAnalysis:
             return pd.DataFrame()  # Warning suppressed, but logic flaw noted
 
         qt = QuantileTransformer(
-            output_distribution=self.quantile_output, random_state=0)
+            output_distribution=self.quantile_output, random_state=0
+        )
         arr = qt.fit_transform(self.df[nums])
         qdf = pd.DataFrame(arr, columns=nums, index=self.df.index)
         qdf.to_csv(
-            REPORT_DIR / f"quantile_transformed_{self.quantile_output}.csv", index=False)
+            REPORT_DIR / f"quantile_transformed_{self.quantile_output}.csv", index=False
+        )
         print(f"→ Quantile transform saved to {REPORT_DIR}")
         self.quantile_df = qdf
         return qdf
@@ -460,25 +447,27 @@ class ProbabilisticAnalysis:
 
         stats_list = []
         for col in self.df.select_dtypes(include="object").columns:
-            grp = self.df.dropna(subset=[self.target]).groupby(col)[
-                self.target]
+            grp = self.df.dropna(subset=[self.target]).groupby(col)[self.target]
             for name, series in grp:
                 arr = series.values
                 mu = float(arr.mean())
                 ci = np.percentile(arr, [2.5, 97.5])
-                stats_list.append({
-                    "feature": col,
-                    "group": name,
-                    "mean": mu,
-                    "ci_lower": float(ci[0]),
-                    "ci_upper": float(ci[1]),
-                    "std_dev": float(arr.std()),
-                    "n": len(arr)
-                })
+                stats_list.append(
+                    {
+                        "feature": col,
+                        "group": name,
+                        "mean": mu,
+                        "ci_lower": float(ci[0]),
+                        "ci_upper": float(ci[1]),
+                        "std_dev": float(arr.std()),
+                        "n": len(arr),
+                    }
+                )
         gs = pd.DataFrame(stats_list)
         gs.to_csv(REPORT_DIR / "bayesian_group_stats.csv", index=False)
         print(
-            f"→ Bayesian group stats saved to {REPORT_DIR/'bayesian_group_stats.csv'}")
+            f"→ Bayesian group stats saved to {REPORT_DIR/'bayesian_group_stats.csv'}"
+        )
         self.group_stats = gs
         return gs
 
@@ -507,8 +496,7 @@ class ProbabilisticAnalysis:
         Saves figure to reports/probabilistic/qqpp_<feature>.png
         """
         if feature not in self.distributions:
-            print(
-                f"→ Skipping QQ/PP for '{feature}': no fitted distribution found.")
+            print(f"→ Skipping QQ/PP for '{feature}': no fitted distribution found.")
             return
 
         dist_name, params, _, _, _ = self.distributions[feature]
@@ -523,8 +511,11 @@ class ProbabilisticAnalysis:
         sorted_data = np.sort(values)
         ecdf = ECDF(values)
         plt.plot(sorted_data, ecdf(sorted_data), label="Empirical")
-        plt.plot(sorted_data, getattr(stats, dist_name).cdf(sorted_data, *params),
-                 label=f"{dist_name} CDF")
+        plt.plot(
+            sorted_data,
+            getattr(stats, dist_name).cdf(sorted_data, *params),
+            label=f"{dist_name} CDF",
+        )
         plt.legend()
         plt.title(f"PP Plot ({feature})")
 
@@ -545,11 +536,11 @@ class ProbabilisticAnalysis:
             return None
         df_nonmiss = self.df.dropna(subset=[self.target])
         y = df_nonmiss[self.target]
-        X = pd.get_dummies(df_nonmiss.drop(
-            columns=[self.target]), drop_first=True)
+        X = pd.get_dummies(df_nonmiss.drop(columns=[self.target]), drop_first=True)
         if X.shape[1] == 0:
             print(
-                "→ Skipping feature importance: no features left after one‐hot encoding.")
+                "→ Skipping feature importance: no features left after one‐hot encoding."
+            )
             return None
 
         if y.nunique() <= 10:
@@ -560,10 +551,10 @@ class ProbabilisticAnalysis:
         model.fit(X, y)
         self.model_score = model.score(X, y)
 
-        perm = permutation_importance(
-            model, X, y, n_repeats=10, random_state=0)
-        imp_series = pd.Series(perm.importances_mean,
-                               index=X.columns).sort_values(ascending=False)
+        perm = permutation_importance(model, X, y, n_repeats=10, random_state=0)
+        imp_series = pd.Series(perm.importances_mean, index=X.columns).sort_values(
+            ascending=False
+        )
         out_path = REPORT_DIR / "permutation_importance.csv"
         imp_series.to_csv(out_path, header=["importance"])
         print(f"→ Permutation feature importances written to {out_path}")
@@ -577,7 +568,8 @@ class ProbabilisticAnalysis:
         """
         if feature not in self.distributions:
             print(
-                f"→ Skipping diagnostic plot for '{feature}': no fitted distribution.")
+                f"→ Skipping diagnostic plot for '{feature}': no fitted distribution."
+            )
             return
 
         values = self.df[feature].dropna().values
@@ -585,11 +577,13 @@ class ProbabilisticAnalysis:
         dist = getattr(stats, dist_name)
 
         plt.figure(figsize=(10, 5))
-        sns.histplot(values, stat="density", kde=True,
-                     color="skyblue", label="Empirical")
+        sns.histplot(
+            values, stat="density", kde=True, color="skyblue", label="Empirical"
+        )
         x = np.linspace(values.min(), values.max(), 200)
-        plt.plot(x, dist.pdf(x, *params), color="darkred",
-                 lw=2, label=f"Fitted {dist_name}")
+        plt.plot(
+            x, dist.pdf(x, *params), color="darkred", lw=2, label=f"Fitted {dist_name}"
+        )
         plt.title(f"Histogram + Fitted PDF for '{feature}'")
         plt.legend()
         plt.tight_layout()
@@ -611,7 +605,9 @@ class ProbabilisticAnalysis:
         actual_perc, _ = np.histogram(actual, bins=bins, density=True)
         expected_perc = expected_perc + 1e-9
         actual_perc = actual_perc + 1e-9
-        return np.sum((expected_perc - actual_perc) * np.log(expected_perc / actual_perc))
+        return np.sum(
+            (expected_perc - actual_perc) * np.log(expected_perc / actual_perc)
+        )
 
     def drift_and_divergence_tests(self) -> pd.DataFrame:
         num_cols = self.df.select_dtypes(include=np.number).columns.tolist()
@@ -628,31 +624,29 @@ class ProbabilisticAnalysis:
             if len(base_vals) < 5 or len(curr_vals) < 5:
                 continue
             try:
-                jsd = self.jensen_shannon_divergence(self,
-                                                     np.histogram(
-                                                         base_vals, bins=20, density=True)[0],
-                                                     np.histogram(
-                                                         curr_vals, bins=20, density=True)[0],
-                                                     )
+                jsd = self.jensen_shannon_divergence(
+                    self,
+                    np.histogram(base_vals, bins=20, density=True)[0],
+                    np.histogram(curr_vals, bins=20, density=True)[0],
+                )
                 psi = self.population_stability_index(
-                    self, base_vals, curr_vals, bins=20)
+                    self, base_vals, curr_vals, bins=20
+                )
                 kl = kl_entropy(
                     np.histogram(base_vals, bins=20, density=True)[0] + 1e-9,
                     np.histogram(curr_vals, bins=20, density=True)[0] + 1e-9,
                 )
-                results.append({
-                    "feature": col,
-                    "JSD": jsd,
-                    "PSI": psi,
-                    "KL_divergence": kl
-                })
+                results.append(
+                    {"feature": col, "JSD": jsd, "PSI": psi, "KL_divergence": kl}
+                )
             except Exception:
                 continue
 
         df_out = pd.DataFrame(results)
         df_out.to_csv(REPORT_DIR / "divergence_tests.csv", index=False)
         print(
-            f"→ Drift & divergence tests saved to {REPORT_DIR/'divergence_tests.csv'}")
+            f"→ Drift & divergence tests saved to {REPORT_DIR/'divergence_tests.csv'}"
+        )
         return df_out
 
     def bootstrap_column_ci(self, n_iter=1000, ci_level=95) -> pd.DataFrame:
@@ -670,21 +664,22 @@ class ProbabilisticAnalysis:
                 continue  # Avoid unstable CI estimates
 
             # Bootstrap samples
-            samples = np.random.choice(
-                vals, size=(n_iter, len(vals)), replace=True)
+            samples = np.random.choice(vals, size=(n_iter, len(vals)), replace=True)
             means = np.mean(samples, axis=1)
             medians = np.median(samples, axis=1)
 
             ci_mean = np.percentile(means, [alpha, 100 - alpha])
             ci_median = np.percentile(medians, [alpha, 100 - alpha])
 
-            results.append({
-                "feature": col,
-                "mean_lower": ci_mean[0],
-                "mean_upper": ci_mean[1],
-                "median_lower": ci_median[0],
-                "median_upper": ci_median[1]
-            })
+            results.append(
+                {
+                    "feature": col,
+                    "mean_lower": ci_mean[0],
+                    "mean_upper": ci_mean[1],
+                    "median_lower": ci_median[0],
+                    "median_upper": ci_median[1],
+                }
+            )
 
         df_out = pd.DataFrame(results)
         df_out.to_csv(REPORT_DIR / "bootstrap_cis.csv", index=False)
@@ -702,15 +697,21 @@ class ProbabilisticAnalysis:
         # Ensure skew/kurtosis cached
         if not hasattr(self, "skew_kurt_cache"):
             self.skew_kurt_cache = self.df.select_dtypes(include=np.number).apply(
-                lambda x: pd.Series({
-                    "skewness": stats.skew(x.dropna()) if x.nunique() > 1 else 0.0,
-                    "kurtosis": stats.kurtosis(x.dropna(), fisher=True) if x.nunique() > 1 else 0.0
-                })
+                lambda x: pd.Series(
+                    {
+                        "skewness": stats.skew(x.dropna()) if x.nunique() > 1 else 0.0,
+                        "kurtosis": (
+                            stats.kurtosis(x.dropna(), fisher=True)
+                            if x.nunique() > 1
+                            else 0.0
+                        ),
+                    }
+                )
             )
 
         # Ensure drift cached
         if not hasattr(self, "drift_results_cache"):
-            if callable(getattr(self, 'drift_and_divergence_tests', None)):
+            if callable(getattr(self, "drift_and_divergence_tests", None)):
                 self.drift_results_cache = self.drift_and_divergence_tests()
             else:
                 self.drift_results_cache = pd.DataFrame()
@@ -758,8 +759,9 @@ class ProbabilisticAnalysis:
 
             # Drift flags
             if col in self.drift_results_cache["feature"].values:
-                drift_row = self.drift_results_cache[self.drift_results_cache["feature"] == col].head(
-                    1)
+                drift_row = self.drift_results_cache[
+                    self.drift_results_cache["feature"] == col
+                ].head(1)
                 if not drift_row.empty:
                     psi = drift_row["PSI"].values[0]
                     jsd = drift_row["JSD"].values[0]
@@ -791,8 +793,7 @@ class ProbabilisticAnalysis:
         csv_path = REPORT_DIR / "final_summary.csv"
         json_path.write_text(json.dumps(flags, indent=2))
         pd.DataFrame(csv_rows).to_csv(csv_path, index=False)
-        print(
-            f"✅ Final report written to {json_path.name} and {csv_path.name}")
+        print(f"✅ Final report written to {json_path.name} and {csv_path.name}")
         return flags
 
     def run_all(self):

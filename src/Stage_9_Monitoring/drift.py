@@ -24,16 +24,18 @@ class DriftMonitor:
       * Model Performance Drift: performance decay vs baseline
     """
 
-    def __init__(self,
-                 numeric_features: List[str],
-                 categorical_features: List[str],
-                 psi_bins: int = 10,
-                 ks_alpha: float = 0.05,
-                 psi_threshold: float = 0.1,
-                 wasserstein_threshold: float = 0.1,
-                 clf_threshold: float = 0.7,
-                 history_path: str = "drift_history.json",
-                 random_state: int = 42):
+    def __init__(
+        self,
+        numeric_features: List[str],
+        categorical_features: List[str],
+        psi_bins: int = 10,
+        ks_alpha: float = 0.05,
+        psi_threshold: float = 0.1,
+        wasserstein_threshold: float = 0.1,
+        clf_threshold: float = 0.7,
+        history_path: str = "drift_history.json",
+        random_state: int = 42,
+    ):
         self.numeric_features = numeric_features
         self.categorical_features = categorical_features
         self.psi_bins = psi_bins
@@ -43,16 +45,19 @@ class DriftMonitor:
         self.clf_threshold = clf_threshold
         self.random_state = random_state
         self.classifier = RandomForestClassifier(
-            n_estimators=100, random_state=self.random_state)
+            n_estimators=100, random_state=self.random_state
+        )
         self.history_path = Path(history_path)
         self.reference_df: Optional[pd.DataFrame] = None
         self.reference_target: Optional[pd.Series] = None
         self.deployed_model = None
 
-    def fit_reference(self,
-                      ref_df: pd.DataFrame,
-                      ref_target: Optional[pd.Series] = None,
-                      deployed_model=None):
+    def fit_reference(
+        self,
+        ref_df: pd.DataFrame,
+        ref_target: Optional[pd.Series] = None,
+        deployed_model=None,
+    ):
         """Set reference data, optional reference target, and model."""
         self.reference_df = ref_df.reset_index(drop=True).copy()
         if ref_target is not None:
@@ -69,24 +74,23 @@ class DriftMonitor:
 
     def _ks(self, train: pd.Series, prod: pd.Series) -> Dict[str, Any]:
         stat, p = ks_2samp(train.dropna(), prod.dropna())
-        return {"statistic": float(stat),
-                "p_value": float(p),
-                "drift": p < self.ks_alpha}
+        return {
+            "statistic": float(stat),
+            "p_value": float(p),
+            "drift": p < self.ks_alpha,
+        }
 
     def _chi2(self, train: pd.Series, prod: pd.Series) -> Dict[str, Any]:
-        ct = pd.crosstab(train.fillna("__MISSING__"),
-                         prod.fillna("__MISSING__"))
+        ct = pd.crosstab(train.fillna("__MISSING__"), prod.fillna("__MISSING__"))
         stat, p, _, _ = chi2_contingency(ct)
-        return {"statistic": float(stat),
-                "p_value": float(p),
-                "drift": p < 0.05}
+        return {"statistic": float(stat), "p_value": float(p), "drift": p < 0.05}
 
     def _wasserstein(self, train: np.ndarray, prod: np.ndarray) -> float:
         return float(wasserstein_distance(train, prod))
 
-    def _classifier_drift(self,
-                          ref: pd.DataFrame,
-                          prod: pd.DataFrame) -> Dict[str, Any]:
+    def _classifier_drift(
+        self, ref: pd.DataFrame, prod: pd.DataFrame
+    ) -> Dict[str, Any]:
         X = pd.concat([ref, prod], ignore_index=True)
         y = np.array([0] * len(ref) + [1] * len(prod))
         split = int(0.7 * len(X))
@@ -100,19 +104,23 @@ class DriftMonitor:
     def _prediction_drift(self, new_df: pd.DataFrame) -> Dict[str, Any]:
         if not self.deployed_model:
             return {}
-        ref_preds = (self.deployed_model.predict_proba(self.reference_df)
-                     if hasattr(self.deployed_model, "predict_proba")
-                     else self.deployed_model.predict(self.reference_df))
-        new_preds = (self.deployed_model.predict_proba(new_df)
-                     if hasattr(self.deployed_model, "predict_proba")
-                     else self.deployed_model.predict(new_df))
+        ref_preds = (
+            self.deployed_model.predict_proba(self.reference_df)
+            if hasattr(self.deployed_model, "predict_proba")
+            else self.deployed_model.predict(self.reference_df)
+        )
+        new_preds = (
+            self.deployed_model.predict_proba(new_df)
+            if hasattr(self.deployed_model, "predict_proba")
+            else self.deployed_model.predict(new_df)
+        )
         if isinstance(ref_preds, np.ndarray) and ref_preds.ndim > 1:
             ref_preds = ref_preds[:, 1]
             new_preds = new_preds[:, 1]
         return {
             "ks": self._ks(pd.Series(ref_preds), pd.Series(new_preds)),
             "psi": self._psi(np.array(ref_preds), np.array(new_preds)),
-            "wasserstein": self._wasserstein(np.array(ref_preds), np.array(new_preds))
+            "wasserstein": self._wasserstein(np.array(ref_preds), np.array(new_preds)),
         }
 
     def _skew(self, new_df: pd.DataFrame) -> Dict[str, Any]:
@@ -120,46 +128,54 @@ class DriftMonitor:
         new_cols = set(new_df.columns)
         return {
             "missing_features": list(ref_cols - new_cols),
-            "added_features": list(new_cols - ref_cols)
+            "added_features": list(new_cols - ref_cols),
         }
 
-    def _performance_drift(self,
-                           new_df: pd.DataFrame,
-                           new_target: pd.Series) -> Dict[str, Any]:
+    def _performance_drift(
+        self, new_df: pd.DataFrame, new_target: pd.Series
+    ) -> Dict[str, Any]:
         if not self.deployed_model or self.reference_target is None:
             return {}
         new_score = float(self.deployed_model.score(new_df, new_target))
-        ref_score = float(self.deployed_model.score(
-            self.reference_df, self.reference_target))
+        ref_score = float(
+            self.deployed_model.score(self.reference_df, self.reference_target)
+        )
         return {
             "new_score": new_score,
             "reference_score": ref_score,
-            "drift": new_score < ref_score
+            "drift": new_score < ref_score,
         }
 
-    def detect(self,
-               new_df: pd.DataFrame,
-               new_target: Optional[pd.Series] = None) -> Tuple[Dict[str, Any], List[str]]:
+    def detect(
+        self, new_df: pd.DataFrame, new_target: Optional[pd.Series] = None
+    ) -> Tuple[Dict[str, Any], List[str]]:
         if self.reference_df is None:
-            raise ValueError(
-                "Reference data not defined. Call fit_reference().")
+            raise ValueError("Reference data not defined. Call fit_reference().")
         report = {
             "timestamp": datetime.utcnow().isoformat(),
-            "data_drift": {}, "prediction_drift": {},
-            "target_drift": {}, "skew": {}, "performance_drift": {}
+            "data_drift": {},
+            "prediction_drift": {},
+            "target_drift": {},
+            "skew": {},
+            "performance_drift": {},
         }
         alerts = []
 
         # Data Drift
         for col in self.numeric_features:
             ks_res = self._ks(self.reference_df[col], new_df[col])
-            psi_res = self._psi(
-                self.reference_df[col].values, new_df[col].values)
-            wd = self._wasserstein(
-                self.reference_df[col].values, new_df[col].values)
+            psi_res = self._psi(self.reference_df[col].values, new_df[col].values)
+            wd = self._wasserstein(self.reference_df[col].values, new_df[col].values)
             report["data_drift"][col] = {
-                "ks": ks_res, "psi": psi_res, "wasserstein": wd}
-            if ks_res["drift"] or psi_res >= self.psi_threshold or wd >= self.wasserstein_threshold:
+                "ks": ks_res,
+                "psi": psi_res,
+                "wasserstein": wd,
+            }
+            if (
+                ks_res["drift"]
+                or psi_res >= self.psi_threshold
+                or wd >= self.wasserstein_threshold
+            ):
                 alerts.append(f"data_drift_numeric_{col}")
 
         for col in self.categorical_features:

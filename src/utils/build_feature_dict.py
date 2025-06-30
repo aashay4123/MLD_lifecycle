@@ -42,6 +42,7 @@ def load_yaml(path: Path) -> dict:
     except yaml.YAMLError as e:
         sys.exit(f"❌  YAML notes malformed ({path}):\n{e}")
 
+
 # ────────────────────────────────────────────────────────────────
 
 
@@ -55,13 +56,15 @@ def build(audit_path: Path, notes_path: Path, out_path: Path) -> None:
 
     rows = []
     for col in audit["columns"]:
-        rows.append({
-            "Feature":   f'`{col["name"]}`',
-            "Origin":    col.get("origin", "—"),
-            "Transform": col.get("transform", "—"),
-            "Kept":      "✅" if col.get("kept", True) else "❌",
-            "Notes":     notes.get(col["name"], "")
-        })
+        rows.append(
+            {
+                "Feature": f'`{col["name"]}`',
+                "Origin": col.get("origin", "—"),
+                "Transform": col.get("transform", "—"),
+                "Kept": "✅" if col.get("kept", True) else "❌",
+                "Notes": notes.get(col["name"], ""),
+            }
+        )
 
     df = pd.DataFrame(rows)
 
@@ -72,19 +75,15 @@ def build(audit_path: Path, notes_path: Path, out_path: Path) -> None:
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(md, encoding="utf-8")
-    print(
-        f"✅  Feature dictionary written → {out_path.relative_to(Path.cwd())}")
+    print(f"✅  Feature dictionary written → {out_path.relative_to(Path.cwd())}")
 
 
 # ────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     p = argparse.ArgumentParser()
-    p.add_argument(
-        "--audit", default="reports/feature/feature_audit.json", type=Path)
-    p.add_argument(
-        "--notes", default="docs/feature_notes.yaml",           type=Path)
-    p.add_argument(
-        "--out",   default="docs/feature_dictionary.md",        type=Path)
+    p.add_argument("--audit", default="reports/feature/feature_audit.json", type=Path)
+    p.add_argument("--notes", default="docs/feature_notes.yaml", type=Path)
+    p.add_argument("--out", default="docs/feature_dictionary.md", type=Path)
     args = p.parse_args()
 
     build(args.audit, args.notes, args.out)

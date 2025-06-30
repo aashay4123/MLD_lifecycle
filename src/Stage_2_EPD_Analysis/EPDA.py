@@ -30,6 +30,7 @@ from src.utils.monitor import monitor
 from src.utils.perfkit import PerfMixin, perfclass
 
 import warnings
+
 warnings.filterwarnings("ignore")
 
 tqdm.pandas()
@@ -49,7 +50,13 @@ def safe_apply(fn, *args, **kwargs):
 
 @perfclass()
 class UnifiedEPDA(PerfMixin):
-    def __init__(self, df: pd.DataFrame, target: str = None, mode: str = "auto", out_dir: str = "epda_output"):
+    def __init__(
+        self,
+        df: pd.DataFrame,
+        target: str = None,
+        mode: str = "auto",
+        out_dir: str = "epda_output",
+    ):
         super().__init__()
         self.df = df.copy()
         self.target = target
@@ -58,10 +65,8 @@ class UnifiedEPDA(PerfMixin):
         self.out_dir.mkdir(exist_ok=True, parents=True)
         self.start_time = datetime.now()
 
-        self.numeric_cols = df.select_dtypes(
-            include=np.number).columns.tolist()
-        self.categorical_cols = df.select_dtypes(
-            exclude=np.number).columns.tolist()
+        self.numeric_cols = df.select_dtypes(include=np.number).columns.tolist()
+        self.categorical_cols = df.select_dtypes(exclude=np.number).columns.tolist()
         if target and target in df.columns:
             self.y = df[target]
         else:
@@ -74,8 +79,11 @@ class UnifiedEPDA(PerfMixin):
     def _limit_features_for_runtime(self):
         if self.mode == "auto":
             self.numeric_cols = (
-                self.df[self.numeric_cols].std().sort_values(
-                    ascending=False).head(50).index.tolist()
+                self.df[self.numeric_cols]
+                .std()
+                .sort_values(ascending=False)
+                .head(50)
+                .index.tolist()
             )
             self.categorical_cols = self.categorical_cols[:20]
 
@@ -103,7 +111,7 @@ class UnifiedEPDA(PerfMixin):
             fig, ax = plt.subplots(figsize=(10, 5))
             sns.barplot(x=miss_ratio.index, y=miss_ratio.values, ax=ax)
             ax.set_title("Missing Value Ratio per Column")
-            ax.tick_params(axis='x', rotation=90)
+            ax.tick_params(axis="x", rotation=90)
             self._save_plot(fig, "missing_ratio_bar")
 
     def _run_correlation_heatmap(self):
@@ -129,8 +137,7 @@ class UnifiedEPDA(PerfMixin):
                 results.append((col, shapiro_p, jb_p))
             except Exception:
                 continue
-        norm_df = pd.DataFrame(
-            results, columns=["column", "shapiro_p", "jb_p"])
+        norm_df = pd.DataFrame(results, columns=["column", "shapiro_p", "jb_p"])
         norm_df.to_csv(self.out_dir / "normality_tests.csv", index=False)
 
     def _run_vif_analysis(self):
@@ -151,8 +158,7 @@ class UnifiedEPDA(PerfMixin):
             var_ratio = pca.explained_variance_ratio_
 
             fig, ax = plt.subplots(figsize=(8, 4))
-            sns.lineplot(x=range(1, len(var_ratio) + 1),
-                         y=var_ratio, marker="o", ax=ax)
+            sns.lineplot(x=range(1, len(var_ratio) + 1), y=var_ratio, marker="o", ax=ax)
             ax.set_title("PCA Scree Plot")
             ax.set_xlabel("Component")
             ax.set_ylabel("Explained Variance Ratio")
@@ -173,8 +179,7 @@ class UnifiedEPDA(PerfMixin):
 
             rand_pts = uniform(X.min().values, X.max().values, (m, d))
             u_dist, _ = nbrs.kneighbors(rand_pts, 2, return_distance=True)
-            x_dist, _ = nbrs.kneighbors(
-                X.sample(m).values, 2, return_distance=True)
+            x_dist, _ = nbrs.kneighbors(X.sample(m).values, 2, return_distance=True)
 
             H = u_dist[:, 0].sum() / (u_dist[:, 0].sum() + x_dist[:, 0].sum())
             return H
@@ -190,6 +195,7 @@ class UnifiedEPDA(PerfMixin):
                 model = KMeans(n_clusters=k, random_state=1).fit(X)
                 inertias.append(model.inertia_)
                 from sklearn.metrics import silhouette_score
+
                 silhouettes.append(silhouette_score(X, model.labels_))
 
             fig, ax = plt.subplots(1, 2, figsize=(12, 4))
@@ -266,6 +272,7 @@ class UnifiedEPDA(PerfMixin):
 
     def _compute_entropy_for_col(self, col):
         from scipy.stats import gaussian_kde
+
         values = self.df[col].dropna().values
         kde = gaussian_kde(values)
         xs = np.linspace(values.min(), values.max(), 100)
@@ -280,7 +287,8 @@ class UnifiedEPDA(PerfMixin):
         )
         entropy_dict = {k: v for k, v in results if k is not None}
         pd.Series(entropy_dict).sort_values(ascending=False).to_csv(
-            self.out_dir / "entropy_scores.csv")
+            self.out_dir / "entropy_scores.csv"
+        )
 
     def _compute_pit_for_col(self, col):
         qt = QuantileTransformer(output_distribution="uniform")
@@ -330,8 +338,9 @@ class UnifiedEPDA(PerfMixin):
             delayed(safe_apply)(self._compare_groups_bayesian, col)
             for col in self.numeric_cols
         )
-        df = pd.DataFrame([r for r in results if r], columns=[
-                          "feature", "mean_diff", "p_value"])
+        df = pd.DataFrame(
+            [r for r in results if r], columns=["feature", "mean_diff", "p_value"]
+        )
         df.to_csv(self.out_dir / "bayesian_group_comparison.csv", index=False)
 
     def _fit_best_distribution(self, col):
@@ -359,12 +368,14 @@ class UnifiedEPDA(PerfMixin):
             delayed(safe_apply)(self._fit_best_distribution, col)
             for col in self.numeric_cols
         )
-        df = pd.DataFrame([r for r in results if r], columns=[
-                          "feature", "best_fit", "AIC"])
+        df = pd.DataFrame(
+            [r for r in results if r], columns=["feature", "best_fit", "AIC"]
+        )
         df.to_csv(self.out_dir / "distribution_fit_quality.csv", index=False)
 
     def _detect_drift(self, col):
         from scipy.spatial.distance import jensenshannon
+
         try:
             groups = self.df.groupby(self.y)[col]
             dists = []
@@ -387,8 +398,7 @@ class UnifiedEPDA(PerfMixin):
         if self.y is None:
             return
         results = Parallel(n_jobs=N_JOBS)(
-            delayed(safe_apply)(self._detect_drift, col)
-            for col in self.numeric_cols
+            delayed(safe_apply)(self._detect_drift, col) for col in self.numeric_cols
         )
         drift_scores = {k: v for k, v in results if k}
         pd.Series(drift_scores).sort_values(ascending=False).to_csv(
@@ -398,6 +408,7 @@ class UnifiedEPDA(PerfMixin):
     def _run_copula_modeling(self):
         try:
             from copulas.multivariate import GaussianMultivariate
+
             data = self.df[self.numeric_cols].dropna()
             if data.shape[1] < 2:
                 return
@@ -413,7 +424,7 @@ class UnifiedEPDA(PerfMixin):
             return
         for col in self.categorical_cols:
             try:
-                crosstab = pd.crosstab(self.df[col], self.y, normalize='index')
+                crosstab = pd.crosstab(self.df[col], self.y, normalize="index")
                 crosstab.to_csv(self.out_dir / f"cpt_{col}.csv")
             except Exception:
                 continue
@@ -428,17 +439,18 @@ class UnifiedEPDA(PerfMixin):
             else:
                 model = RandomForestRegressor()
             model.fit(X, self.y)
-            importances = pd.Series(
-                model.feature_importances_, index=self.numeric_cols)
+            importances = pd.Series(model.feature_importances_, index=self.numeric_cols)
             importances.sort_values(ascending=False).to_csv(
-                self.out_dir / "feature_importance.csv")
+                self.out_dir / "feature_importance.csv"
+            )
         except Exception:
             return
 
     @monitor(name="UnifiedEPDA")
     def run(self):
         print(
-            f"[UnifiedEPDA] Running in {self.mode.upper()} mode — {len(self.df)} rows, {self.df.shape[1]} columns")
+            f"[UnifiedEPDA] Running in {self.mode.upper()} mode — {len(self.df)} rows, {self.df.shape[1]} columns"
+        )
         self.start_time = datetime.now()
 
         # ========== BASIC EDA ==========
@@ -475,11 +487,11 @@ class UnifiedEPDA(PerfMixin):
             "mode": self.mode,
             "runtime_seconds": duration.total_seconds(),
             "timestamp": self.start_time.strftime("%Y-%m-%d %H:%M:%S"),
-            "plots_generated": self.plot_counter
+            "plots_generated": self.plot_counter,
         }
-        pd.Series(manifest).to_json(
-            self.out_dir / "epda_manifest.json", indent=4)
+        pd.Series(manifest).to_json(self.out_dir / "epda_manifest.json", indent=4)
 
         print(
-            f"[UnifiedEPDA] Completed in {round(duration.total_seconds(), 2)} seconds")
+            f"[UnifiedEPDA] Completed in {round(duration.total_seconds(), 2)} seconds"
+        )
         return self.df, manifest

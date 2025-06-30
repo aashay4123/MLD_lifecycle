@@ -50,9 +50,7 @@ def trained_model_loader(
     Raises:
         ValueError: If no model is found.
     """
-    pipeline_name = (
-        train_pipeline_name or Environment().step_environment.pipeline_name
-    )
+    pipeline_name = train_pipeline_name or Environment().step_environment.pipeline_name
     model = load_trained_model(
         pipeline_name=pipeline_name,
         step_name=train_pipeline_step_name,
@@ -68,9 +66,7 @@ def trained_model_loader(
 
 
 @step(enable_cache=False)
-def served_model_loader(
-    model_name: str, step_name: str
-) -> List[ClassifierMixin]:
+def served_model_loader(model_name: str, step_name: str) -> List[ClassifierMixin]:
     """Load a served model.
 
     This step is used to load a model that is currently served (i.e. listed

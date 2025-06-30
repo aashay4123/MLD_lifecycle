@@ -33,7 +33,7 @@ class DataHealthCheck:
         batch_col: Optional[str] = None,
         datetime_cols: Optional[List[str]] = None,
         max_charts: int = 50,
-        save_dir: str = "health_report"
+        save_dir: str = "health_report",
     ):
         self.df = df.copy()
         self.target_col = target_col
@@ -68,54 +68,55 @@ class DataHealthCheck:
             "rows": n,
             "columns": p,
             "ratio": round(p / n, 2),
-            "regime": "p≫n" if p > n else "n≫p" if n > p else "p≈n"
+            "regime": "p≫n" if p > n else "n≫p" if n > p else "p≈n",
         }
 
     def _check_missingness(self):
         miss = self.df.isna().mean()
-        self.results["missingness"] = miss.sort_values(
-            ascending=False).head(20).to_dict()
+        self.results["missingness"] = (
+            miss.sort_values(ascending=False).head(20).to_dict()
+        )
         self._plot_bar(miss, "Missingness per column", "missingness.png")
 
     def _check_dtypes(self):
-        self.results["dtypes"] = self.df.dtypes.value_counts().astype(
-            str).to_dict()
+        self.results["dtypes"] = self.df.dtypes.value_counts().astype(str).to_dict()
 
     def _check_skewness(self):
         num = self.df.select_dtypes(include=np.number)
         skew = num.skew()
-        self.results["skewness"] = skew.sort_values(
-            ascending=False).head(10).to_dict()
-        self._plot_bar(
-            skew.abs(), "Skewness of numeric columns", "skewness.png")
+        self.results["skewness"] = skew.sort_values(ascending=False).head(10).to_dict()
+        self._plot_bar(skew.abs(), "Skewness of numeric columns", "skewness.png")
 
     def _check_cardinality(self):
         cat = self.df.select_dtypes(include=["object", "category"])
         card = {col: cat[col].nunique() for col in cat.columns}
-        top_card = dict(
-            sorted(card.items(), key=lambda x: x[1], reverse=True)[:10])
+        top_card = dict(sorted(card.items(), key=lambda x: x[1], reverse=True)[:10])
         self.results["cardinality"] = top_card
-        self._plot_bar(pd.Series(top_card),
-                       "Categorical cardinality", "cardinality.png")
+        self._plot_bar(
+            pd.Series(top_card), "Categorical cardinality", "cardinality.png"
+        )
 
     def _check_outliers(self):
         out = {}
         num = self.df.select_dtypes(include=np.number)
-        for col in num.columns[:self.max_charts]:
+        for col in num.columns[: self.max_charts]:
             q1, q3 = np.nanpercentile(num[col], [25, 75])
             iqr = q3 - q1
             low, high = q1 - 1.5 * iqr, q3 + 1.5 * iqr
             out[col] = ((num[col] < low) | (num[col] > high)).sum()
         self.results["outliers"] = dict(
-            sorted(out.items(), key=lambda x: x[1], reverse=True)[:10])
+            sorted(out.items(), key=lambda x: x[1], reverse=True)[:10]
+        )
 
     def _check_correlations(self):
         num = self.df.select_dtypes(include=np.number)
         if num.shape[1] > 1:
             corr = num.corr().abs()
-            pairs = [(i, j, corr.loc[i, j])
-                     for i, j in combinations(corr.columns, 2)
-                     if corr.loc[i, j] > 0.9]
+            pairs = [
+                (i, j, corr.loc[i, j])
+                for i, j in combinations(corr.columns, 2)
+                if corr.loc[i, j] > 0.9
+            ]
             self.results["correlations"] = [
                 {"pair": (i, j), "corr": round(c, 2)}
                 for i, j, c in sorted(pairs, key=lambda x: x[2], reverse=True)[:10]
@@ -126,11 +127,11 @@ class DataHealthCheck:
         num = self.df.select_dtypes(include=np.number).dropna().iloc[:, :20]
         X = num.values
         vifs = {
-            num.columns[i]: variance_inflation_factor(X, i)
-            for i in range(X.shape[1])
+            num.columns[i]: variance_inflation_factor(X, i) for i in range(X.shape[1])
         }
         self.results["vif"] = dict(
-            sorted(vifs.items(), key=lambda x: x[1], reverse=True)[:10])
+            sorted(vifs.items(), key=lambda x: x[1], reverse=True)[:10]
+        )
 
     def _check_target_imbalance(self):
         if self.target_col in self.df.columns:
@@ -146,7 +147,7 @@ class DataHealthCheck:
                 info[col] = {
                     "parsed_pct": round(dates.notna().mean(), 2),
                     "min": str(dates.min()),
-                    "max": str(dates.max())
+                    "max": str(dates.max()),
                 }
         self.results["datetime_coverage"] = info
 
@@ -154,14 +155,14 @@ class DataHealthCheck:
         if self.batch_col and self.batch_col in self.df:
             counts = self.df[self.batch_col].value_counts(normalize=True)
             self.results["batch_distribution"] = counts.round(3).to_dict()
-            self._plot_bar(counts, "Batch Distribution",
-                           "batch_distribution.png")
+            self._plot_bar(counts, "Batch Distribution", "batch_distribution.png")
 
     def _plot_bar(self, series: pd.Series, title: str, filename: str):
         try:
             plt.figure(figsize=(10, 6))
-            sns.barplot(x=series.values[:self.max_charts],
-                        y=series.index[:self.max_charts])
+            sns.barplot(
+                x=series.values[: self.max_charts], y=series.index[: self.max_charts]
+            )
             plt.title(title)
             plt.tight_layout()
             plt.savefig(os.path.join(self.save_dir, filename))
@@ -184,7 +185,12 @@ class DataHealthCheck:
     def _convert_json_serializable(obj):
         """Recursively convert pandas/numpy types to Python types."""
         if isinstance(obj, dict):
-            return {str(DataHealthCheck._convert_json_serializable(k)): DataHealthCheck._convert_json_serializable(v) for k, v in obj.items()}
+            return {
+                str(
+                    DataHealthCheck._convert_json_serializable(k)
+                ): DataHealthCheck._convert_json_serializable(v)
+                for k, v in obj.items()
+            }
         elif isinstance(obj, (list, tuple)):
             return [DataHealthCheck._convert_json_serializable(i) for i in obj]
         elif hasattr(obj, "item"):  # catches numpy scalars like np.int64, np.float64

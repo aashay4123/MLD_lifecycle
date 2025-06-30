@@ -64,6 +64,7 @@ def log_text(text: str, filename: str) -> None:
 
         mlflow.log_text(text, filename)
 
+
 def log_model(model, model_name: str) -> None:
     """Log a model to the active experiment tracker."""
 
@@ -72,6 +73,7 @@ def log_model(model, model_name: str) -> None:
         import mlflow
 
         mlflow.sklearn.log_model(model, model_name)
+
 
 def get_current_tracker_run_url() -> Optional[str]:
     """Get the URL of the current experiment tracker run."""

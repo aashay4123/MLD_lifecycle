@@ -11,14 +11,18 @@ import pandas as pd
 from numpy.linalg import cond
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.decomposition import (
-    PCA, IncrementalPCA, TruncatedSVD, NMF, KernelPCA,
+    PCA,
+    IncrementalPCA,
+    TruncatedSVD,
+    NMF,
+    KernelPCA,
 )
 from sklearn.cross_decomposition import PLSRegression
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.feature_selection import SequentialFeatureSelector
 from sklearn.linear_model import LogisticRegression, Ridge
 from sklearn.manifold import trustworthiness  # t-SNE dropped for OOS-transform
-from sklearn.model_selection import (StratifiedKFold, KFold, cross_val_score)
+from sklearn.model_selection import StratifiedKFold, KFold, cross_val_score
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.random_projection import GaussianRandomProjection
@@ -30,7 +34,7 @@ log.setLevel(logging.INFO)
 class AutoDR(BaseEstimator, TransformerMixin):
     # ————————————————————————————————— parameters / thresholds
     VARIANCE_THRESHOLD = 0.90
-    MAX_TSNE_SAMPLES = 2_000         # <-- kept for reference
+    MAX_TSNE_SAMPLES = 2_000  # <-- kept for reference
     MAX_TSNE_FEATURES = 50
     SMALL_FEATURE_LIMIT = 20
     BACKWARD_FEATURE_LIMIT = 40
@@ -120,8 +124,7 @@ class AutoDR(BaseEstimator, TransformerMixin):
         full = IncrementalPCA(random_state=self.random_state).fit(Xs)
         cum = np.cumsum(full.explained_variance_ratio_)
         n_comp = int(np.searchsorted(cum, self.variance_threshold) + 1)
-        model = IncrementalPCA(n_components=n_comp,
-                               random_state=self.random_state)
+        model = IncrementalPCA(n_components=n_comp, random_state=self.random_state)
         Xr = model.fit_transform(Xs)
         info = {
             "type": "IncrementalPCA",
@@ -136,12 +139,12 @@ class AutoDR(BaseEstimator, TransformerMixin):
         scaler = StandardScaler().fit(X)
         Xs = scaler.transform(X)
         max_comp = min(Xs.shape[1], self.MAX_TSVD_COMPONENTS)
-        full = TruncatedSVD(n_components=max_comp,
-                            random_state=self.random_state).fit(Xs)
+        full = TruncatedSVD(n_components=max_comp, random_state=self.random_state).fit(
+            Xs
+        )
         cum = np.cumsum(full.explained_variance_ratio_)
         n_comp = int(np.searchsorted(cum, self.variance_threshold) + 1)
-        model = TruncatedSVD(n_components=n_comp,
-                             random_state=self.random_state)
+        model = TruncatedSVD(n_components=n_comp, random_state=self.random_state)
         Xr = model.fit_transform(Xs)
         info = {
             "type": "TruncatedSVD",
@@ -155,12 +158,14 @@ class AutoDR(BaseEstimator, TransformerMixin):
     def _apply_kpca(self, X: np.ndarray) -> Tuple[np.ndarray, Dict]:
         gamma = 1.0 / X.shape[1]
         model = KernelPCA(
-            kernel="rbf", gamma=gamma, fit_inverse_transform=False,
-            random_state=self.random_state, n_components=min(10, X.shape[1]),
+            kernel="rbf",
+            gamma=gamma,
+            fit_inverse_transform=False,
+            random_state=self.random_state,
+            n_components=min(10, X.shape[1]),
         )
-        Xr = model.fit_transform(X)     # KernelPCA expects raw, not scaled
-        info = {"type": "KernelPCA", "params": {
-            "kernel": "rbf", "gamma": gamma}}
+        Xr = model.fit_transform(X)  # KernelPCA expects raw, not scaled
+        info = {"type": "KernelPCA", "params": {"kernel": "rbf", "gamma": gamma}}
         self.models["KernelPCA"] = (None, model)
         return Xr, info
 
@@ -206,32 +211,41 @@ class AutoDR(BaseEstimator, TransformerMixin):
         # supervised CV score
         if self.task_type != "unsupervised":
             # choose estimator + CV object
-            splits = min(self.BASE_CV_SPLITS, int(self.y.value_counts().min())) \
-                if self.task_type == "classification" else self.BASE_CV_SPLITS
+            splits = (
+                min(self.BASE_CV_SPLITS, int(self.y.value_counts().min()))
+                if self.task_type == "classification"
+                else self.BASE_CV_SPLITS
+            )
             splits = max(2, splits)
             if self.task_type == "classification":
                 est = make_pipeline(
                     StandardScaler(),
-                    LogisticRegression(solver="liblinear",
-                                       random_state=self.random_state),
+                    LogisticRegression(
+                        solver="liblinear", random_state=self.random_state
+                    ),
                 )
-                cv = StratifiedKFold(n_splits=splits, shuffle=True,
-                                     random_state=self.random_state)
+                cv = StratifiedKFold(
+                    n_splits=splits, shuffle=True, random_state=self.random_state
+                )
                 val = cross_val_score(est, Xr, self.y, cv=cv, n_jobs=-1).mean()
             else:
-                est = make_pipeline(StandardScaler(), Ridge(
-                    random_state=self.random_state))
-                cv = KFold(n_splits=splits, shuffle=True,
-                           random_state=self.random_state)
-                val = cross_val_score(est, Xr, self.y, cv=cv,
-                                      scoring="r2", n_jobs=-1).mean()
+                est = make_pipeline(
+                    StandardScaler(), Ridge(random_state=self.random_state)
+                )
+                cv = KFold(
+                    n_splits=splits, shuffle=True, random_state=self.random_state
+                )
+                val = cross_val_score(
+                    est, Xr, self.y, cv=cv, scoring="r2", n_jobs=-1
+                ).mean()
             scores["cv_score"] = val
 
         # trustworthiness fallback (only if ≤3 dims and valid neighbours)
         if "trustworthiness" not in scores and Xr.shape[1] <= 3 and Xr.shape[0] > 5:
             n_ngh = min(5, Xr.shape[0] - 1)
             scores["trustworthiness"] = trustworthiness(
-                self._X_train, Xr, n_neighbors=n_ngh)
+                self._X_train, Xr, n_neighbors=n_ngh
+            )
 
         # explained variance fallback
         if (
@@ -261,8 +275,7 @@ class AutoDR(BaseEstimator, TransformerMixin):
     # main API
     def fit(self, df: pd.DataFrame, y: Optional[pd.Series] = None):
         df = df.copy()
-        self.numeric_cols = df.select_dtypes(
-            include=np.number).columns.tolist()
+        self.numeric_cols = df.select_dtypes(include=np.number).columns.tolist()
         if self.target and self.target in self.numeric_cols:
             self.numeric_cols.remove(self.target)
 
@@ -341,8 +354,10 @@ class AutoDR(BaseEstimator, TransformerMixin):
             raise RuntimeError("Call fit() before transform().")
 
         if self.chosen_technique == "TSNE":
-            raise RuntimeError("t-SNE cannot project new samples – "
-                               "call fit_transform on the full data.")
+            raise RuntimeError(
+                "t-SNE cannot project new samples – "
+                "call fit_transform on the full data."
+            )
 
         scaler, model = self.models[self.chosen_technique]
         X = df[self.numeric_cols].values
@@ -363,20 +378,20 @@ class AutoDR(BaseEstimator, TransformerMixin):
             raise ValueError("NMF requires non-negative data.")
         n_comp = min(X.shape[1], int(self.variance_threshold * X.shape[1]))
         nmf = NMF(
-            n_components=n_comp, init="nndsvda",
-            max_iter=200, random_state=self.random_state,
+            n_components=n_comp,
+            init="nndsvda",
+            max_iter=200,
+            random_state=self.random_state,
         )
         W = nmf.fit_transform(X)
         H = nmf.components_
         err = float(np.linalg.norm(X - W @ H, ord="fro"))
-        info = {"type": "NMF", "n_components": n_comp,
-                "reconstruction_error": err}
+        info = {"type": "NMF", "n_components": n_comp, "reconstruction_error": err}
         self.models["NMF"] = (None, nmf)
         return W, info
 
     def _apply_random_proj(self, X: np.ndarray) -> Tuple[np.ndarray, Dict]:
-        n_comp = min(X.shape[1], max(
-            2, int(self.variance_threshold * X.shape[1])))
+        n_comp = min(X.shape[1], max(2, int(self.variance_threshold * X.shape[1])))
         rp = GaussianRandomProjection(
             n_components=n_comp, random_state=self.random_state
         )
@@ -390,19 +405,25 @@ class AutoDR(BaseEstimator, TransformerMixin):
         y = df[self.target]
         task = self._detect_task(df)
         if task == "classification":
-            est, scoring = LogisticRegression(
-                solver="liblinear", random_state=self.random_state), "accuracy"
+            est, scoring = (
+                LogisticRegression(solver="liblinear", random_state=self.random_state),
+                "accuracy",
+            )
         else:
             est, scoring = Ridge(random_state=self.random_state), "r2"
         sfs = SequentialFeatureSelector(
-            est, n_features_to_select="auto", direction="forward",
-            scoring=scoring, cv=3, n_jobs=-1
+            est,
+            n_features_to_select="auto",
+            direction="forward",
+            scoring=scoring,
+            cv=3,
+            n_jobs=-1,
         )
         sfs.fit(X, y)
         sel = X.columns[sfs.get_support()].tolist()
         self.report["dim_reduction"] = {
             "type": "forward_selection",
-            "selected_features": sel
+            "selected_features": sel,
         }
         self._dr_model = sfs
         df_sel = df[sel].copy()
@@ -415,19 +436,25 @@ class AutoDR(BaseEstimator, TransformerMixin):
         y = df[self.target]
         task = self._detect_task(df)
         if task == "classification":
-            est, scoring = LogisticRegression(
-                solver="liblinear", random_state=self.random_state), "accuracy"
+            est, scoring = (
+                LogisticRegression(solver="liblinear", random_state=self.random_state),
+                "accuracy",
+            )
         else:
             est, scoring = Ridge(random_state=self.random_state), "r2"
         sfs = SequentialFeatureSelector(
-            est, n_features_to_select="auto", direction="backward",
-            scoring=scoring, cv=3, n_jobs=-1
+            est,
+            n_features_to_select="auto",
+            direction="backward",
+            scoring=scoring,
+            cv=3,
+            n_jobs=-1,
         )
         sfs.fit(X, y)
         sel = X.columns[sfs.get_support()].tolist()
         self.report["dim_reduction"] = {
             "type": "backward_selection",
-            "selected_features": sel
+            "selected_features": sel,
         }
         self._dr_model = sfs
         df_sel = df[sel].copy()

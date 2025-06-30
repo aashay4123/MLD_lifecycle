@@ -11,6 +11,7 @@ import json
 import os
 import joblib
 from typing import Any
+
 try:
     import psutil
 except ImportError:
@@ -25,7 +26,7 @@ logging.basicConfig(
     filename="pipeline_monitor.log",
     filemode="a",
     level=logging.INFO,
-    format="%(asctime)s | %(levelname)s | %(message)s"
+    format="%(asctime)s | %(levelname)s | %(message)s",
 )
 
 logger = logging.getLogger("UniversalPipelineLogger")
@@ -34,9 +35,9 @@ logger.setLevel(logging.INFO)
 
 def estimate_size(obj):
     try:
-        if hasattr(obj, 'memory_usage'):
+        if hasattr(obj, "memory_usage"):
             return obj.memory_usage(deep=True).sum() / 1024**2
-        elif hasattr(obj, 'nbytes'):
+        elif hasattr(obj, "nbytes"):
             return obj.nbytes / 1024**2
         elif isinstance(obj, list):
             return sum(sys.getsizeof(i) for i in obj) / 1024**2
@@ -75,15 +76,17 @@ def log_model_artifact(obj, name: str = "model.joblib"):
             logger.warning(f"[MLFLOW] Failed to log model: {e}")
 
 
-def monitor(name: str = None,
-            log_args: bool = True,
-            log_result: bool = True,
-            track_memory: bool = True,
-            track_input_size: bool = True,
-            retries: int = 0,
-            enabled: bool = True,
-            mlflow_report: dict = None,
-            mlflow_model: Any = None):
+def monitor(
+    name: str = None,
+    log_args: bool = True,
+    log_result: bool = True,
+    track_memory: bool = True,
+    track_input_size: bool = True,
+    retries: int = 0,
+    enabled: bool = True,
+    mlflow_report: dict = None,
+    mlflow_model: Any = None,
+):
     """
     Universal decorator for logging, memory/time tracking, and optional MLflow reporting.
     """
@@ -104,13 +107,13 @@ def monitor(name: str = None,
                     bound = sig.bind(*args, **kwargs)
                     bound.apply_defaults()
                     sizes = {
-                        k: f"{estimate_size(v):.2f} MB" for k, v in bound.arguments.items()
+                        k: f"{estimate_size(v):.2f} MB"
+                        for k, v in bound.arguments.items()
                         if estimate_size(v) is not None
                     }
                     logger.info(f"[{step_id}] Input sizes: {sizes}")
                 except Exception:
-                    logger.warning(
-                        f"[{step_id}] Failed to estimate input sizes")
+                    logger.warning(f"[{step_id}] Failed to estimate input sizes")
 
             if log_args:
                 logger.info(f"[{step_id}] Args: {args}")
@@ -128,19 +131,17 @@ def monitor(name: str = None,
 
                     if log_result:
                         try:
-                            logger.info(
-                                f"[{step_id}] Result type: {type(result)}")
-                            if hasattr(result, 'shape'):
-                                logger.info(
-                                    f"[{step_id}] Result shape: {result.shape}")
+                            logger.info(f"[{step_id}] Result type: {type(result)}")
+                            if hasattr(result, "shape"):
+                                logger.info(f"[{step_id}] Result shape: {result.shape}")
                         except Exception:
-                            logger.warning(
-                                f"[{step_id}] Result inspection failed")
+                            logger.warning(f"[{step_id}] Result inspection failed")
 
                     if track_memory:
                         current, peak = tracemalloc.get_traced_memory()
                         logger.info(
-                            f"[{step_id}] Peak memory: {peak / 1024 / 1024:.2f} MB")
+                            f"[{step_id}] Peak memory: {peak / 1024 / 1024:.2f} MB"
+                        )
                         tracemalloc.stop()
 
                     log_resource_usage(step_id)
@@ -149,14 +150,14 @@ def monitor(name: str = None,
                     if mlflow_report:
                         log_report(mlflow_report, name=f"{step_id}_report")
                     if mlflow_model:
-                        log_model_artifact(
-                            mlflow_model, name=f"{step_id}_model.joblib")
+                        log_model_artifact(mlflow_model, name=f"{step_id}_model.joblib")
 
                     return result
                 except Exception as e:
                     duration = time.time() - start_time
                     logger.error(
-                        f"[{step_id}] FAILED (attempt {attempt+1}) in {duration:.2f}s")
+                        f"[{step_id}] FAILED (attempt {attempt+1}) in {duration:.2f}s"
+                    )
                     logger.error(f"[{step_id}] Exception: {str(e)}")
                     logger.error(traceback.format_exc())
                     last_exception = e
@@ -165,4 +166,5 @@ def monitor(name: str = None,
             raise last_exception
 
         return wrapper
+
     return decorator

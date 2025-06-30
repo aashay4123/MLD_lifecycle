@@ -40,8 +40,10 @@ _proc = psutil.Process(os.getpid())
 # ═══════════════════════════════════════════════════════════════
 # 1 ▸  CLASS-LEVEL PROFILER  (@perfclass)       ideas #3 #4 #17 #18
 # ═══════════════════════════════════════════════════════════════
-def perfclass(price_per_min: float = 0.0,
-              skip: Callable[[str], bool] = lambda m: m.startswith("_")):
+def perfclass(
+    price_per_min: float = 0.0,
+    skip: Callable[[str], bool] = lambda m: m.startswith("_"),
+):
     """
     Decorate a *class* so every **public** method is profiled.
 
@@ -50,6 +52,7 @@ def perfclass(price_per_min: float = 0.0,
         · self.report()  : aggregated list
         · self.export_csv(path)
     """
+
     def decorate(cls):
 
         orig_init = cls.__init__
@@ -73,7 +76,8 @@ def perfclass(price_per_min: float = 0.0,
                 mem_pct = psutil.virtual_memory().percent
                 if mem_pct > thr:
                     raise MemoryError(
-                        f"RAM usage {mem_pct:.1f}% exceeded threshold {thr}%")
+                        f"RAM usage {mem_pct:.1f}% exceeded threshold {thr}%"
+                    )
 
                 rss_before = _proc.memory_info().rss
                 t0 = time.perf_counter()
@@ -88,12 +92,14 @@ def perfclass(price_per_min: float = 0.0,
                 _PEAK_RSS_MB = max(_PEAK_RSS_MB, rss_after / 2**20)
 
                 if not fast:
-                    self._perf_log.append(dict(
-                        method=name,
-                        seconds=dt,
-                        delta_mb=round((rss_after - rss_before) / 2**20, 3),
-                        rss_mb=round(rss_after / 2**20, 1),
-                    ))
+                    self._perf_log.append(
+                        dict(
+                            method=name,
+                            seconds=dt,
+                            delta_mb=round((rss_after - rss_before) / 2**20, 3),
+                            rss_mb=round(rss_after / 2**20, 1),
+                        )
+                    )
                 return out
 
             return inner
@@ -109,27 +115,34 @@ def perfclass(price_per_min: float = 0.0,
         def report(self) -> List[Dict[str, Any]]:
             agg: Dict[str, Dict] = {}
             for rec in self._perf_log:
-                d = agg.setdefault(rec["method"],
-                                   dict(calls=0, seconds=0.0,
-                                        delta_mb=0.0, rss_mb=0.0))
+                d = agg.setdefault(
+                    rec["method"], dict(calls=0, seconds=0.0, delta_mb=0.0, rss_mb=0.0)
+                )
                 d["calls"] += 1
                 d["seconds"] += rec["seconds"]
                 d["delta_mb"] += rec["delta_mb"]
                 d["rss_mb"] = max(d["rss_mb"], rec["rss_mb"])
 
-            return sorted([
-                dict(method=k,
-                     calls=v["calls"],
-                     seconds=round(v["seconds"], 3),
-                     mem_peak_mb=round(v["rss_mb"], 1),
-                     mem_Δ_mb=round(v["delta_mb"], 3),
-                     cost=round(v["seconds"] / 60 * price_per_min, 4))
-                for k, v in agg.items()
-            ], key=lambda r: r["seconds"], reverse=True)
+            return sorted(
+                [
+                    dict(
+                        method=k,
+                        calls=v["calls"],
+                        seconds=round(v["seconds"], 3),
+                        mem_peak_mb=round(v["rss_mb"], 1),
+                        mem_Δ_mb=round(v["delta_mb"], 3),
+                        cost=round(v["seconds"] / 60 * price_per_min, 4),
+                    )
+                    for k, v in agg.items()
+                ],
+                key=lambda r: r["seconds"],
+                reverse=True,
+            )
 
         def export_csv(self, path: str = "perf_log.csv"):
             """Save aggregated log to CSV (idea #3)."""
             import csv
+
             rows = self.report()
             if not rows:
                 return
@@ -163,10 +176,7 @@ class ParallelMixin:
     Heuristic:   if len(items) > 1000 or os.getenv("WIDE_DATA") → processes.
     """
 
-    def __init__(self,
-                 *a,
-                 n_jobs: Union[int, float, None] = -1,
-                 **kw):
+    def __init__(self, *a, n_jobs: Union[int, float, None] = -1, **kw):
         super().__init__(*a, **kw)  # cooperative
 
         env = os.getenv("PERF_N_JOBS")
@@ -177,7 +187,7 @@ class ParallelMixin:
                 n_jobs = None
 
         if n_jobs is None:
-            n_jobs = 0.5                      # default 50 % of cores
+            n_jobs = 0.5  # default 50 % of cores
         if isinstance(n_jobs, float):
             n_jobs = max(int(cpu_count() * n_jobs), 1)
         self._n_jobs = max(int(n_jobs), 1)
@@ -186,16 +196,18 @@ class ParallelMixin:
     def _auto_prefer(self, items: Sequence[Any]) -> str:
         if os.getenv("WIDE_DATA"):
             return "processes"
-        if len(items) > 1000:                # crude but effective
+        if len(items) > 1000:  # crude but effective
             return "processes"
         return "threads"
 
-    def parallel_map(self,
-                     fn: Callable[[Any], Any],
-                     items: Sequence[Any],
-                     *,
-                     min_tasks: int = 8,
-                     prefer: str = "auto") -> List[Any]:
+    def parallel_map(
+        self,
+        fn: Callable[[Any], Any],
+        items: Sequence[Any],
+        *,
+        min_tasks: int = 8,
+        prefer: str = "auto",
+    ) -> List[Any]:
 
         if len(items) == 0:
             return []
@@ -205,8 +217,9 @@ class ParallelMixin:
         if prefer == "auto":
             prefer = self._auto_prefer(items)
 
-        log.debug("Parallel → %d jobs (%s) × %d tasks",
-                  self._n_jobs, prefer, len(items))
+        log.debug(
+            "Parallel → %d jobs (%s) × %d tasks", self._n_jobs, prefer, len(items)
+        )
         return Parallel(n_jobs=self._n_jobs, prefer=prefer)(
             delayed(fn)(x) for x in items
         )
@@ -217,6 +230,7 @@ class ParallelMixin:
 # ═══════════════════════════════════════════════════════════════
 class _CuPyLoader:
     """Singleton-style loader to avoid repeated heavy imports."""
+
     _cached: Optional[Any] = None
 
     @classmethod
@@ -225,7 +239,8 @@ class _CuPyLoader:
             return cls._cached
         try:
             import cupy as cp
-            _ = cp.arange(1)         # sanity probe
+
+            _ = cp.arange(1)  # sanity probe
             cls._cached = cp
             log.info("CuPy detected – GPU fast-path enabled.")
         except Exception:
@@ -243,10 +258,7 @@ class GPUMixin:
         · rand_choice(arr,size,seed)
     """
 
-    def __init__(self,
-                 *a,
-                 use_gpu: Optional[bool] = None,
-                 **kw):
+    def __init__(self, *a, use_gpu: Optional[bool] = None, **kw):
         super().__init__(*a, **kw)
 
         if use_gpu is None:
@@ -260,16 +272,16 @@ class GPUMixin:
     # ---- helpers ----------------------------------------------------
     def ks_fast(self, a: np.ndarray, b: np.ndarray) -> float:
         if self.use_gpu:
-            return float(self.cuda.stats.ks_2samp(
-                self.cuda.asarray(a),
-                self.cuda.asarray(b)).pvalue)
+            return float(
+                self.cuda.stats.ks_2samp(
+                    self.cuda.asarray(a), self.cuda.asarray(b)
+                ).pvalue
+            )
         from scipy.stats import ks_2samp
+
         return float(ks_2samp(a, b).pvalue)
 
-    def rand_choice(self,
-                    arr: np.ndarray,
-                    size: int,
-                    seed: int = 0) -> np.ndarray:
+    def rand_choice(self, arr: np.ndarray, size: int, seed: int = 0) -> np.ndarray:
         if self.use_gpu:
             rs = self.cuda.random.default_rng(seed)
             idx = rs.integers(0, len(arr), size=size)
@@ -280,7 +292,7 @@ class GPUMixin:
 # ═══════════════════════════════════════════════════════════════
 # 4 ▸  ONE-STOP MIX-IN
 # ═══════════════════════════════════════════════════════════════
-@perfclass()   # you can raise price_per_min here if you want CPU cost $
+@perfclass()  # you can raise price_per_min here if you want CPU cost $
 class PerfMixin(ParallelMixin, GPUMixin):
     """
     Inherit **one** mix-in to get:
@@ -292,11 +304,13 @@ class PerfMixin(ParallelMixin, GPUMixin):
     Cooperative init keeps kwargs clean.
     """
 
-    def __init__(self,
-                 *a,
-                 n_jobs: Union[int, float, None] = None,
-                 use_gpu: Optional[bool] = None,
-                 **kw):
+    def __init__(
+        self,
+        *a,
+        n_jobs: Union[int, float, None] = None,
+        use_gpu: Optional[bool] = None,
+        **kw,
+    ):
         ParallelMixin.__init__(self, *a, n_jobs=n_jobs, **kw)
         GPUMixin.__init__(self, *a, use_gpu=use_gpu, **kw)
         # (no further init – we chained manually)

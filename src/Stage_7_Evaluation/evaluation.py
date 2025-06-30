@@ -1,5 +1,11 @@
 import joblib
-from sklearn.metrics import accuracy_score, f1_score, mean_squared_error, mean_absolute_error, r2_score
+from sklearn.metrics import (
+    accuracy_score,
+    f1_score,
+    mean_squared_error,
+    mean_absolute_error,
+    r2_score,
+)
 
 
 class ModelEvaluation:
@@ -24,44 +30,51 @@ class ModelEvaluation:
         results = {}
         # Evaluate main model
         y_pred = model.predict(X_test)
-        if y_test.dtype == object or str(y_test.dtype).startswith('category') or (y_test.dtype != object and y_test.nunique() < 20):
+        if (
+            y_test.dtype == object
+            or str(y_test.dtype).startswith("category")
+            or (y_test.dtype != object and y_test.nunique() < 20)
+        ):
             # Classification metrics
             acc = accuracy_score(y_test, y_pred)
-            average = 'binary' if len(set(y_test)) == 2 else 'macro'
+            average = "binary" if len(set(y_test)) == 2 else "macro"
             f1 = f1_score(y_test, y_pred, average=average)
-            results['model_accuracy'] = acc
-            results['model_f1'] = f1
+            results["model_accuracy"] = acc
+            results["model_f1"] = f1
         else:
             # Regression metrics
             mse = mean_squared_error(y_test, y_pred)
             mae = mean_absolute_error(y_test, y_pred)
             r2 = r2_score(y_test, y_pred)
-            results['model_mse'] = mse
-            results['model_mae'] = mae
-            results['model_r2'] = r2
+            results["model_mse"] = mse
+            results["model_mae"] = mae
+            results["model_r2"] = r2
         # Evaluate baseline model if given
         if baseline_model is not None:
             y_base_pred = baseline_model.predict(X_test)
-            if 'model_accuracy' in results:
+            if "model_accuracy" in results:
                 # classification
                 base_acc = accuracy_score(y_test, y_base_pred)
-                base_f1 = f1_score(y_test, y_base_pred, average=(
-                    'binary' if len(set(y_test)) == 2 else 'macro'))
-                results['baseline_accuracy'] = base_acc
-                results['baseline_f1'] = base_f1
-                results['accuracy_improvement'] = results['model_accuracy'] - base_acc
-                results['f1_improvement'] = results['model_f1'] - base_f1
+                base_f1 = f1_score(
+                    y_test,
+                    y_base_pred,
+                    average=("binary" if len(set(y_test)) == 2 else "macro"),
+                )
+                results["baseline_accuracy"] = base_acc
+                results["baseline_f1"] = base_f1
+                results["accuracy_improvement"] = results["model_accuracy"] - base_acc
+                results["f1_improvement"] = results["model_f1"] - base_f1
             else:
                 # regression
                 base_mse = mean_squared_error(y_test, y_base_pred)
                 base_mae = mean_absolute_error(y_test, y_base_pred)
                 base_r2 = r2_score(y_test, y_base_pred)
-                results['baseline_mse'] = base_mse
-                results['baseline_mae'] = base_mae
-                results['baseline_r2'] = base_r2
-                results['mse_reduction'] = base_mse - results['model_mse']
-                results['mae_reduction'] = base_mae - results['model_mae']
-                results['r2_improvement'] = results['model_r2'] - base_r2
+                results["baseline_mse"] = base_mse
+                results["baseline_mae"] = base_mae
+                results["baseline_r2"] = base_r2
+                results["mse_reduction"] = base_mse - results["model_mse"]
+                results["mae_reduction"] = base_mae - results["model_mae"]
+                results["r2_improvement"] = results["model_r2"] - base_r2
         self.results = results
         return results
 

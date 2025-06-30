@@ -33,7 +33,7 @@ def load_deployed_model(
         model_name: The name of the model to load.
         step_name: The name of the pipeline step that was used to deploy the
             model.
-    
+
     Returns:
         A tuple containing the model deployment service and the loaded model.
         If no model with the given name is currently deployed, the tuple will
@@ -73,7 +73,7 @@ def load_trained_model(
     output_name: Optional[str] = None,
 ) -> Optional[ClassifierMixin]:
     """Load and return the model trained by the last training pipeline run.
-    
+
     Args:
         pipeline_name: The name of the training pipeline.
         step_name: The name of the pipeline step that was used to train the
@@ -92,10 +92,14 @@ def load_trained_model(
     pipeline_run = pipeline.runs[0]
     step = pipeline_run.steps[step_name]
     if step is None:
-        print(f"No step with name {step_name} found in pipeline run {pipeline_run.name}.")
+        print(
+            f"No step with name {step_name} found in pipeline run {pipeline_run.name}."
+        )
         return None
     if not step.is_completed and not step.is_cached:
-        print(f"Step {step_name} in pipeline run {pipeline_run.name} is {step.status.value}.")
+        print(
+            f"Step {step_name} in pipeline run {pipeline_run.name} is {step.status.value}."
+        )
         return None
     if not step.outputs:
         print(f"Step {step_name} in pipeline run {pipeline_run.name} has no outputs.")

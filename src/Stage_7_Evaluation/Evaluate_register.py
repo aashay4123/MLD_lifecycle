@@ -12,8 +12,7 @@ def evaluate_and_register(model, val_metrics: dict) -> Output(metrics=dict):
     y_test = test["target"]
 
     y_pred = model.predict(X_test)
-    y_prob = model.predict_proba(X_test) if hasattr(
-        model, "predict_proba") else None
+    y_prob = model.predict_proba(X_test) if hasattr(model, "predict_proba") else None
 
     test_accuracy = accuracy_score(y_test, y_pred)
     test_f1 = f1_score(y_test, y_pred, average="weighted")
@@ -28,7 +27,7 @@ def evaluate_and_register(model, val_metrics: dict) -> Output(metrics=dict):
         "val_accuracy": val_metrics.get("accuracy"),
         "test_accuracy": test_accuracy,
         "test_f1": test_f1,
-        "test_log_loss": test_logloss
+        "test_log_loss": test_logloss,
     }
 
     model_name = "final_ensemble_model"
@@ -36,24 +35,27 @@ def evaluate_and_register(model, val_metrics: dict) -> Output(metrics=dict):
 
     # === Compare with baseline run ===
     try:
-        baseline_runs = mlflow.search_runs(
-            filter_string='tags.type = "baseline"')
+        baseline_runs = mlflow.search_runs(filter_string='tags.type = "baseline"')
         if not baseline_runs.empty:
             best_baseline_acc = baseline_runs.sort_values(
-                "metrics.test_accuracy", ascending=False).iloc[0]["metrics.test_accuracy"]
+                "metrics.test_accuracy", ascending=False
+            ).iloc[0]["metrics.test_accuracy"]
             if test_accuracy > best_baseline_acc:
                 print(
-                    f"✅ New model beats baseline: {test_accuracy:.3f} vs {best_baseline_acc:.3f}")
+                    f"✅ New model beats baseline: {test_accuracy:.3f} vs {best_baseline_acc:.3f}"
+                )
             else:
                 print(
-                    f"⚠️ Baseline better: {best_baseline_acc:.3f} vs {test_accuracy:.3f}")
+                    f"⚠️ Baseline better: {best_baseline_acc:.3f} vs {test_accuracy:.3f}"
+                )
     except Exception as e:
         print("⚠️ Baseline comparison skipped:", e)
 
     # === Compare with last registered model ===
     try:
         latest_versions = client.get_latest_versions(
-            model_name, stages=["Production", "Staging"])
+            model_name, stages=["Production", "Staging"]
+        )
         best_prev_acc = 0.0
         for v in latest_versions:
             run = mlflow.get_run(v.run_id)
@@ -64,16 +66,21 @@ def evaluate_and_register(model, val_metrics: dict) -> Output(metrics=dict):
         if new_val_acc > best_prev_acc:
             # Register and transition
             mlflow.sklearn.log_model(
-                model, artifact_path=model_name, registered_model_name=model_name)
+                model, artifact_path=model_name, registered_model_name=model_name
+            )
             model_uri = f"runs:/{mlflow.active_run().info.run_id}/{model_name}"
             result = mlflow.register_model(model_uri, model_name)
             client.transition_model_version_stage(
-                model_name, result.version, stage="Staging", archive_existing_versions=True)
-            print(
-                f"✅ Model registered to Staging (v{result.version}) [val_acc ↑]")
+                model_name,
+                result.version,
+                stage="Staging",
+                archive_existing_versions=True,
+            )
+            print(f"✅ Model registered to Staging (v{result.version}) [val_acc ↑]")
         else:
             print(
-                f"ℹ️ Model NOT registered (val_acc: {new_val_acc:.3f} <= {best_prev_acc:.3f})")
+                f"ℹ️ Model NOT registered (val_acc: {new_val_acc:.3f} <= {best_prev_acc:.3f})"
+            )
     except Exception as e:
         print("⚠️ Registration failed:", e)
 

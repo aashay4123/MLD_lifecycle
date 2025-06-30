@@ -28,13 +28,13 @@ def load_reference_encoded() -> Output(ref=pd.DataFrame):
 
 @step
 @monitor(name="load_all_components", log_result=True)
-def load_transform_artifacts() -> Output(imputer=Any, transformer=Any, encoder=Any, model=Any):
+def load_transform_artifacts() -> (
+    Output(imputer=Any, transformer=Any, encoder=Any, model=Any)
+):
     imputer = mlflow.sklearn.load_model("artifacts:/imputer_model/production")
-    transformer = mlflow.sklearn.load_model(
-        "artifacts:/scaler_model/production")
+    transformer = mlflow.sklearn.load_model("artifacts:/scaler_model/production")
     encoder = mlflow.sklearn.load_model("artifacts:/encoder_model/production")
-    baseline_model = mlflow.sklearn.load_model(
-        "artifacts:/baseline_model/production")
+    baseline_model = mlflow.sklearn.load_model("artifacts:/baseline_model/production")
     # model = mlflow.sklearn.load_model("models:/best_model/production")
     return imputer, transformer, encoder, baseline_model
 
@@ -48,14 +48,14 @@ def apply_and_predict(
     imputer: Any,
     transformer: Any,
     encoder: Any,
-    model: Any
+    model: Any,
 ) -> Output(predictions=pd.DataFrame, metrics=dict, match=bool):
 
     # Step 1: Impute
     test_i = imputer.transform(test)
 
     # Step 2: Transform/scale
-    numeric = test_i.select_dtypes(include='number').columns.tolist()
+    numeric = test_i.select_dtypes(include="number").columns.tolist()
     test_t = transformer.transform(test_i[numeric])
     test_i[numeric] = test_t
 
@@ -93,7 +93,9 @@ def apply_and_predict(
 
 
 @pipeline(enable_cache=False)
-def test_pipeline(load_test_data, load_reference_encoded, load_transform_artifacts, apply_and_predict):
+def test_pipeline(
+    load_test_data, load_reference_encoded, load_transform_artifacts, apply_and_predict
+):
     test = load_test_data()
     ref = load_reference_encoded()
     imputer, transformer, encoder, model = load_transform_artifacts()
@@ -105,5 +107,5 @@ def PredictionPipeline():
         load_test_data=load_test_data(),
         load_reference_encoded=load_reference_encoded(),
         load_transform_artifacts=load_transform_artifacts(),
-        apply_and_predict=apply_and_predict()
+        apply_and_predict=apply_and_predict(),
     ).run()

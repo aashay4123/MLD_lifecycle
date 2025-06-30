@@ -5,10 +5,11 @@ from sklearn.linear_model import LinearRegression
 
 
 @step
-def load_data() -> Tuple[
-    Annotated[np.ndarray, "training_data"],
-    Annotated[np.ndarray, "training_labels"]
-]:
+def load_data() -> (
+    Tuple[
+        Annotated[np.ndarray, "training_data"], Annotated[np.ndarray, "training_labels"]
+    ]
+):
     data = np.random.rand(100, 2)
     labels = np.random.rand(100)
     return data, labels
@@ -39,12 +40,12 @@ if __name__ == "__main__":
     basic_pipeline()
 
 
-
 from zenml.integrations.sklearn.steps import sklearn_trainer, sklearn_evaluator
 from zenml import pipeline, step
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
+
 
 @step
 def data_loader():
@@ -54,24 +55,27 @@ def data_loader():
     )
     return X_train, X_test, y_train, y_test
 
+
 @step
 def get_model():
     # Here you define which sklearn model and params to use
     model = RandomForestClassifier(n_estimators=100, max_depth=3, random_state=42)
     return model
 
+
 @pipeline
 def sklearn_pipeline(data_loader, get_model, trainer, evaluator):
     X_train, X_test, y_train, y_test = data_loader()
     model = get_model()
     trained_model = trainer(X_train, y_train, model=model)  # trainer trains the model
-    evaluator(model=trained_model, X=X_test, y=y_test)     # evaluator evaluates it
+    evaluator(model=trained_model, X=X_test, y=y_test)  # evaluator evaluates it
+
 
 if __name__ == "__main__":
     pipeline_instance = sklearn_pipeline(
         data_loader=data_loader(),
         get_model=get_model(),
         trainer=sklearn_trainer(),
-        evaluator=sklearn_evaluator()
+        evaluator=sklearn_evaluator(),
     )
     pipeline_instance.run()

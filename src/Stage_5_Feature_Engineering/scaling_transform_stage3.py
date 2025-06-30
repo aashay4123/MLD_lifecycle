@@ -53,8 +53,7 @@ class Stage4Transform(BaseEstimator, TransformerMixin):
         verbose: bool = False,
     ):
         if mode not in ("simple", "enhanced", "auto"):
-            raise ValueError(
-                "mode must be one of 'simple', 'enhanced', 'auto'")
+            raise ValueError("mode must be one of 'simple', 'enhanced', 'auto'")
 
         self.mode = mode
         self.skew_thresh_robust = skew_thresh_robust
@@ -115,7 +114,9 @@ class Stage4Transform(BaseEstimator, TransformerMixin):
 
     # ────────── SIMPLE mode: one global scaler + per‐column extra transforms ──────────
 
-    def _choose_global_scaler_simple(self, df: pd.DataFrame) -> Tuple[str, Dict[str, float], Dict[str, float]]:
+    def _choose_global_scaler_simple(
+        self, df: pd.DataFrame
+    ) -> Tuple[str, Dict[str, float], Dict[str, float]]:
         """
         Decide among StandardScaler, RobustScaler, MinMaxScaler for “simple” mode,
         based on per-column skew/kurtosis.
@@ -134,7 +135,10 @@ class Stage4Transform(BaseEstimator, TransformerMixin):
 
         # If any column is heavy-tailed → RobustScaler
         for c in self.numeric_cols:
-            if abs(skews[c]) > self.skew_thresh_robust or abs(kurts[c]) > self.kurt_thresh_robust:
+            if (
+                abs(skews[c]) > self.skew_thresh_robust
+                or abs(kurts[c]) > self.kurt_thresh_robust
+            ):
                 return "RobustScaler", skews, kurts
 
         # If all columns are ≈ symmetric → StandardScaler
@@ -156,8 +160,7 @@ class Stage4Transform(BaseEstimator, TransformerMixin):
         Xnum = df0[self.numeric_cols].copy()
 
         # 1) Choose global scaler
-        scaler_name, skews_pre, kurts_pre = self._choose_global_scaler_simple(
-            Xnum)
+        scaler_name, skews_pre, kurts_pre = self._choose_global_scaler_simple(Xnum)
         self.scaler_name = scaler_name
         if scaler_name == "StandardScaler":
             scaler = StandardScaler()
@@ -169,7 +172,8 @@ class Stage4Transform(BaseEstimator, TransformerMixin):
         X_scaled = scaler.fit_transform(Xnum.values)
         self.scaler_model = scaler
         df0[self.numeric_cols] = pd.DataFrame(
-            X_scaled, columns=self.numeric_cols, index=df0.index)
+            X_scaled, columns=self.numeric_cols, index=df0.index
+        )
 
         # 2) Per‐column extra transforms
         percol = {}
@@ -179,7 +183,9 @@ class Stage4Transform(BaseEstimator, TransformerMixin):
             skew_s = abs(float(skew(arr))) if arr.size > 2 else 0.0
 
             # Strict early exit
-            if (pval_s > self.alpha_normal_simple) and (skew_s < self.skew_cutoff_simple):
+            if (pval_s > self.alpha_normal_simple) and (
+                skew_s < self.skew_cutoff_simple
+            ):
                 choice = "none"
                 scores = {"none": (pval_s, -skew_s)}
                 self.transform_choices[col] = choice
@@ -193,7 +199,8 @@ class Stage4Transform(BaseEstimator, TransformerMixin):
                     "extra_scores": scores,
                 }
                 self._log(
-                    f"[simple] '{col}': no extra transform needed (p={pval_s:.3f}, skew={skew_s:.3f})")
+                    f"[simple] '{col}': no extra transform needed (p={pval_s:.3f}, skew={skew_s:.3f})"
+                )
                 continue
 
             # Otherwise, evaluate candidates: boxcox / yeo / quantile
@@ -224,10 +231,14 @@ class Stage4Transform(BaseEstimator, TransformerMixin):
             try:
                 if len(arr_full) > self.qt_max_rows:
                     qt = QuantileTransformer(
-                        output_distribution="normal", random_state=self.random_state, subsample=self.qt_max_rows)
+                        output_distribution="normal",
+                        random_state=self.random_state,
+                        subsample=self.qt_max_rows,
+                    )
                 else:
                     qt = QuantileTransformer(
-                        output_distribution="normal", random_state=self.random_state)
+                        output_distribution="normal", random_state=self.random_state
+                    )
                 arr_q = qt.fit_transform(arr_full.reshape(-1, 1)).flatten()
                 p_q = self._shapiro_pval(arr_q[~np.isnan(arr_q)])
                 skew_q = abs(float(skew(arr_q[~np.isnan(arr_q)])))
@@ -253,10 +264,14 @@ class Stage4Transform(BaseEstimator, TransformerMixin):
             elif best == "quantile":
                 if len(arr_full) > self.qt_max_rows:
                     qt = QuantileTransformer(
-                        output_distribution="normal", random_state=self.random_state, subsample=self.qt_max_rows)
+                        output_distribution="normal",
+                        random_state=self.random_state,
+                        subsample=self.qt_max_rows,
+                    )
                 else:
                     qt = QuantileTransformer(
-                        output_distribution="normal", random_state=self.random_state)
+                        output_distribution="normal", random_state=self.random_state
+                    )
                 df0[col] = qt.fit_transform(arr_full.reshape(-1, 1)).flatten()
                 self.transform_models[col] = qt
             else:
@@ -267,12 +282,13 @@ class Stage4Transform(BaseEstimator, TransformerMixin):
                 "pre_skew": float(skews_pre[col]),
                 "pre_kurt": float(kurts_pre[col]),
                 "post_scaler_p": float(scores[best][0]) if best != "none" else pval_s,
-                "post_scaler_skew": float(-scores[best][1]) if best != "none" else skew_s,
+                "post_scaler_skew": (
+                    float(-scores[best][1]) if best != "none" else skew_s
+                ),
                 "chosen_extra": best,
                 "extra_scores": scores,
             }
-            self._log(
-                f"[simple] '{col}': chosen extra → {best} (scores={scores})")
+            self._log(f"[simple] '{col}': chosen extra → {best} (scores={scores})")
 
         # Save simple‐mode report
         self.report["simple"] = {
@@ -295,8 +311,7 @@ class Stage4Transform(BaseEstimator, TransformerMixin):
         Returns (pre_name, scaler_name, (pval, −|skew|), fitted_scaler_obj).
         """
 
-        best_overall = ("none", "StandardScaler",
-                        (-1.0, -np.inf), StandardScaler())
+        best_overall = ("none", "StandardScaler", (-1.0, -np.inf), StandardScaler())
         # We’ll keep track of all (pre,scaler) scores if we need fallback
         all_scores = []
 
@@ -332,8 +347,7 @@ class Stage4Transform(BaseEstimator, TransformerMixin):
                     scaled = scaler.fit_transform(X_one).flatten()
                     arr_clean = scaled[~np.isnan(scaled)]
                     pval = self._shapiro_pval(arr_clean)
-                    skew_s = abs(float(skew(arr_clean))
-                                 ) if arr_clean.size > 2 else 0.0
+                    skew_s = abs(float(skew(arr_clean))) if arr_clean.size > 2 else 0.0
                     score = (pval, -skew_s)
                     fitted = scaler
 
@@ -376,8 +390,9 @@ class Stage4Transform(BaseEstimator, TransformerMixin):
                 continue
 
             # Step 1: Evaluate closed-form pre + scaler
-            pre_name, scaler_name, (p0, minus_sk0), fitted_scaler = self._evaluate_pre_scaler(
-                raw)
+            pre_name, scaler_name, (p0, minus_sk0), fitted_scaler = (
+                self._evaluate_pre_scaler(raw)
+            )
             # Record initial
             entry = {
                 "pre_choice": pre_name,
@@ -393,14 +408,20 @@ class Stage4Transform(BaseEstimator, TransformerMixin):
             nonnull = ~np.isnan(col_full)
             try:
                 arr_pre_full[nonnull] = self.PRE_FUNCS[pre_name](
-                    col_full[nonnull].copy())
+                    col_full[nonnull].copy()
+                )
             except Exception:
                 arr_pre_full[nonnull] = np.nan
 
             # 1b) apply fitted_scaler (if not None and arr_pre_full has variance)
-            if (fitted_scaler is not None) and (nonnull.sum() > 1) and (np.nanstd(arr_pre_full[nonnull]) > 0):
+            if (
+                (fitted_scaler is not None)
+                and (nonnull.sum() > 1)
+                and (np.nanstd(arr_pre_full[nonnull]) > 0)
+            ):
                 scaled_full = fitted_scaler.transform(
-                    arr_pre_full.reshape(-1, 1)).flatten()
+                    arr_pre_full.reshape(-1, 1)
+                ).flatten()
             else:
                 # Either scaler was None or constant; just carry forward arr_pre_full
                 scaled_full = arr_pre_full.copy()
@@ -423,7 +444,8 @@ class Stage4Transform(BaseEstimator, TransformerMixin):
                 self.transform_models[col] = fitted_scaler
                 self.enh_many[col] = entry
                 self._log(
-                    f"[enhanced] '{col}': early‐exit after scaling (p={p1:.3f}, skew={sk1:.3f})")
+                    f"[enhanced] '{col}': early‐exit after scaling (p={p1:.3f}, skew={sk1:.3f})"
+                )
                 percol[col] = entry
                 continue
 
@@ -465,10 +487,14 @@ class Stage4Transform(BaseEstimator, TransformerMixin):
             try:
                 if arr_scaled.size > self.qt_max_rows:
                     qt = QuantileTransformer(
-                        output_distribution="normal", random_state=self.random_state, subsample=self.qt_max_rows)
+                        output_distribution="normal",
+                        random_state=self.random_state,
+                        subsample=self.qt_max_rows,
+                    )
                 else:
                     qt = QuantileTransformer(
-                        output_distribution="normal", random_state=self.random_state)
+                        output_distribution="normal", random_state=self.random_state
+                    )
                 arr_q = qt.fit_transform(arr_scaled.reshape(-1, 1)).flatten()
                 p_q = self._shapiro_pval(arr_q)
                 sk_q = abs(float(skew(arr_q)))
@@ -493,13 +519,15 @@ class Stage4Transform(BaseEstimator, TransformerMixin):
             elif choice == "yeo":
                 arr_full2 = scaled_full.copy()
                 arr_full2[nonnull] = best_extra_model.transform(
-                    arr_scaled.reshape(-1, 1)).flatten()
+                    arr_scaled.reshape(-1, 1)
+                ).flatten()
                 df0[col] = arr_full2
                 self.transform_models[col] = best_extra_model
             elif choice == "quantile":
                 arr_full2 = scaled_full.copy()
                 arr_full2[nonnull] = best_extra_model.transform(
-                    arr_scaled.reshape(-1, 1)).flatten()
+                    arr_scaled.reshape(-1, 1)
+                ).flatten()
                 df0[col] = arr_full2
                 self.transform_models[col] = best_extra_model
             else:
@@ -510,7 +538,8 @@ class Stage4Transform(BaseEstimator, TransformerMixin):
             self.transform_choices[col] = choice
             self.enh_many[col] = entry
             self._log(
-                f"[enhanced] '{col}': extra_choice={choice} (scores={extra_scores})")
+                f"[enhanced] '{col}': extra_choice={choice} (scores={extra_scores})"
+            )
             percol[col] = entry
 
         # Save enhanced‐mode report
@@ -546,8 +575,7 @@ class Stage4Transform(BaseEstimator, TransformerMixin):
 
         self.report["overall_mode"]["requested"] = self.mode
         self.report["overall_mode"]["chosen"] = self._auto_chosen
-        self._log(
-            f"[fit] mode requested={self.mode}, chosen={self._auto_chosen}")
+        self._log(f"[fit] mode requested={self.mode}, chosen={self._auto_chosen}")
 
         # 2) Invoke the chosen pipeline
         if self._auto_chosen == "simple":
@@ -588,7 +616,8 @@ class Stage4Transform(BaseEstimator, TransformerMixin):
                 arr_block = df0[self.numeric_cols].values
                 scaled_block = self.scaler_model.transform(arr_block)
                 df0[self.numeric_cols] = pd.DataFrame(
-                    scaled_block, columns=self.numeric_cols, index=df0.index)
+                    scaled_block, columns=self.numeric_cols, index=df0.index
+                )
 
             # (B) per‐column extra
             for col in self.numeric_cols:
@@ -611,8 +640,7 @@ class Stage4Transform(BaseEstimator, TransformerMixin):
                         df0[col] = pt.transform(arr_full).flatten()
 
                 elif choice == "quantile":
-                    qt: QuantileTransformer = self.transform_models.get(
-                        col, None)
+                    qt: QuantileTransformer = self.transform_models.get(col, None)
                     if qt is not None:
                         arr_full = df0[col].values.reshape(-1, 1)
                         df0[col] = qt.transform(arr_full).flatten()
@@ -635,7 +663,8 @@ class Stage4Transform(BaseEstimator, TransformerMixin):
                     try:
                         arr_pre = np.full_like(arr_col, np.nan, dtype=float)
                         arr_pre[nonnull] = self.PRE_FUNCS[pre_name](
-                            arr_col[nonnull].copy())
+                            arr_col[nonnull].copy()
+                        )
                     except Exception:
                         arr_pre = arr_col.copy()
                 else:
@@ -670,18 +699,15 @@ class Stage4Transform(BaseEstimator, TransformerMixin):
                     if pt is not None:
                         arr_scaled = scaled_full[nonnull].reshape(-1, 1)
                         scaled_full2 = scaled_full.copy()
-                        scaled_full2[nonnull] = pt.transform(
-                            arr_scaled).flatten()
+                        scaled_full2[nonnull] = pt.transform(arr_scaled).flatten()
                         scaled_full = scaled_full2
 
                 elif extra_choice == "quantile":
-                    qt: QuantileTransformer = self.transform_models.get(
-                        col, None)
+                    qt: QuantileTransformer = self.transform_models.get(col, None)
                     if qt is not None:
                         arr_scaled = scaled_full[nonnull].reshape(-1, 1)
                         scaled_full2 = scaled_full.copy()
-                        scaled_full2[nonnull] = qt.transform(
-                            arr_scaled).flatten()
+                        scaled_full2[nonnull] = qt.transform(arr_scaled).flatten()
                         scaled_full = scaled_full2
 
                 # Write back

@@ -1,11 +1,18 @@
-.PHONY: install train test tune fmt lint
+all: 
+	make env 
+	make install 
+	make test
 
 env:
-	poetry env use MLD_Lifecycle
+	poetry env list || poetry env use python3.11
 
 install:
 	poetry install
-	zenml integration install s3 sklearn mlflow -y
+	poetry run zenml integration install s3 sklearn mlflow -y
+
+devup:
+	poetry run zenml up
+	poetry run mlflow server --backend-store-uri sqlite:///.zen/mlflow.db --default-artifact-root ./.zen/mlruns --host 127.0.0.1  --port 7000
 
 train:
 	poetry run train

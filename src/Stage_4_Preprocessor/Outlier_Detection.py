@@ -46,21 +46,21 @@ class OutlierDetector(BaseEstimator, TransformerMixin, PerfMixin):
 
     # ─────────────── Class-Level Constants ───────────────
     # Univariate thresholds
-    UNIV_IQR_FACTOR = 1.5    # multiplier for IQR fences
-    UNIV_ZSCORE_CUTOFF = 3.0    # |z| > 3.0
-    UNIV_MODZ_CUTOFF = 3.5    # |modified_z| > 3.5
-    TUKEY_MULTIPLIER = 2.0    # Tukey uses 2× IQR
-    PCTL_LOW = 3      # 3st percentile
-    PCTL_HIGH = 97     # 97th percentile
+    UNIV_IQR_FACTOR = 1.5  # multiplier for IQR fences
+    UNIV_ZSCORE_CUTOFF = 3.0  # |z| > 3.0
+    UNIV_MODZ_CUTOFF = 3.5  # |modified_z| > 3.5
+    TUKEY_MULTIPLIER = 2.0  # Tukey uses 2× IQR
+    PCTL_LOW = 3  # 3st percentile
+    PCTL_HIGH = 97  # 97th percentile
 
     # Multivariate settings
-    GAUSS_SKEW_THRESH = 1.0    # abs(skew) < 1.0
-    GAUSS_KURT_THRESH = 5.0    # abs(kurtosis) < 5.0
-    MAHA_MIN_RATIO = 5      # need n_samples ≥ 5 * n_features for Mahalanobis
-    GAUSS_FRAC_THRESH = 0.6    # need ≥ 60% of features approx Gaussian
-    LOF_MAX_SAMPLES = 2000   # only run LOF if n_samples < 2000
-    LOF_MAX_FEATURES = 50     # only run LOF if n_features < 50
-    ISO_CONTAMINATION = 0.01   # 1% contamination for IsolationForest
+    GAUSS_SKEW_THRESH = 1.0  # abs(skew) < 1.0
+    GAUSS_KURT_THRESH = 5.0  # abs(kurtosis) < 5.0
+    MAHA_MIN_RATIO = 5  # need n_samples ≥ 5 * n_features for Mahalanobis
+    GAUSS_FRAC_THRESH = 0.6  # need ≥ 60% of features approx Gaussian
+    LOF_MAX_SAMPLES = 2000  # only run LOF if n_samples < 2000
+    LOF_MAX_FEATURES = 50  # only run LOF if n_features < 50
+    ISO_CONTAMINATION = 0.01  # 1% contamination for IsolationForest
 
     MULTI_CI = 0.975  # confidence for Mahalanobis cutoff
 
@@ -72,7 +72,7 @@ class OutlierDetector(BaseEstimator, TransformerMixin, PerfMixin):
         model_family: str = None,
         random_state: int = 42,
         verbose: bool = False,
-        n_jobs: int = 1  # Number of parallel jobs for scoring rules
+        n_jobs: int = 1,  # Number of parallel jobs for scoring rules
     ):
         self.outlier_threshold = outlier_threshold
         self.robust_covariance = robust_covariance
@@ -92,8 +92,8 @@ class OutlierDetector(BaseEstimator, TransformerMixin, PerfMixin):
         self._n_jobs = n_jobs
 
         # After fit, we store:
-        self.train_clean_: pd.DataFrame = None       # post-treatment training set
-        self.votes_table_: pd.DataFrame = None       # per-row rule votes
+        self.train_clean_: pd.DataFrame = None  # post-treatment training set
+        self.votes_table_: pd.DataFrame = None  # per-row rule votes
         # how many values clipped per numeric column
         self.clipped_counts_: Dict[str, int] = {}
 
@@ -101,11 +101,11 @@ class OutlierDetector(BaseEstimator, TransformerMixin, PerfMixin):
         self.fences_: Dict[str, Dict[str, Tuple[float, float]]] = {}
         # Reporting
         self.report: Dict[str, Any] = {
-            "univariate_outliers": {},    # {column -> {rule_name: count_flagged, ...}, ...}
+            "univariate_outliers": {},  # {column -> {rule_name: count_flagged, ...}, ...}
             # {"method": str, "indices": [...], "fallback_path": [...]}
             "multivariate_outliers": {},
-            "real_outliers": {},          # {"indices": [...], "count": N}
-            "treatment": {}               # details about drop vs winsorize
+            "real_outliers": {},  # {"indices": [...], "count": N}
+            "treatment": {},  # details about drop vs winsorize
         }
 
     def _log(self, msg: str):
@@ -242,9 +242,7 @@ class OutlierDetector(BaseEstimator, TransformerMixin, PerfMixin):
         Contamination fixed at ISO_CONTAMINATION.
         """
         lof = LocalOutlierFactor(
-            n_neighbors=20,
-            contamination=self.ISO_CONTAMINATION,
-            novelty=True
+            n_neighbors=20, contamination=self.ISO_CONTAMINATION, novelty=True
         )
         lof.fit(df_numeric.values)
         self.lof_model = lof
@@ -263,8 +261,7 @@ class OutlierDetector(BaseEstimator, TransformerMixin, PerfMixin):
         Fit an IsolationForest on df_numeric with contamination=ISO_CONTAMINATION.
         """
         iso = IsolationForest(
-            contamination=self.ISO_CONTAMINATION,
-            random_state=self.random_state
+            contamination=self.ISO_CONTAMINATION, random_state=self.random_state
         )
         iso.fit(df_numeric.values)
         self.iso_model = iso
@@ -300,33 +297,37 @@ class OutlierDetector(BaseEstimator, TransformerMixin, PerfMixin):
             self.report["multivariate_outliers"] = {
                 "method": None,
                 "indices": [],
-                "notes": "too few samples or no numeric cols"
+                "notes": "too few samples or no numeric cols",
             }
             return []
 
         # 1) If p >= n, skip Mahalanobis/LOF
         if n_features >= n_samples:
             self._log(
-                f"Warning: n_features ({n_features}) ≥ n_samples ({n_samples}), skipping Mahalanobis/LOF")
+                f"Warning: n_features ({n_features}) ≥ n_samples ({n_samples}), skipping Mahalanobis/LOF"
+            )
             self._fit_isolation_forest(df_num)
             iso_idxs = self._compute_isolation_indices(df_num)
             self.report["multivariate_outliers"] = {
                 "method": "IsolationForest",
                 "indices": iso_idxs,
-                "notes": "p >= n, direct to IsolationForest"
+                "notes": "p >= n, direct to IsolationForest",
             }
             return iso_idxs
 
         # 2) Check “Gaussian-like” fraction
         skews = df_num.apply(lambda col: abs(col.dropna().skew()), axis=0)
         kurts = df_num.apply(lambda col: abs(col.dropna().kurtosis()), axis=0)
-        gaussian_like = ((skews < self.GAUSS_SKEW_THRESH)
-                         & (kurts < self.GAUSS_KURT_THRESH)).sum()
+        gaussian_like = (
+            (skews < self.GAUSS_SKEW_THRESH) & (kurts < self.GAUSS_KURT_THRESH)
+        ).sum()
         frac_gaussian = gaussian_like / float(n_features)
 
         # Attempt Mahalanobis if conditions met
         mahal_used = False
-        if (n_samples >= self.MAHA_MIN_RATIO * n_features) and (frac_gaussian >= self.GAUSS_FRAC_THRESH):
+        if (n_samples >= self.MAHA_MIN_RATIO * n_features) and (
+            frac_gaussian >= self.GAUSS_FRAC_THRESH
+        ):
             self._fit_mahalanobis(df_num)
             maha_idxs = self._compute_mahalanobis_indices(df_num)
             frac_flagged = len(maha_idxs) / float(n_samples)
@@ -337,7 +338,7 @@ class OutlierDetector(BaseEstimator, TransformerMixin, PerfMixin):
                     "method": "Mahalanobis",
                     "indices": maha_idxs,
                     "frac_flagged": frac_flagged,
-                    "notes": "EmpiricalCovariance accepted"
+                    "notes": "EmpiricalCovariance accepted",
                 }
                 return maha_idxs
             else:
@@ -346,11 +347,15 @@ class OutlierDetector(BaseEstimator, TransformerMixin, PerfMixin):
                     "method": "Mahalanobis",
                     "indices": maha_idxs,
                     "frac_flagged": frac_flagged,
-                    "notes": "flags > 5%, will fall back"
+                    "notes": "flags > 5%, will fall back",
                 }
 
         # 3) Attempt LOF if still applicable
-        if not mahal_used and (n_samples < self.LOF_MAX_SAMPLES) and (n_features < self.LOF_MAX_FEATURES):
+        if (
+            not mahal_used
+            and (n_samples < self.LOF_MAX_SAMPLES)
+            and (n_features < self.LOF_MAX_FEATURES)
+        ):
             self._fit_lof(df_num)
             lof_idxs = self._compute_lof_indices(df_num)
             frac_flagged = len(lof_idxs) / float(n_samples)
@@ -359,7 +364,7 @@ class OutlierDetector(BaseEstimator, TransformerMixin, PerfMixin):
                     "method": "LOF",
                     "indices": lof_idxs,
                     "frac_flagged": frac_flagged,
-                    "notes": "LocalOutlierFactor accepted"
+                    "notes": "LocalOutlierFactor accepted",
                 }
                 return lof_idxs
             else:
@@ -368,7 +373,7 @@ class OutlierDetector(BaseEstimator, TransformerMixin, PerfMixin):
                     "method": "LOF",
                     "indices": lof_idxs,
                     "frac_flagged": frac_flagged,
-                    "notes": "flags > 5%, will fall back"
+                    "notes": "flags > 5%, will fall back",
                 }
 
         # 4) Default → IsolationForest
@@ -377,7 +382,7 @@ class OutlierDetector(BaseEstimator, TransformerMixin, PerfMixin):
         self.report["multivariate_outliers"] = {
             "method": "IsolationForest",
             "indices": iso_idxs,
-            "notes": "fallback to IsolationForest"
+            "notes": "fallback to IsolationForest",
         }
         return iso_idxs
 
@@ -396,10 +401,21 @@ class OutlierDetector(BaseEstimator, TransformerMixin, PerfMixin):
         self.best_rules_per_column_ = {}
         self.fences_ = {}
 
-        votes_df = pd.DataFrame(0, index=self.df.index, columns=[
-            "iqr", "zscore", "modz", "tukey", "percentile",
-            "mahalanobis", "lof", "isolation"
-        ], dtype=int)
+        votes_df = pd.DataFrame(
+            0,
+            index=self.df.index,
+            columns=[
+                "iqr",
+                "zscore",
+                "modz",
+                "tukey",
+                "percentile",
+                "mahalanobis",
+                "lof",
+                "isolation",
+            ],
+            dtype=int,
+        )
 
         def score_rules(col: str):
             scores = {}
@@ -422,8 +438,10 @@ class OutlierDetector(BaseEstimator, TransformerMixin, PerfMixin):
             if idxs:
                 q1, q3 = np.percentile(series.dropna().values, [25, 75])
                 iqr = q3 - q1
-                fences["iqr"] = (q1 - self.UNIV_IQR_FACTOR
-                                 * iqr, q3 + self.UNIV_IQR_FACTOR * iqr)
+                fences["iqr"] = (
+                    q1 - self.UNIV_IQR_FACTOR * iqr,
+                    q3 + self.UNIV_IQR_FACTOR * iqr,
+                )
 
             # Z-score
             idxs = try_rule("zscore", self._zscore_outliers)
@@ -443,24 +461,27 @@ class OutlierDetector(BaseEstimator, TransformerMixin, PerfMixin):
             if idxs:
                 q1, q3 = np.percentile(series.dropna().values, [25, 75])
                 iqr = q3 - q1
-                fences["tukey"] = (q1 - self.TUKEY_MULTIPLIER
-                                   * iqr, q3 + self.TUKEY_MULTIPLIER * iqr)
+                fences["tukey"] = (
+                    q1 - self.TUKEY_MULTIPLIER * iqr,
+                    q3 + self.TUKEY_MULTIPLIER * iqr,
+                )
 
             # Percentile
             idxs = try_rule("percentile", self._percentile_outliers)
             if idxs:
-                p1, p99 = np.percentile(series.dropna().values, [
-                                        self.PCTL_LOW, self.PCTL_HIGH])
+                p1, p99 = np.percentile(
+                    series.dropna().values, [self.PCTL_LOW, self.PCTL_HIGH]
+                )
                 fences["percentile"] = (p1, p99)
 
             # Pick best 2 rules (you can limit to 1 if you want stricter)
             sorted_rules = sorted(
-                [(k, v) for k, v in scores.items() if v >= 0], key=lambda x: -x[1])
+                [(k, v) for k, v in scores.items() if v >= 0], key=lambda x: -x[1]
+            )
             best = [r[0] for r in sorted_rules[:2]]
             return col, best, fences
 
-        results = self.parallel_map(
-            score_rules, self.numeric_cols, prefer="threads")
+        results = self.parallel_map(score_rules, self.numeric_cols, prefer="threads")
 
         for col, best_rules, fences in results:
             self.best_rules_per_column_[col] = best_rules
@@ -489,7 +510,8 @@ class OutlierDetector(BaseEstimator, TransformerMixin, PerfMixin):
         clipped_counts = {}
 
         force_winsorize = (self.model_family in ["linear", "bayesian"]) and (
-            self.cap_outliers is not False)
+            self.cap_outliers is not False
+        )
 
         if self.cap_outliers is None and not force_winsorize:
             self.train_clean_ = df_clean.copy()
@@ -503,12 +525,12 @@ class OutlierDetector(BaseEstimator, TransformerMixin, PerfMixin):
                 p1, p99 = np.percentile(arr, [self.PCTL_LOW, self.PCTL_HIGH])
                 df_clean[col] = df_clean[col].clip(lower=p1, upper=p99)
                 clipped_counts[col] = int(
-                    (df_clean[col] < p1).sum() + (df_clean[col] > p99).sum())
+                    (df_clean[col] < p1).sum() + (df_clean[col] > p99).sum()
+                )
 
             self.train_clean_ = df_clean.copy()
             self.clipped_counts_ = clipped_counts
-            self.report["treatment"] = {
-                "mode": "winsorize", "counts": clipped_counts}
+            self.report["treatment"] = {"mode": "winsorize", "counts": clipped_counts}
         else:
             df_clean.drop(index=real, inplace=True)
             df_clean.reset_index(drop=True, inplace=True)
@@ -569,8 +591,7 @@ class OutlierDetector(BaseEstimator, TransformerMixin, PerfMixin):
                 try:
                     Xz = self.scaler.transform(df_num.loc[mask].values)
                     md = self.cov_estimator.mahalanobis(Xz)
-                    votes.loc[df_num.loc[mask].index[md
-                                                     > self.mahal_threshold]] += 1
+                    votes.loc[df_num.loc[mask].index[md > self.mahal_threshold]] += 1
                 except Exception:
                     pass
 

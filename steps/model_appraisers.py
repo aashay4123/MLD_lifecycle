@@ -137,14 +137,10 @@ def model_analysis(
                 suite_html = f.read()
         log_text(suite_html, f"{name}.html")
         passed_checks = suite_result.get_passed_checks()
-        failed_checks = suite_result.get_not_passed_checks(
-            fail_if_warning=False
-        )
+        failed_checks = suite_result.get_not_passed_checks(fail_if_warning=False)
         warning_checks = [
             check
-            for check in suite_result.get_not_passed_checks(
-                fail_if_warning=True
-            )
+            for check in suite_result.get_not_passed_checks(fail_if_warning=True)
             if check not in failed_checks
         ]
         skipped_checks = suite_result.get_not_ran_checks()
@@ -256,19 +252,12 @@ Results: {'**PASSED**' if results[3][0] else '**FAILED**'}
 - skipped checks: {results[3][4]}
 """
 
-    if (
-        reference_train_accuracy is not None
-        and reference_test_accuracy is not None
-    ):
+    if reference_train_accuracy is not None and reference_test_accuracy is not None:
         if not ignore_reference_model:
-            if (
-                reference_train_accuracy - train_accuracy
-            ) > max_train_accuracy_diff:
+            if (reference_train_accuracy - train_accuracy) > max_train_accuracy_diff:
                 passed = False
 
-            if (
-                reference_test_accuracy - test_accuracy
-            ) > max_test_accuracy_diff:
+            if (reference_test_accuracy - test_accuracy) > max_test_accuracy_diff:
                 passed = False
 
         report += f"""

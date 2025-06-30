@@ -14,19 +14,19 @@ from sklearn.feature_selection import (
     f_classif,
     f_regression,
     RFE,
-    SequentialFeatureSelector
+    SequentialFeatureSelector,
 )
 from sklearn.linear_model import (
     LogisticRegression,
     LassoCV,
     ElasticNetCV,
-    LogisticRegressionCV
+    LogisticRegressionCV,
 )
 from sklearn.ensemble import (
     RandomForestClassifier,
     RandomForestRegressor,
     GradientBoostingClassifier,
-    GradientBoostingRegressor
+    GradientBoostingRegressor,
 )
 from sklearn.inspection import permutation_importance
 from sklearn.preprocessing import LabelEncoder
@@ -87,7 +87,7 @@ class ExtendedFeatureSelector(BaseEstimator, TransformerMixin):
         sfs_n_features: Optional[int] = None,
         cv: int = 5,
         n_jobs: int = 1,
-        random_state: int = 42
+        random_state: int = 42,
     ):
         self.is_classification = is_classification
         self.vote_threshold = vote_threshold
@@ -116,12 +116,13 @@ class ExtendedFeatureSelector(BaseEstimator, TransformerMixin):
         return not (y_ser.dtype.kind in "ifu" and y_ser.nunique() > 20)
 
     def _univariate_mi(self, X: pd.DataFrame, y) -> Set[str]:
-        mi_func = mutual_info_classif if self.is_classification else mutual_info_regression
-        mi = mi_func(X, y, discrete_features='auto',
-                     random_state=self.random_state)
+        mi_func = (
+            mutual_info_classif if self.is_classification else mutual_info_regression
+        )
+        mi = mi_func(X, y, discrete_features="auto", random_state=self.random_state)
         s = pd.Series(mi, index=X.columns).sort_values(ascending=False)
         if self.mi_k:
-            return set(s.iloc[:self.mi_k].index)
+            return set(s.iloc[: self.mi_k].index)
         else:
             return set(s[s > 0].index)
 
@@ -130,7 +131,7 @@ class ExtendedFeatureSelector(BaseEstimator, TransformerMixin):
         f_vals, _ = f_func(X, y)
         s = pd.Series(f_vals, index=X.columns).sort_values(ascending=False)
         if self.f_k:
-            return set(s.iloc[:self.f_k].index)
+            return set(s.iloc[: self.f_k].index)
         else:
             return set(s[s > 0].index)
 
@@ -146,51 +147,77 @@ class ExtendedFeatureSelector(BaseEstimator, TransformerMixin):
         return set(X.columns) - drop
 
     def _rf_keep(self, X: pd.DataFrame, y) -> Set[str]:
-        Model = RandomForestClassifier if self.is_classification else RandomForestRegressor
-        m = Model(n_estimators=self.rf_n_estimators,
-                  random_state=self.random_state,
-                  n_jobs=self.n_jobs).fit(X, y)
+        Model = (
+            RandomForestClassifier if self.is_classification else RandomForestRegressor
+        )
+        m = Model(
+            n_estimators=self.rf_n_estimators,
+            random_state=self.random_state,
+            n_jobs=self.n_jobs,
+        ).fit(X, y)
         imp = pd.Series(m.feature_importances_, index=X.columns)
         return set(imp[imp >= imp.median()].index)
 
     def _gb_keep(self, X: pd.DataFrame, y) -> Set[str]:
-        Model = GradientBoostingClassifier if self.is_classification else GradientBoostingRegressor
-        m = Model(n_estimators=self.gb_n_estimators,
-                  random_state=self.random_state).fit(X, y)
+        Model = (
+            GradientBoostingClassifier
+            if self.is_classification
+            else GradientBoostingRegressor
+        )
+        m = Model(
+            n_estimators=self.gb_n_estimators, random_state=self.random_state
+        ).fit(X, y)
         imp = pd.Series(m.feature_importances_, index=X.columns)
         return set(imp[imp >= imp.median()].index)
 
     def _perm_keep(self, X: pd.DataFrame, y) -> Set[str]:
-        Model = RandomForestClassifier if self.is_classification else RandomForestRegressor
-        base = Model(n_estimators=self.rf_n_estimators,
-                     random_state=self.random_state,
-                     n_jobs=self.n_jobs).fit(X, y)
-        perm = permutation_importance(base, X, y,
-                                      n_repeats=self.perm_n_repeats,
-                                      random_state=self.random_state,
-                                      n_jobs=self.n_jobs)
+        Model = (
+            RandomForestClassifier if self.is_classification else RandomForestRegressor
+        )
+        base = Model(
+            n_estimators=self.rf_n_estimators,
+            random_state=self.random_state,
+            n_jobs=self.n_jobs,
+        ).fit(X, y)
+        perm = permutation_importance(
+            base,
+            X,
+            y,
+            n_repeats=self.perm_n_repeats,
+            random_state=self.random_state,
+            n_jobs=self.n_jobs,
+        )
         imp = pd.Series(perm.importances_mean, index=X.columns)
         return set(imp[imp >= imp.median()].index)
 
     def _l1_keep(self, X: pd.DataFrame, y) -> Set[str]:
         if self.is_classification:
-            model = LogisticRegressionCV(penalty='l1', solver='saga',
-                                         Cs=[self.l1_C], cv=self.cv,
-                                         n_jobs=self.n_jobs,
-                                         random_state=self.random_state)
+            model = LogisticRegressionCV(
+                penalty="l1",
+                solver="saga",
+                Cs=[self.l1_C],
+                cv=self.cv,
+                n_jobs=self.n_jobs,
+                random_state=self.random_state,
+            )
         else:
-            model = LassoCV(alphas=[1/self.l1_C], cv=self.cv,
-                            n_jobs=self.n_jobs,
-                            random_state=self.random_state)
+            model = LassoCV(
+                alphas=[1 / self.l1_C],
+                cv=self.cv,
+                n_jobs=self.n_jobs,
+                random_state=self.random_state,
+            )
         # wrap in SelectFromModel, threshold='median' → median coefficient/magnitude
         sfm = SelectFromModel(model).fit(X, y)
         return set(X.columns[sfm.get_support()])
 
     def _enet_keep(self, X: pd.DataFrame, y) -> Set[str]:
-        model = ElasticNetCV(l1_ratio=self.enet_l1_ratio,
-                             cv=self.cv,
-                             n_jobs=self.n_jobs,
-                             random_state=self.random_state)
+        model = ElasticNetCV(
+            l1_ratio=self.enet_l1_ratio,
+            cv=self.cv,
+            n_jobs=self.n_jobs,
+            random_state=self.random_state,
+        )
         sfm = SelectFromModel(model).fit(X, y)
         return set(X.columns[sfm.get_support()])
 
@@ -198,13 +225,16 @@ class ExtendedFeatureSelector(BaseEstimator, TransformerMixin):
         if not self.rfe_n_features:
             return set(X.columns)
         if self.is_classification:
-            est = LogisticRegression(penalty='none', solver='lbfgs',
-                                     random_state=self.random_state,
-                                     n_jobs=self.n_jobs)
+            est = LogisticRegression(
+                penalty="none",
+                solver="lbfgs",
+                random_state=self.random_state,
+                n_jobs=self.n_jobs,
+            )
         else:
-            est = LassoCV(cv=self.cv,
-                          n_jobs=self.n_jobs,
-                          random_state=self.random_state)
+            est = LassoCV(
+                cv=self.cv, n_jobs=self.n_jobs, random_state=self.random_state
+            )
         rfe = RFE(est, n_features_to_select=self.rfe_n_features).fit(X, y)
         return set(X.columns[rfe.support_])
 
@@ -212,22 +242,25 @@ class ExtendedFeatureSelector(BaseEstimator, TransformerMixin):
         if not self.sfs_n_features:
             return set(X.columns)
         if self.is_classification:
-            est = LogisticRegressionCV(cv=self.cv, solver='liblinear',
-                                       n_jobs=self.n_jobs,
-                                       random_state=self.random_state)
-            scoring = 'accuracy'
+            est = LogisticRegressionCV(
+                cv=self.cv,
+                solver="liblinear",
+                n_jobs=self.n_jobs,
+                random_state=self.random_state,
+            )
+            scoring = "accuracy"
         else:
-            est = ElasticNetCV(cv=self.cv,
-                               n_jobs=self.n_jobs,
-                               random_state=self.random_state)
-            scoring = 'r2'
+            est = ElasticNetCV(
+                cv=self.cv, n_jobs=self.n_jobs, random_state=self.random_state
+            )
+            scoring = "r2"
         sfs = SequentialFeatureSelector(
             est,
             n_features_to_select=self.sfs_n_features,
-            direction='forward',
+            direction="forward",
             scoring=scoring,
             cv=self.cv,
-            n_jobs=self.n_jobs
+            n_jobs=self.n_jobs,
         ).fit(X, y)
         return set(X.columns[sfs.get_support()])
 
@@ -236,21 +269,21 @@ class ExtendedFeatureSelector(BaseEstimator, TransformerMixin):
         y_ser = pd.Series(y) if not isinstance(y, pd.Series) else y.copy()
         if self.is_classification is None:
             self.is_classification = self._infer_task(y_ser)
-        if self.is_classification and y_ser.dtype.kind not in 'iu':
+        if self.is_classification and y_ser.dtype.kind not in "iu":
             y_ser = LabelEncoder().fit_transform(y_ser)
 
         methods = {
-            'mi':      self._univariate_mi,
-            'f_test':  self._univariate_f,
-            'variance': self._variance_keep,
-            'correlation': self._correlation_keep,
-            'rf':      self._rf_keep,
-            'gb':      self._gb_keep,
-            'perm':    self._perm_keep,
-            'l1':      self._l1_keep,
-            'enet':    self._enet_keep,
-            'rfe':     self._rfe_keep,
-            'sfs':     self._sfs_keep
+            "mi": self._univariate_mi,
+            "f_test": self._univariate_f,
+            "variance": self._variance_keep,
+            "correlation": self._correlation_keep,
+            "rf": self._rf_keep,
+            "gb": self._gb_keep,
+            "perm": self._perm_keep,
+            "l1": self._l1_keep,
+            "enet": self._enet_keep,
+            "rfe": self._rfe_keep,
+            "sfs": self._sfs_keep,
         }
 
         votes: Dict[str, int] = {c: 0 for c in X.columns}
@@ -273,13 +306,14 @@ class ExtendedFeatureSelector(BaseEstimator, TransformerMixin):
                         votes[c] += 1
 
         min_votes = int(np.ceil(self.vote_threshold * total_methods))
-        self.selected_features_ = [
-            c for c, v in votes.items() if v >= min_votes]
-        self.report_['final_keep'] = set(self.selected_features_)
+        self.selected_features_ = [c for c, v in votes.items() if v >= min_votes]
+        self.report_["final_keep"] = set(self.selected_features_)
         return self
 
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:
         return X[self.selected_features_].copy()
 
-    def fit_transform(self, X: pd.DataFrame, y: Union[pd.Series, np.ndarray]) -> pd.DataFrame:
+    def fit_transform(
+        self, X: pd.DataFrame, y: Union[pd.Series, np.ndarray]
+    ) -> pd.DataFrame:
         return self.fit(X, y).transform(X)

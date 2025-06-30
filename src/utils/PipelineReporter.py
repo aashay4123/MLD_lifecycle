@@ -29,7 +29,7 @@ class PipelineReporter:
         self,
         max_charts: int = 50,
         report_dir: Union[str, Path] = "reports",
-        enable_mlflow: bool = True
+        enable_mlflow: bool = True,
     ):
         self.max_charts = max_charts
         self.report_dir = Path(report_dir)
@@ -44,27 +44,27 @@ class PipelineReporter:
 
     def _report_outlier_detector(self, name: str, component: Any) -> Dict:
         report = component.report if hasattr(component, "report") else {}
-        outlier_indices = set(report.get(
-            "real_outliers", {}).get("indices", []))
+        outlier_indices = set(report.get("real_outliers", {}).get("indices", []))
         df = getattr(component, "df", None)
-        scores = getattr(component, "votes_table_",
-                         {}).get("total_votes", None)
+        scores = getattr(component, "votes_table_", {}).get("total_votes", None)
         cols = getattr(component, "numeric_cols", [])
 
         charts = []
         if df is not None and scores is not None:
             stds = {
                 col: df[col].loc[list(outlier_indices)].std()
-                for col in cols if col in df.columns
+                for col in cols
+                if col in df.columns
             }
             top_cols = sorted(stds.items(), key=lambda x: x[1], reverse=True)[
-                :self.max_charts]
+                : self.max_charts
+            ]
             for col, _ in top_cols:
                 chart_path = self._plot_histogram(
                     df[col],
                     title=f"{name}: {col} (highlighted outliers)",
                     hue=df.index.isin(outlier_indices),
-                    filename=f"{name}_{col}_outliers.png"
+                    filename=f"{name}_{col}_outliers.png",
                 )
                 charts.append(chart_path)
         return {"charts": charts, "summary": report}
@@ -82,12 +82,14 @@ class PipelineReporter:
                 chart_path = self._plot_histogram(
                     df[col],
                     title=f"{name}: {col} (missing values)",
-                    filename=f"{name}_{col}_missing.png"
+                    filename=f"{name}_{col}_missing.png",
                 )
                 charts.append(chart_path)
         return {"charts": charts, "summary": report}
 
-    def register(self, name: str, component: Any = None, report: dict = None, charts: list = None):
+    def register(
+        self, name: str, component: Any = None, report: dict = None, charts: list = None
+    ):
         """Register either a component (with .report or .get_pipeline_report()) OR a precomputed report dict."""
         if component is not None:
             self.components[name] = component
@@ -96,12 +98,18 @@ class PipelineReporter:
             if charts:
                 self.chart_paths[name] = charts
 
-    def _plot_histogram(self, data: pd.Series, title: str, filename: str, hue: Optional[pd.Series] = None) -> str:
+    def _plot_histogram(
+        self,
+        data: pd.Series,
+        title: str,
+        filename: str,
+        hue: Optional[pd.Series] = None,
+    ) -> str:
         plt.figure(figsize=(6, 4))
         if hue is not None:
-            sns.histplot(data, hue=hue, kde=True, palette='muted')
+            sns.histplot(data, hue=hue, kde=True, palette="muted")
         else:
-            sns.histplot(data, kde=True, color='steelblue')
+            sns.histplot(data, kde=True, color="steelblue")
         plt.title(title)
         plt.tight_layout()
         filepath = self.plots_dir / filename
@@ -133,13 +141,18 @@ class PipelineReporter:
         numeric_cols = getattr(comp, "numeric_cols", [])
         if isinstance(df, pd.DataFrame) and numeric_cols:
             try:
-                top_cols = df[numeric_cols].std().sort_values(
-                    ascending=False).head(self.max_charts).index
+                top_cols = (
+                    df[numeric_cols]
+                    .std()
+                    .sort_values(ascending=False)
+                    .head(self.max_charts)
+                    .index
+                )
                 for col in top_cols:
                     chart = self._plot_histogram(
                         df[col],
                         title=f"{name}: {col} distribution",
-                        filename=f"{name}_{col}_dist.png"
+                        filename=f"{name}_{col}_dist.png",
                     )
                     charts.append(chart)
             except Exception as e:
@@ -168,12 +181,13 @@ class PipelineReporter:
         # Static report blocks
         for name, report in self.static_reports.items():
             markdown.append(f"## 📌 {name} (static report)\n")
-            markdown.append(
-                "```json\n" + json.dumps(report, indent=2) + "\n```\n")
+            markdown.append("```json\n" + json.dumps(report, indent=2) + "\n```\n")
             for chart in self.chart_paths.get(name, []):
                 markdown.append(f"![{name}]({chart})\n")
-            final_report[name] = {"summary": report,
-                                  "charts": self.chart_paths.get(name, [])}
+            final_report[name] = {
+                "summary": report,
+                "charts": self.chart_paths.get(name, []),
+            }
 
         # Component-based blocks
         for name, comp in self.components.items():
@@ -192,7 +206,8 @@ class PipelineReporter:
             result = self._extract_summary_and_charts(name, comp)
             if result["summary"]:
                 markdown.append(
-                    "```json\n" + json.dumps(result["summary"], indent=2) + "\n```\n")
+                    "```json\n" + json.dumps(result["summary"], indent=2) + "\n```\n"
+                )
             for chart in result["charts"]:
                 markdown.append(f"![{name}]({chart})\n")
 
@@ -212,8 +227,7 @@ class PipelineReporter:
         with open(md_path, "w") as f:
             f.write("\n".join(markdown))
         with open(html_path, "w") as f:
-            f.write("<html><body>"
-                    + "<br><hr><br>".join(markdown) + "</body></html>")
+            f.write("<html><body>" + "<br><hr><br>".join(markdown) + "</body></html>")
 
         if self.enable_mlflow and mlflow:
             mlflow.log_artifact(json_path)

@@ -43,7 +43,8 @@ def gitflow_end_to_end_pipeline(
     metadata_logger(github_pr_url=github_pr_url)
 
     data, data_integrity_report = data_loader(
-        file="../../_Data/merged_all_3_datasets.csv", project_name="Breast Cancer")
+        file="../../_Data/merged_all_3_datasets.csv", project_name="Breast Cancer"
+    )
 
     served_model = served_model_loader(
         model_name=model_name,

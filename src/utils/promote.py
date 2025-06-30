@@ -19,6 +19,4 @@ if __name__ == "__main__":
     Client().get_model_version(MODEL_NAME, args.version).set_stage(
         ModelStages.PRODUCTION, force=True
     )
-    print(
-        f"Model `{MODEL_NAME}` version `{args.version}` promoted to production!"
-    )
+    print(f"Model `{MODEL_NAME}` version `{args.version}` promoted to production!")

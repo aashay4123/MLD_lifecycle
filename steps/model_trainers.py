@@ -61,9 +61,7 @@ def svc_trainer(
     params: SVCTrainerParams,
     train_dataset: pd.DataFrame,
 ) -> Tuple[
-    Annotated[
-        ClassifierMixin, ArtifactConfig(name="model", is_model_artifact=True)
-    ],
+    Annotated[ClassifierMixin, ArtifactConfig(name="model", is_model_artifact=True)],
     Annotated[float, "accuracy"],
 ]:
     """Train and logs a sklearn C-support vector classification model.
@@ -108,9 +106,7 @@ def decision_tree_trainer(
     max_depth: int = 5,
     extra_hyperparams: dict = {},
 ) -> Tuple[
-    Annotated[
-        ClassifierMixin, ArtifactConfig(name="model", is_model_artifact=True)
-    ],
+    Annotated[ClassifierMixin, ArtifactConfig(name="model", is_model_artifact=True)],
     Annotated[float, "accuracy"],
 ]:
     """Train a sklearn decision tree classifier.

@@ -40,7 +40,14 @@ mlflow.set_tag("zenml_pipeline", "training_pipeline_v1")
 
 
 @step
-@monitor(name="ingest_data", log_args=True, log_result=True, track_input_size=True, track_memory=True, retries=1)
+@monitor(
+    name="ingest_data",
+    log_args=True,
+    log_result=True,
+    track_input_size=True,
+    track_memory=True,
+    retries=1,
+)
 def ingest_data() -> Output(data=pd.DataFrame):
     df = DataCollector(pii_mask=True).read_file("data.csv")
     return df
@@ -55,9 +62,18 @@ def inspect_data(data: pd.DataFrame) -> Output(valid_data=pd.DataFrame):
 
 
 @step
-@monitor(name="split_data", log_args=True, log_result=False, track_input_size=True, track_memory=True)
-def split_data(data: pd.DataFrame) -> Output(train=pd.DataFrame, val=pd.DataFrame, test=pd.DataFrame):
+@monitor(
+    name="split_data",
+    log_args=True,
+    log_result=False,
+    track_input_size=True,
+    track_memory=True,
+)
+def split_data(
+    data: pd.DataFrame,
+) -> Output(train=pd.DataFrame, val=pd.DataFrame, test=pd.DataFrame):
     from sklearn.model_selection import train_test_split
+
     train_val, test = train_test_split(data, test_size=0.1, random_state=42)
     train, val = train_test_split(train_val, test_size=0.1, random_state=42)
 
@@ -72,8 +88,16 @@ def split_data(data: pd.DataFrame) -> Output(train=pd.DataFrame, val=pd.DataFram
 
 @enable_mlflow
 @step
-@monitor(name="impute_data", log_args=True, track_input_size=True, track_memory=True, retries=1)
-def impute_data(train: pd.DataFrame, val: pd.DataFrame, test: pd.DataFrame) -> Output(train=pd.DataFrame, val=pd.DataFrame, test=pd.DataFrame):
+@monitor(
+    name="impute_data",
+    log_args=True,
+    track_input_size=True,
+    track_memory=True,
+    retries=1,
+)
+def impute_data(
+    train: pd.DataFrame, val: pd.DataFrame, test: pd.DataFrame
+) -> Output(train=pd.DataFrame, val=pd.DataFrame, test=pd.DataFrame):
     imputer = MissingImputer()
     imputer.fit(train)
 
@@ -87,9 +111,17 @@ def impute_data(train: pd.DataFrame, val: pd.DataFrame, test: pd.DataFrame) -> O
 
 @enable_mlflow
 @step
-@monitor(name="scale_transform", log_args=True, track_input_size=True, track_memory=True, log_result=False)
-def scale_transform(train: pd.DataFrame, val: pd.DataFrame, test: pd.DataFrame) -> Output(train=pd.DataFrame, val=pd.DataFrame, test=pd.DataFrame):
-    numeric = train.select_dtypes(include='number').columns.tolist()
+@monitor(
+    name="scale_transform",
+    log_args=True,
+    track_input_size=True,
+    track_memory=True,
+    log_result=False,
+)
+def scale_transform(
+    train: pd.DataFrame, val: pd.DataFrame, test: pd.DataFrame
+) -> Output(train=pd.DataFrame, val=pd.DataFrame, test=pd.DataFrame):
+    numeric = train.select_dtypes(include="number").columns.tolist()
     transformer = SmartFeatureTransformer(mode="adaptive", verbose=False)
 
     X_train = transformer.fit_transform(train, numeric)
@@ -103,8 +135,12 @@ def scale_transform(train: pd.DataFrame, val: pd.DataFrame, test: pd.DataFrame) 
 
 @enable_mlflow
 @step
-@monitor(name="detect_outliers", log_args=True, track_input_size=True, track_memory=True)
-def detect_outliers(train: pd.DataFrame, val: pd.DataFrame, test: pd.DataFrame) -> Output(train=pd.DataFrame, val=pd.DataFrame, test=pd.DataFrame):
+@monitor(
+    name="detect_outliers", log_args=True, track_input_size=True, track_memory=True
+)
+def detect_outliers(
+    train: pd.DataFrame, val: pd.DataFrame, test: pd.DataFrame
+) -> Output(train=pd.DataFrame, val=pd.DataFrame, test=pd.DataFrame):
     detector = OutlierDetector()
     train_o = detector.fit_transform(train)
 
@@ -117,22 +153,40 @@ def detect_outliers(train: pd.DataFrame, val: pd.DataFrame, test: pd.DataFrame) 
 
 @step
 @monitor(name="feature_split", log_args=True, track_input_size=True, track_memory=True)
-def feature_split(train: pd.DataFrame, val: pd.DataFrame, test: pd.DataFrame) -> Output(train=pd.DataFrame, val=pd.DataFrame, test=pd.DataFrame):
+def feature_split(
+    train: pd.DataFrame, val: pd.DataFrame, test: pd.DataFrame
+) -> Output(train=pd.DataFrame, val=pd.DataFrame, test=pd.DataFrame):
     splitter = AdvancedFeatureSplitterV4(n_jobs=2)
     return splitter.transform(train), splitter.transform(val), splitter.transform(test)
 
 
 @step
-@monitor(name="feature_construct", log_args=True, track_input_size=True, track_memory=True)
-def feature_construct(train: pd.DataFrame, val: pd.DataFrame, test: pd.DataFrame) -> Output(train=pd.DataFrame, val=pd.DataFrame, test=pd.DataFrame):
+@monitor(
+    name="feature_construct", log_args=True, track_input_size=True, track_memory=True
+)
+def feature_construct(
+    train: pd.DataFrame, val: pd.DataFrame, test: pd.DataFrame
+) -> Output(train=pd.DataFrame, val=pd.DataFrame, test=pd.DataFrame):
     constructor = AdvancedFeatureConstructorV4()
-    return constructor.transform(train), constructor.transform(val), constructor.transform(test)
+    return (
+        constructor.transform(train),
+        constructor.transform(val),
+        constructor.transform(test),
+    )
 
 
 @enable_mlflow
 @step
-@monitor(name="encode", log_args=True, log_result=True, track_input_size=True, track_memory=True)
-def encode(train: pd.DataFrame, val: pd.DataFrame, test: pd.DataFrame) -> Output(train=pd.DataFrame, val=pd.DataFrame, test=pd.DataFrame):
+@monitor(
+    name="encode",
+    log_args=True,
+    log_result=True,
+    track_input_size=True,
+    track_memory=True,
+)
+def encode(
+    train: pd.DataFrame, val: pd.DataFrame, test: pd.DataFrame
+) -> Output(train=pd.DataFrame, val=pd.DataFrame, test=pd.DataFrame):
     encoder = FeatureEncoder()
     train_e = encoder.encode_train(train)
     val_e = encoder.encode_test(val)
@@ -144,8 +198,7 @@ def encode(train: pd.DataFrame, val: pd.DataFrame, test: pd.DataFrame) -> Output
 
     # Save processed final versions
     os.makedirs("artifacts/final_data", exist_ok=True)
-    train_e.to_parquet(
-        "artifacts/final_data/train_encoded.parquet", index=False)
+    train_e.to_parquet("artifacts/final_data/train_encoded.parquet", index=False)
     val_e.to_parquet("artifacts/final_data/val_encoded.parquet", index=False)
     test_e.to_parquet("artifacts/final_data/test_encoded.parquet", index=False)
 
@@ -180,7 +233,7 @@ def full_training_pipeline(
     feature_split,
     feature_construct,
     encode,
-    train_baseline
+    train_baseline,
 ):
     data = ingest_data()
     checked = inspect_data(data)
@@ -205,5 +258,5 @@ def TrainingPipeline():
         feature_split=feature_split(),
         feature_construct=feature_construct(),
         encode=encode(),
-        train_baseline=train_baseline()
+        train_baseline=train_baseline(),
     ).run()

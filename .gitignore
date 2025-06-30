@@ -18,3 +18,4 @@ mlartifacts
 *.pkl
 *.pickle
 *.log
+*.db

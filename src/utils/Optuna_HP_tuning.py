@@ -13,16 +13,21 @@ from ensemble_selector_optuna import ensemble_selector_optuna
 @enable_mlflow
 @step
 @monitor(name="tune_model_optuna")
-def tune_step(train: pd.DataFrame, val: pd.DataFrame) -> Output(models=List[Tuple[str, Any]]):
+def tune_step(
+    train: pd.DataFrame, val: pd.DataFrame
+) -> Output(models=List[Tuple[str, Any]]):
     final_model, best_params, metrics = hp_tuning_optuna_probabilistic_approach(
-        train, val)
+        train, val
+    )
     return [(best_params["model"], final_model)]
 
 
 @enable_mlflow
 @step
 @monitor(name="ensemble_selector_optuna")
-def ensemble_step(train: pd.DataFrame, val: pd.DataFrame, models: List[Tuple[str, Any]]) -> Output(model=Any, score=float):
+def ensemble_step(
+    train: pd.DataFrame, val: pd.DataFrame, models: List[Tuple[str, Any]]
+) -> Output(model=Any, score=float):
     final_model, score = ensemble_selector_optuna(train, val, models, top_k=3)
     joblib.dump(final_model, "artifacts/final_model.joblib")
     mlflow.sklearn.log_model(final_model, "final_ensemble_model")
@@ -42,7 +47,7 @@ def full_hpo_ensemble_pipeline(
     feature_construct,
     encode,
     tune_step,
-    ensemble_step
+    ensemble_step,
 ):
     data = ingest_data()
     checked = inspect_data(data)

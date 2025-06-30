@@ -3,7 +3,9 @@
 from zenml.steps import step
 from zenml.integrations.mlflow.services import MLFlowDeploymentService
 from zenml.integrations.mlflow.steps import mlflow_model_deployer_step
-from zenml.integrations.mlflow.model_deployers.mlflow_model_deployer import MLFlowModelDeployer
+from zenml.integrations.mlflow.model_deployers.mlflow_model_deployer import (
+    MLFlowModelDeployer,
+)
 import mlflow
 
 
@@ -15,9 +17,6 @@ def deploy_model() -> MLFlowDeploymentService:
     model_uri = f"runs:/{active_run.info.run_id}/{model_name}"
 
     service = deployer.deploy_model(
-        model_uri=model_uri,
-        model_name=model_name,
-        replace=True,
-        timeout=60
+        model_uri=model_uri, model_name=model_name, replace=True, timeout=60
     )
     return service

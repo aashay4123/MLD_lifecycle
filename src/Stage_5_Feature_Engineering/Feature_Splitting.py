@@ -43,9 +43,9 @@ class FeatureSplitter(BaseEstimator, TransformerMixin):
     ):
         # splitting params
         self.mixed_patterns = mixed_patterns or {
-            'alpha': r'([A-Za-z]+)',
-            'digits': r'(\d+)',
-            'punct': r'([^A-Za-z0-9]+)'
+            "alpha": r"([A-Za-z]+)",
+            "digits": r"(\d+)",
+            "punct": r"([^A-Za-z0-9]+)",
         }
         self.delimiter_splits = delimiter_splits or {}
         self.multi_label_delimiter = multi_label_delimiter
@@ -78,13 +78,12 @@ class FeatureSplitter(BaseEstimator, TransformerMixin):
         else:
             self._json_loads = json.loads
         if self.flatten_xml:
-            self._xml_tag = re.compile(r'<(\w+)[^>]*>(.*?)</\1>', re.DOTALL)
+            self._xml_tag = re.compile(r"<(\w+)[^>]*>(.*?)</\1>", re.DOTALL)
 
         # to be populated during split/evaluate
         self.splits_: Dict[str, List[str]] = {}
         self.report_: Dict[str, Dict[str, Dict[str, float]]] = {}
-        self.decisions_: Dict[str, Dict[str,
-                                        Union[bool, str, Dict[str, float]]]] = {}
+        self.decisions_: Dict[str, Dict[str, Union[bool, str, Dict[str, float]]]] = {}
 
     def fit(self, X: pd.DataFrame, y=None):
         return self
@@ -93,12 +92,12 @@ class FeatureSplitter(BaseEstimator, TransformerMixin):
         out: Dict[str, pd.Series] = {}
         text = df[src].astype(str).map(strip_html_fn)
         for label, pat in self.mixed_patterns.items():
-            arr = text.str.extractall(pat)[0].unstack().fillna('')
+            arr = text.str.extractall(pat)[0].unstack().fillna("")
             for i in range(arr.shape[1]):
                 out[f"{src}_{label}_{i}"] = arr.iloc[:, i]
         if self.drop_original:
             with self._lock:
-                df.drop(columns=[src], inplace=True, errors='ignore')
+                df.drop(columns=[src], inplace=True, errors="ignore")
         return out
 
     def _flatten_json_col(self, df: pd.DataFrame, col: str):
@@ -113,8 +112,7 @@ class FeatureSplitter(BaseEstimator, TransformerMixin):
         try:
             texts = df[col].astype(str)
             matches = texts.map(
-                lambda t: {m.group(1): m.group(2)
-                           for m in self._xml_tag.finditer(t)}
+                lambda t: {m.group(1): m.group(2) for m in self._xml_tag.finditer(t)}
             )
             if matches.empty:
                 return col, None
@@ -130,42 +128,39 @@ class FeatureSplitter(BaseEstimator, TransformerMixin):
 
         # helper: strip HTML if needed
         def strip_html_fn(text: str) -> str:
-            return re.sub(r'<[^>]+>', '', text) if self.strip_html else text
+            return re.sub(r"<[^>]+>", "", text) if self.strip_html else text
 
         # 1) mixed, JSON, XML splits in parallel
         tasks: List[Tuple[threading.Future, str, str]] = []
         with ThreadPoolExecutor(max_workers=self.n_jobs) as exec:
             # mixed-pattern splits
-            for src in df.select_dtypes(include=['object']).columns:
+            for src in df.select_dtypes(include=["object"]).columns:
                 fut = exec.submit(self._split_mixed, df, src, strip_html_fn)
-                tasks.append((fut, 'mixed', src))
+                tasks.append((fut, "mixed", src))
             # JSON flatten
             if self.flatten_json:
                 for col in df.columns:
                     fut = exec.submit(self._flatten_json_col, df, col)
-                    tasks.append((fut, 'json', col))
+                    tasks.append((fut, "json", col))
             # XML flatten
             if self.flatten_xml:
                 for col in df.columns:
                     fut = exec.submit(self._flatten_xml_col, df, col)
-                    tasks.append((fut, 'xml', col))
+                    tasks.append((fut, "xml", col))
             # collect results
             for fut, kind, group in tasks:
                 res = fut.result()
-                if kind == 'mixed' and isinstance(res, dict):
+                if kind == "mixed" and isinstance(res, dict):
                     frame = pd.DataFrame(res)
                     new_frames_info.append((group, frame))
-                    self.splits_.setdefault(group, []).extend(
-                        frame.columns.tolist())
-                elif kind in ('json', 'xml') and isinstance(res, tuple):
+                    self.splits_.setdefault(group, []).extend(frame.columns.tolist())
+                elif kind in ("json", "xml") and isinstance(res, tuple):
                     col, flat = res
                     if flat is not None:
                         new_frames_info.append((col, flat))
-                        self.splits_.setdefault(col, []).extend(
-                            flat.columns.tolist())
+                        self.splits_.setdefault(col, []).extend(flat.columns.tolist())
                         if self.drop_original:
-                            df.drop(columns=[col],
-                                    inplace=True, errors='ignore')
+                            df.drop(columns=[col], inplace=True, errors="ignore")
 
         # 2) V3-like splits: delimiter
         for col, delim in self.delimiter_splits.items():
@@ -176,122 +171,124 @@ class FeatureSplitter(BaseEstimator, TransformerMixin):
                 new_frames_info.append((col, parts))
                 self.splits_.setdefault(col, []).extend(cols)
                 if self.drop_original:
-                    df.drop(columns=[col], inplace=True, errors='ignore')
+                    df.drop(columns=[col], inplace=True, errors="ignore")
 
         # 3) multi-label delimiter → get_dummies
         if self.multi_label_delimiter:
-            for col in df.select_dtypes(include=['object']).columns:
-                if self.multi_label_delimiter in df[col].astype(str).str.cat(sep=self.multi_label_delimiter):
-                    dummies = df[col].astype(str).str.get_dummies(
-                        sep=self.multi_label_delimiter)
+            for col in df.select_dtypes(include=["object"]).columns:
+                if self.multi_label_delimiter in df[col].astype(str).str.cat(
+                    sep=self.multi_label_delimiter
+                ):
+                    dummies = (
+                        df[col]
+                        .astype(str)
+                        .str.get_dummies(sep=self.multi_label_delimiter)
+                    )
                     dummies = dummies.add_prefix(f"{col}_lbl_")
                     new_frames_info.append((col, dummies))
-                    self.splits_.setdefault(col, []).extend(
-                        dummies.columns.tolist())
+                    self.splits_.setdefault(col, []).extend(dummies.columns.tolist())
                     if self.drop_original:
-                        df.drop(columns=[col], inplace=True, errors='ignore')
+                        df.drop(columns=[col], inplace=True, errors="ignore")
 
         # 4) regex extract
         for col, pat in self.regex_extract.items():
             if col in df.columns:
-                arr = df[col].astype(str).str.extractall(pat)[
-                    0].unstack().fillna('')
+                arr = df[col].astype(str).str.extractall(pat)[0].unstack().fillna("")
                 cols = [f"{col}_rex_{i}" for i in range(arr.shape[1])]
                 arr.columns = cols
                 new_frames_info.append((col, arr))
                 self.splits_.setdefault(col, []).extend(cols)
                 if self.drop_original:
-                    df.drop(columns=[col], inplace=True, errors='ignore')
+                    df.drop(columns=[col], inplace=True, errors="ignore")
 
         # 5) URL parse
         for col in self.url_columns:
             if col in df.columns:
                 parsed = df[col].astype(str).apply(urlparse)
-                df_url = pd.DataFrame({
-                    f"{col}_scheme": parsed.map(lambda p: p.scheme),
-                    f"{col}_netloc": parsed.map(lambda p: p.netloc),
-                    f"{col}_path": parsed.map(lambda p: p.path),
-                    f"{col}_params": parsed.map(lambda p: p.params),
-                    f"{col}_query": parsed.map(lambda p: p.query),
-                    f"{col}_fragment": parsed.map(lambda p: p.fragment),
-                })
+                df_url = pd.DataFrame(
+                    {
+                        f"{col}_scheme": parsed.map(lambda p: p.scheme),
+                        f"{col}_netloc": parsed.map(lambda p: p.netloc),
+                        f"{col}_path": parsed.map(lambda p: p.path),
+                        f"{col}_params": parsed.map(lambda p: p.params),
+                        f"{col}_query": parsed.map(lambda p: p.query),
+                        f"{col}_fragment": parsed.map(lambda p: p.fragment),
+                    }
+                )
                 new_frames_info.append((col, df_url))
-                self.splits_.setdefault(col, []).extend(
-                    df_url.columns.tolist())
+                self.splits_.setdefault(col, []).extend(df_url.columns.tolist())
                 if self.drop_original:
-                    df.drop(columns=[col], inplace=True, errors='ignore')
+                    df.drop(columns=[col], inplace=True, errors="ignore")
 
         # 6) IP extract
-        ip_pat = re.compile(r'(\d{1,3}(?:\.\d{1,3}){3})')
+        ip_pat = re.compile(r"(\d{1,3}(?:\.\d{1,3}){3})")
         for col in self.ip_columns:
             if col in df.columns:
-                extracted = df[col].astype(str).str.extract(ip_pat)[
-                    0].fillna('')
+                extracted = df[col].astype(str).str.extract(ip_pat)[0].fillna("")
                 df_ip = pd.DataFrame({f"{col}_ip": extracted})
                 new_frames_info.append((col, df_ip))
                 self.splits_.setdefault(col, []).append(f"{col}_ip")
                 if self.drop_original:
-                    df.drop(columns=[col], inplace=True, errors='ignore')
+                    df.drop(columns=[col], inplace=True, errors="ignore")
 
         # 7) Color hex extract
-        hex_pat = re.compile(r'#(?:[0-9a-fA-F]{3}){1,2}')
+        hex_pat = re.compile(r"#(?:[0-9a-fA-F]{3}){1,2}")
         for col in self.color_hex_columns:
             if col in df.columns:
-                extracted = df[col].astype(str).str.extract(hex_pat)[
-                    0].fillna('')
+                extracted = df[col].astype(str).str.extract(hex_pat)[0].fillna("")
                 df_hex = pd.DataFrame({f"{col}_hex": extracted})
                 new_frames_info.append((col, df_hex))
                 self.splits_.setdefault(col, []).append(f"{col}_hex")
                 if self.drop_original:
-                    df.drop(columns=[col], inplace=True, errors='ignore')
+                    df.drop(columns=[col], inplace=True, errors="ignore")
 
         # 8) Filepath parse
         for col in self.filepath_columns:
             if col in df.columns:
                 dirs = df[col].astype(str).map(os.path.dirname)
                 files = df[col].astype(str).map(os.path.basename)
-                exts = df[col].astype(str).map(
-                    lambda x: os.path.splitext(x)[1])
-                df_fp = pd.DataFrame({
-                    f"{col}_dir": dirs,
-                    f"{col}_file": files,
-                    f"{col}_ext": exts
-                })
+                exts = df[col].astype(str).map(lambda x: os.path.splitext(x)[1])
+                df_fp = pd.DataFrame(
+                    {f"{col}_dir": dirs, f"{col}_file": files, f"{col}_ext": exts}
+                )
                 new_frames_info.append((col, df_fp))
                 self.splits_.setdefault(col, []).extend(df_fp.columns.tolist())
                 if self.drop_original:
-                    df.drop(columns=[col], inplace=True, errors='ignore')
+                    df.drop(columns=[col], inplace=True, errors="ignore")
 
         # 9) Email parse
-        email_pat = re.compile(r'([^@]+)@(.+)')
+        email_pat = re.compile(r"([^@]+)@(.+)")
         for col in self.email_columns:
             if col in df.columns:
-                arr = df[col].astype(str).str.extract(email_pat).fillna('')
+                arr = df[col].astype(str).str.extract(email_pat).fillna("")
                 arr.columns = [f"{col}_user", f"{col}_domain"]
                 new_frames_info.append((col, arr))
                 self.splits_.setdefault(col, []).extend(arr.columns.tolist())
                 if self.drop_original:
-                    df.drop(columns=[col], inplace=True, errors='ignore')
+                    df.drop(columns=[col], inplace=True, errors="ignore")
 
         # 10) Phone digits
         for col in self.phone_columns:
             if col in df.columns:
-                digits = df[col].astype(str).str.replace(
-                    r'\D+', '', regex=True)
+                digits = df[col].astype(str).str.replace(r"\D+", "", regex=True)
                 df_ph = pd.DataFrame({f"{col}_digits": digits})
                 new_frames_info.append((col, df_ph))
                 self.splits_.setdefault(col, []).append(f"{col}_digits")
                 if self.drop_original:
-                    df.drop(columns=[col], inplace=True, errors='ignore')
+                    df.drop(columns=[col], inplace=True, errors="ignore")
 
         return df, new_frames_info
 
-    def transform(self, X: pd.DataFrame, y: Optional[Union[pd.Series, np.ndarray]] = None):
+    def transform(
+        self, X: pd.DataFrame, y: Optional[Union[pd.Series, np.ndarray]] = None
+    ):
         base_df, new_frames_info = self._full_split_pipeline(X)
 
         # no filtering if no target or no thresholds
         if y is None or (self.min_mutual_info is None and self.min_abs_corr is None):
-            return pd.concat([base_df] + [frame for _, frame in new_frames_info], axis=1)
+            return pd.concat(
+                [base_df] + [frame for _, frame in new_frames_info], axis=1
+            )
 
         # apply threshold-based filtering
         metrics = self.evaluate(X, y)
@@ -304,22 +301,29 @@ class FeatureSplitter(BaseEstimator, TransformerMixin):
                 m = metrics.get(group, {}).get(col, {})
                 applied = True
                 reason = "no metric"
-                if 'mutual_info' in m and self.min_mutual_info is not None:
-                    mi = m['mutual_info']
+                if "mutual_info" in m and self.min_mutual_info is not None:
+                    mi = m["mutual_info"]
                     if mi < self.min_mutual_info:
                         applied = False
-                        reason = f"mutual_info {mi:.4f} < threshold {self.min_mutual_info}"
+                        reason = (
+                            f"mutual_info {mi:.4f} < threshold {self.min_mutual_info}"
+                        )
                     else:
-                        reason = f"mutual_info {mi:.4f} ≥ threshold {self.min_mutual_info}"
-                elif 'abs_corr' in m and self.min_abs_corr is not None:
-                    corr = m['abs_corr']
+                        reason = (
+                            f"mutual_info {mi:.4f} ≥ threshold {self.min_mutual_info}"
+                        )
+                elif "abs_corr" in m and self.min_abs_corr is not None:
+                    corr = m["abs_corr"]
                     if corr < self.min_abs_corr:
                         applied = False
                         reason = f"abs_corr {corr:.4f} < threshold {self.min_abs_corr}"
                     else:
                         reason = f"abs_corr {corr:.4f} ≥ threshold {self.min_abs_corr}"
                 self.decisions_[col] = {
-                    'applied': applied, 'metric': m, 'reason': reason}
+                    "applied": applied,
+                    "metric": m,
+                    "reason": reason,
+                }
                 if applied:
                     kept_cols.append(col)
             if kept_cols:
@@ -327,10 +331,11 @@ class FeatureSplitter(BaseEstimator, TransformerMixin):
 
         return pd.concat([base_df] + kept_frames, axis=1)
 
-    def evaluate(self, X: pd.DataFrame, y: Optional[Union[pd.Series, np.ndarray]] = None):
+    def evaluate(
+        self, X: pd.DataFrame, y: Optional[Union[pd.Series, np.ndarray]] = None
+    ):
         base_df, new_frames_info = self._full_split_pipeline(X)
-        df_new = pd.concat(
-            [base_df] + [frame for _, frame in new_frames_info], axis=1)
+        df_new = pd.concat([base_df] + [frame for _, frame in new_frames_info], axis=1)
 
         metrics: Dict[str, Dict[str, Dict[str, float]]] = {}
         is_class = False
@@ -349,18 +354,18 @@ class FeatureSplitter(BaseEstimator, TransformerMixin):
             for c in cols:
                 arr = df_new[c]
                 m: Dict[str, float] = {
-                    'non_null_ratio': float(arr.notnull().mean()),
-                    'unique_count': float(arr.nunique())
+                    "non_null_ratio": float(arr.notnull().mean()),
+                    "unique_count": float(arr.nunique()),
                 }
                 if y is not None:
                     if is_class:
                         mi = mutual_info_classif(
-                            arr.to_frame(), y_enc, discrete_features='auto'
+                            arr.to_frame(), y_enc, discrete_features="auto"
                         )[0]
-                        m['mutual_info'] = float(mi)
+                        m["mutual_info"] = float(mi)
                     else:
                         corr = abs(float(arr.corr(y_ser)))
-                        m['abs_corr'] = corr
+                        m["abs_corr"] = corr
                 grp_metrics[c] = m
             metrics[group] = grp_metrics
 

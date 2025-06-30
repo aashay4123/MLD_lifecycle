@@ -34,6 +34,7 @@ class FeatureEncoder:
       freq_frac_thresh : float
           If ordinal_frac_thresh < unique_frac ≤ this, use frequency (default 0.50).
     """
+
     ONEHOT_FRAC_THRESH: float = 0.05
     ORDINAL_FRAC_THRESH: float = 0.20
     FREQ_FRAC_THRESH: float = 0.50
@@ -67,8 +68,7 @@ class FeatureEncoder:
 
     @staticmethod
     def _ordinal_encode(df: pd.DataFrame, cols: List[str]) -> pd.DataFrame:
-        enc = OrdinalEncoder(
-            handle_unknown="use_encoded_value", unknown_value=-1)
+        enc = OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1)
         arr = enc.fit_transform(df[cols].astype(object))
         return pd.DataFrame(arr.astype(int), columns=cols, index=df.index)
 
@@ -94,9 +94,12 @@ class FeatureEncoder:
         df0 = df.copy().reset_index(drop=True)
         n_rows = len(df0)
         self.categorical_cols = df0.select_dtypes(
-            include=["category", "object"]).columns.tolist()
-        self.unique_frac = {col: df0[col].nunique(
-            dropna=False) / n_rows for col in self.categorical_cols}
+            include=["category", "object"]
+        ).columns.tolist()
+        self.unique_frac = {
+            col: df0[col].nunique(dropna=False) / n_rows
+            for col in self.categorical_cols
+        }
 
         report: Dict[str, Dict] = {}
 
@@ -113,12 +116,19 @@ class FeatureEncoder:
                 linear_sugg.append(col)
 
         # Build DataFrame
-        oh_lin = self._onehot_encode(
-            df0, linear_onehot) if linear_onehot else pd.DataFrame(index=df0.index)
-        freq_lin = self._frequency_encode(
-            df0, linear_freq) if linear_freq else pd.DataFrame(index=df0.index)
+        oh_lin = (
+            self._onehot_encode(df0, linear_onehot)
+            if linear_onehot
+            else pd.DataFrame(index=df0.index)
+        )
+        freq_lin = (
+            self._frequency_encode(df0, linear_freq)
+            if linear_freq
+            else pd.DataFrame(index=df0.index)
+        )
         df_lin = pd.concat(
-            [df0.drop(columns=self.categorical_cols), oh_lin, freq_lin], axis=1)
+            [df0.drop(columns=self.categorical_cols), oh_lin, freq_lin], axis=1
+        )
         df_lin.to_parquet("processed_train_linear.parquet", index=False)
         report["linear"] = {
             "onehot": linear_onehot,
@@ -126,7 +136,8 @@ class FeatureEncoder:
             "suggest_target_encode": linear_sugg,
         }
         log.info(
-            f"[LINEAR] onehot={linear_onehot}, freq={linear_freq}, sugg={linear_sugg}")
+            f"[LINEAR] onehot={linear_onehot}, freq={linear_freq}, sugg={linear_sugg}"
+        )
 
         # — TREE VARIANT —
         tree_onehot, tree_ordinal, tree_freq = [], [], []
@@ -164,13 +175,16 @@ class FeatureEncoder:
             "suggest_target_encode": tree_sugg,
         }
         log.info(
-            f"[TREE] onehot={tree_onehot}, ordinal={tree_ordinal}, freq={tree_freq}, sugg={tree_sugg}")
+            f"[TREE] onehot={tree_onehot}, ordinal={tree_ordinal}, freq={tree_freq}, sugg={tree_sugg}"
+        )
 
         # — KNN VARIANT —
-        freq_all = self._frequency_encode(
-            df0, self.categorical_cols) if self.categorical_cols else pd.DataFrame(index=df0.index)
-        df_knn = pd.concat(
-            [df0.drop(columns=self.categorical_cols), freq_all], axis=1)
+        freq_all = (
+            self._frequency_encode(df0, self.categorical_cols)
+            if self.categorical_cols
+            else pd.DataFrame(index=df0.index)
+        )
+        df_knn = pd.concat([df0.drop(columns=self.categorical_cols), freq_all], axis=1)
         df_knn.to_parquet("processed_train_knn.parquet", index=False)
         report["knn"] = {"frequency_all": self.categorical_cols}
         log.info(f"[KNN] freq-encode all: {self.categorical_cols}")
@@ -192,18 +206,33 @@ class FeatureEncoder:
         """
         # This is a stub. In practice, you’d load the parquet template, align columns, etc.
         raise NotImplementedError(
-            "Stage5Encoder.transform() is not implemented. Use fit_transform on train.")
+            "Stage5Encoder.transform() is not implemented. Use fit_transform on train."
+        )
 
 
 if __name__ == "__main__":
     # === Quick Self-Test ===
-    df_test = pd.DataFrame({
-        "cat1": ["a", "b", "a", "c", "b", "b", "a", "d", "e", "f"],
-        "cat2": ["low", "medium", "high", "low", "low", "medium", "high", "low", "medium", "medium"],
-        "num": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-    })
-    encoder = Stage5Encoder(onehot_frac_thresh=0.2,
-                            ordinal_frac_thresh=0.5, freq_frac_thresh=0.8)
+    df_test = pd.DataFrame(
+        {
+            "cat1": ["a", "b", "a", "c", "b", "b", "a", "d", "e", "f"],
+            "cat2": [
+                "low",
+                "medium",
+                "high",
+                "low",
+                "low",
+                "medium",
+                "high",
+                "low",
+                "medium",
+                "medium",
+            ],
+            "num": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+        }
+    )
+    encoder = Stage5Encoder(
+        onehot_frac_thresh=0.2, ordinal_frac_thresh=0.5, freq_frac_thresh=0.8
+    )
     df_lin = encoder.fit_transform(df_test)
     print("\nLinear‐encoded DataFrame (parquet on disk):")
     print(df_lin.head())

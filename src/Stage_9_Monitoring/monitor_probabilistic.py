@@ -6,9 +6,11 @@ import pandas as pd
 import logging
 from pathlib import Path
 from src.data_analysis.Probabilistic.probabilistic_analysis import ProbabilisticAnalysis
+
 # # ──── 1B  Logging ───────────────────────────────────────────────
-logging.basicConfig(level=logging.INFO,
-                    format="%(asctime)s | %(levelname)s | %(message)s")
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s"
+)
 log = logging.getLogger("probabilistic_monitor")
 # # ──── 2A  Data Loading ─────────────────────────────────────────
 DATA_DIR = Path("data/interim")
@@ -26,8 +28,7 @@ pa = ProbabilisticAnalysis(df)
 dist_results = pa.fit_all_distributions()
 for feature, result in dist_results.items():
     if result["ks_stat"] > 0.2:
-        raise ValueError(
-            f"Drift detected in {feature}: KS={result['ks_stat']:.3f}")
+        raise ValueError(f"Drift detected in {feature}: KS={result['ks_stat']:.3f}")
 
 # --- Entropy Collapse Alert (e.g. categorical bottleneck) ---
 entropy_scores = pa.shannon_entropy()
@@ -53,7 +54,8 @@ for feature in df.select_dtypes(include=np.number).columns:
     low, high = pa.predictive_intervals(feature)
     if high - low < 0.1:
         log.warning(
-            f"Predictive interval too narrow for {feature}: [{low:.3f}, {high:.3f}]")
+            f"Predictive interval too narrow for {feature}: [{low:.3f}, {high:.3f}]"
+        )
 
 # --- Feature Importance Anomaly (target drift?) ---
 imp = pa.feature_importance("target_col")

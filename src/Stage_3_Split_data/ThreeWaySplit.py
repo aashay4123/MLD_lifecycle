@@ -7,6 +7,7 @@ from datetime import datetime
 from sklearn.model_selection import train_test_split
 from imblearn.over_sampling import SMOTE
 from configs import global_conf
+
 log = None  # you can configure Python logging if desired
 
 
@@ -17,7 +18,7 @@ class SplitThreeWay:
         seed: int = 42,
         stratify: bool = True,
         oversample: bool = False,
-        data: pd.dataframe = None
+        data: pd.dataframe = None,
     ):
         self.target = target
         self.seed = seed
@@ -65,8 +66,7 @@ class SplitThreeWay:
         if self.oversample and not pd.api.types.is_float_dtype(y.dtype):
             X_tr = train.drop(columns=self.target)
             y_tr = train[self.target]
-            X_tr_res, y_tr_res = SMOTE(
-                random_state=self.seed).fit_resample(X_tr, y_tr)
+            X_tr_res, y_tr_res = SMOTE(random_state=self.seed).fit_resample(X_tr, y_tr)
             train = pd.concat([X_tr_res, y_tr_res], axis=1)
 
         # Save splits
@@ -104,8 +104,7 @@ class SplitThreeWay:
 
         # Identical feature → Target (leakage)
         leaks = [
-            c for c in tr.columns
-            if c != self.target and tr[c].equals(tr[self.target])
+            c for c in tr.columns if c != self.target and tr[c].equals(tr[self.target])
         ]
         if leaks:
             raise AssertionError(f"Potential leakage features: {leaks}")

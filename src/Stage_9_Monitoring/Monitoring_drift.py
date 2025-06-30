@@ -17,12 +17,14 @@ logger = logging.getLogger(__name__)
 
 
 @step
-def data_drift_check(train: pd.DataFrame, live: pd.DataFrame) -> Output(drift_score=float, drift_report=dict):
+def data_drift_check(
+    train: pd.DataFrame, live: pd.DataFrame
+) -> Output(drift_score=float, drift_report=dict):
     report = Report(metrics=[DataDriftPreset()])
     report.run(reference_data=train, current_data=live)
 
     results = report.as_dict()
-    drift_score = results['metrics'][0]['result']['dataset_drift_share']
+    drift_score = results["metrics"][0]["result"]["dataset_drift_share"]
     logger.info(f"[Evidently] Drift score: {drift_score:.2f}")
 
     with open("artifacts/drift/evidently_data_drift.json", "w") as f:
@@ -35,12 +37,14 @@ def data_drift_check(train: pd.DataFrame, live: pd.DataFrame) -> Output(drift_sc
 
 
 @step
-def target_drift_check(train: pd.DataFrame, live: pd.DataFrame) -> Output(target_drift_score=float):
+def target_drift_check(
+    train: pd.DataFrame, live: pd.DataFrame
+) -> Output(target_drift_score=float):
     report = Report(metrics=[TargetDriftPreset()])
     report.run(reference_data=train, current_data=live)
 
     results = report.as_dict()
-    drift_score = results['metrics'][0]['result']['dataset_drift_share']
+    drift_score = results["metrics"][0]["result"]["dataset_drift_share"]
     logger.info(f"[Evidently] Target Drift score: {drift_score:.2f}")
 
     with open("artifacts/drift/evidently_target_drift.json", "w") as f:
@@ -96,7 +100,7 @@ def data_drift_step(train: pd.DataFrame, test: pd.DataFrame) -> Output(score=flo
     report.run(reference_data=train, current_data=test)
     result = report.as_dict()
 
-    score = result['metrics'][0]['result']['dataset_drift_share']
+    score = result["metrics"][0]["result"]["dataset_drift_share"]
     Path("artifacts/drift").mkdir(parents=True, exist_ok=True)
     with open("artifacts/drift/data_drift.json", "w") as f:
         json.dump(result, f, indent=2)
@@ -113,7 +117,7 @@ def target_drift_step(train: pd.DataFrame, test: pd.DataFrame) -> Output(score=f
     report.run(reference_data=train, current_data=test)
     result = report.as_dict()
 
-    score = result['metrics'][0]['result']['dataset_drift_share']
+    score = result["metrics"][0]["result"]["dataset_drift_share"]
     with open("artifacts/drift/target_drift.json", "w") as f:
         json.dump(result, f, indent=2)
 
@@ -148,7 +152,7 @@ def drift_monitoring_pipeline(
     data_drift_step,
     target_drift_step,
     probabilistic_monitor_step,
-    advanced_drift_step
+    advanced_drift_step,
 ):
     df = ingest_data()
     df = inspect_data(df)

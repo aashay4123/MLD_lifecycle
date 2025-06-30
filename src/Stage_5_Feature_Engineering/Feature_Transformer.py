@@ -4,8 +4,11 @@ import numpy as np
 import pandas as pd
 from scipy.stats import skew, kurtosis, shapiro, boxcox
 from sklearn.preprocessing import (
-    StandardScaler, MinMaxScaler, RobustScaler,
-    PowerTransformer, QuantileTransformer
+    StandardScaler,
+    MinMaxScaler,
+    RobustScaler,
+    PowerTransformer,
+    QuantileTransformer,
 )
 from sklearn.base import BaseEstimator, TransformerMixin
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -32,13 +35,15 @@ class FeatureTransformer(BaseEstimator, TransformerMixin):
 
     EXTRA_TRANSFORMS = ["none", "boxcox", "yeo", "quantile"]
 
-    def __init__(self,
-                 mode: str = "adaptive",
-                 alpha: float = 0.10,
-                 skew_thresh: float = 0.5,
-                 qt_max_rows: int = 100_000,
-                 random_state: int = 42,
-                 verbose: bool = False):
+    def __init__(
+        self,
+        mode: str = "adaptive",
+        alpha: float = 0.10,
+        skew_thresh: float = 0.5,
+        qt_max_rows: int = 100_000,
+        random_state: int = 42,
+        verbose: bool = False,
+    ):
         self.mode = mode
         self.alpha = alpha
         self.skew_thresh = skew_thresh
@@ -60,7 +65,8 @@ class FeatureTransformer(BaseEstimator, TransformerMixin):
             return 1.0
         if len(x) > self.qt_max_rows:
             x = np.random.RandomState(self.random_state).choice(
-                x, self.qt_max_rows, replace=False)
+                x, self.qt_max_rows, replace=False
+            )
         try:
             return shapiro(x)[1]
         except Exception:
@@ -76,7 +82,9 @@ class FeatureTransformer(BaseEstimator, TransformerMixin):
             return not np.any(np.isclose(x, 0))
         return True
 
-    def _evaluate_candidate(self, x: np.ndarray, method: str, scaler_name: str) -> Optional[Dict]:
+    def _evaluate_candidate(
+        self, x: np.ndarray, method: str, scaler_name: str
+    ) -> Optional[Dict]:
         try:
             if not self._is_valid_for(method, x):
                 return None
@@ -92,7 +100,10 @@ class FeatureTransformer(BaseEstimator, TransformerMixin):
                 transformer = pt
             elif method == "quantile":
                 qt = QuantileTransformer(
-                    output_distribution="normal", subsample=self.qt_max_rows, random_state=self.random_state)
+                    output_distribution="normal",
+                    subsample=self.qt_max_rows,
+                    random_state=self.random_state,
+                )
                 x_t = qt.fit_transform(x.reshape(-1, 1)).flatten()
                 transformer = qt
             elif method in self.PRE_FUNCS:
@@ -101,8 +112,11 @@ class FeatureTransformer(BaseEstimator, TransformerMixin):
             else:
                 return None
 
-            scaler = {"standard": StandardScaler(), "robust": RobustScaler(
-            ), "minmax": MinMaxScaler()}.get(scaler_name)
+            scaler = {
+                "standard": StandardScaler(),
+                "robust": RobustScaler(),
+                "minmax": MinMaxScaler(),
+            }.get(scaler_name)
             x_scaled = scaler.fit_transform(x_t.reshape(-1, 1)).flatten()
             x_clean = x_scaled[~np.isnan(x_scaled)]
 
@@ -116,7 +130,7 @@ class FeatureTransformer(BaseEstimator, TransformerMixin):
                 "method": method,
                 "scaler_name": scaler_name,
                 "scaler": scaler,
-                "transformer": transformer
+                "transformer": transformer,
             }
 
         except Exception as e:
@@ -128,8 +142,7 @@ class FeatureTransformer(BaseEstimator, TransformerMixin):
         results = []
         with ThreadPoolExecutor() as executor:
             futures = [
-                executor.submit(self._evaluate_candidate,
-                                x.flatten(), method, scaler)
+                executor.submit(self._evaluate_candidate, x.flatten(), method, scaler)
                 for method in self.EXTRA_TRANSFORMS + list(self.PRE_FUNCS)
                 for scaler in ["standard", "robust", "minmax"]
             ]
@@ -158,7 +171,13 @@ class FeatureTransformer(BaseEstimator, TransformerMixin):
             return best
         return None
 
-    @monitor(name="SFT.fit", log_args=True, track_memory=True, track_input_size=True, retries=1)
+    @monitor(
+        name="SFT.fit",
+        log_args=True,
+        track_memory=True,
+        track_input_size=True,
+        retries=1,
+    )
     def fit(self, df: pd.DataFrame, numeric_cols: List[str]):
         self.columns = numeric_cols.copy()
         df_num = df[numeric_cols].copy()
@@ -175,19 +194,16 @@ class FeatureTransformer(BaseEstimator, TransformerMixin):
                 if len(x) < 3:
                     continue
                 futures = [
-                    executor.submit(self._evaluate_candidate,
-                                    x.copy(), method, scaler)
+                    executor.submit(self._evaluate_candidate, x.copy(), method, scaler)
                     for method in self.EXTRA_TRANSFORMS + list(self.PRE_FUNCS)
                     for scaler in ["standard", "robust", "minmax"]
                     if self._is_valid_for(method, x)
                 ]
-                candidates = [f.result()
-                              for f in as_completed(futures) if f.result()]
+                candidates = [f.result() for f in as_completed(futures) if f.result()]
                 if candidates:
                     best = max(candidates, key=lambda r: r["score"])
                     self.plan[col] = best
-                    self._log(
-                        f"[{col}] best: {best['method']} + {best['scaler_name']}")
+                    self._log(f"[{col}] best: {best['method']} + {best['scaler_name']}")
         return self
 
     @monitor(name="SFT.transform", log_args=False, track_memory=True, force_gpu=True)
@@ -201,11 +217,15 @@ class FeatureTransformer(BaseEstimator, TransformerMixin):
             if method == "none":
                 x_t = x
             elif method == "boxcox":
-                x_t = np.apply_along_axis(lambda c: boxcox(c[~np.isnan(c)])[
-                                          0] if np.all(c[~np.isnan(c)] > 0) else c, axis=0, arr=x)
-            elif method in self.PRE_FUNCS:
                 x_t = np.apply_along_axis(
-                    self.PRE_FUNCS[method], axis=0, arr=x)
+                    lambda c: (
+                        boxcox(c[~np.isnan(c)])[0] if np.all(c[~np.isnan(c)] > 0) else c
+                    ),
+                    axis=0,
+                    arr=x,
+                )
+            elif method in self.PRE_FUNCS:
+                x_t = np.apply_along_axis(self.PRE_FUNCS[method], axis=0, arr=x)
             else:
                 x_t = transformer.transform(x)
             df_new[self.columns] = scaler.transform(x_t)
@@ -236,12 +256,15 @@ class FeatureTransformer(BaseEstimator, TransformerMixin):
     def get_plan(self) -> Dict[str, Any]:
         return {
             "global": self._global_transform,
-            "columns": {k: {
-                "method": v["method"],
-                "scaler": v["scaler_name"],
-                "pval": v["pval"],
-                "skew": v["skew"]
-            } for k, v in self.plan.items()}
+            "columns": {
+                k: {
+                    "method": v["method"],
+                    "scaler": v["scaler_name"],
+                    "pval": v["pval"],
+                    "skew": v["skew"],
+                }
+                for k, v in self.plan.items()
+            },
         }
 
     def get_report(self) -> pd.DataFrame:

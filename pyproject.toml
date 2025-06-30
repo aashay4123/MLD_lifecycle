@@ -36,7 +36,7 @@ imbalanced-learn = "^0.13.0"
 
 
 [tool.poetry.scripts]
-test = "pipeline.test:main"
+test = "pipeline.test:Pipeline"
 
 [tool.poetry.group.dev.dependencies]
 ipykernel = "^6.29.5"

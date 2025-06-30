@@ -41,6 +41,7 @@ from sklearn.manifold import TSNE
 from sklearn.feature_selection import mutual_info_classif, mutual_info_regression
 
 import pingouin as pg
+
 # from pandas_profiling import ProfileReport
 
 
@@ -59,6 +60,7 @@ def hopkins_statistic(X, m=None, random_state=0):
     U = np.random.uniform(mins, maxs, size=(m, d))
     # nearest‐neighbor distances
     from sklearn.neighbors import NearestNeighbors
+
     nbrs = NearestNeighbors(n_neighbors=1).fit(X)
     du, _ = nbrs.kneighbors(U, return_distance=True)
     dx, _ = nbrs.kneighbors(X_m, return_distance=True)
@@ -113,8 +115,9 @@ class EDAnalyzer:
         if var_tot == 0 or len(arr) == 0:
             return 0.0
         grps = arr.groupby(cat)[num]
-        weighted_var = sum(grps.count()[lvl] * grps.var()[lvl]
-                           for lvl in grps.groups) / len(arr)
+        weighted_var = sum(
+            grps.count()[lvl] * grps.var()[lvl] for lvl in grps.groups
+        ) / len(arr)
         return max(0.0, 1 - weighted_var / var_tot)
 
     def univariate(self):
@@ -132,12 +135,14 @@ class EDAnalyzer:
             p_sw = shapiro(vals).pvalue
             p_dn = normaltest(vals).pvalue
             p_jb = jarque_bera(vals).pvalue
-            norm_res.append({
-                "feature": col,
-                "shapiro_p": p_sw,
-                "dagostino_p": p_dn,
-                "jarque_bera_p": p_jb,
-            })
+            norm_res.append(
+                {
+                    "feature": col,
+                    "shapiro_p": p_sw,
+                    "dagostino_p": p_dn,
+                    "jarque_bera_p": p_jb,
+                }
+            )
             # QQ-plots: auto if any p < alpha, full always
             if self.mode == "full" or min(p_sw, p_dn, p_jb) < self.norm_alpha:
                 plt.figure()
@@ -146,8 +151,7 @@ class EDAnalyzer:
                 plt.tight_layout()
                 plt.savefig(self.outdir / f"{col}__qq.png")
                 plt.close()
-        pd.DataFrame(norm_res).to_csv(
-            self.outdir / "normality_tests.csv", index=False)
+        pd.DataFrame(norm_res).to_csv(self.outdir / "normality_tests.csv", index=False)
         self.report["normality"] = norm_res
 
     def bivariate(self):
@@ -157,7 +161,7 @@ class EDAnalyzer:
 
         # numeric–numeric
         for i, x in enumerate(nums):
-            for y in nums[i + 1:]:
+            for y in nums[i + 1 :]:
                 r = self.df[x].corr(self.df[y])
                 brep["num_num"][(x, y)] = r
                 do_plot = (self.mode == "full") or (abs(r) >= self.corr_thr)
@@ -186,7 +190,7 @@ class EDAnalyzer:
 
         # categorical–categorical
         for i, a in enumerate(cats):
-            for b in cats[i + 1:]:
+            for b in cats[i + 1 :]:
                 conf = pd.crosstab(self.df[a], self.df[b])
                 v = self._cramers_v(conf)
                 brep["cat_cat"][(a, b)] = v
@@ -206,10 +210,14 @@ class EDAnalyzer:
         X = self.df[nums].dropna()
 
         # VIF
-        vif = pd.DataFrame({
-            "feature": nums,
-            "VIF": [variance_inflation_factor(X.values, i) for i in range(X.shape[1])]
-        })
+        vif = pd.DataFrame(
+            {
+                "feature": nums,
+                "VIF": [
+                    variance_inflation_factor(X.values, i) for i in range(X.shape[1])
+                ],
+            }
+        )
         vif.to_csv(self.outdir / "vif.csv", index=False)
         self.report["vif"] = vif
 
@@ -237,13 +245,13 @@ class EDAnalyzer:
         # Mardia's multivariate normality
         mH, mP = pg.multivariate_normality(X, alpha=self.norm_alpha)[:2]
         pd.DataFrame([{"H": mH, "p": mP}]).to_csv(
-            self.outdir / "mardia.csv", index=False)
+            self.outdir / "mardia.csv", index=False
+        )
         self.report["mardia"] = {"H": mH, "p": mP}
 
         # Hopkins
         H = hopkins_statistic(X)
-        pd.DataFrame([{"Hopkins": H}]).to_csv(
-            self.outdir / "hopkins.csv", index=False)
+        pd.DataFrame([{"Hopkins": H}]).to_csv(self.outdir / "hopkins.csv", index=False)
         self.report["hopkins"] = H
 
         # Breusch–Pagan on first var ~ others
@@ -251,14 +259,16 @@ class EDAnalyzer:
             y = X[nums[0]]
             X_ = add_constant(X[nums[1:]])
             model = OLS(y, X_).fit()
-            lm, lm_p, f_stat, f_p = het_breuschpagan(
-                model.resid, model.model.exog)
-            pd.DataFrame([{
-                "LM_stat": lm, "LM_p": lm_p,
-                "F_stat": f_stat, "F_p": f_p
-            }]).to_csv(self.outdir / "breuschpagan.csv", index=False)
+            lm, lm_p, f_stat, f_p = het_breuschpagan(model.resid, model.model.exog)
+            pd.DataFrame(
+                [{"LM_stat": lm, "LM_p": lm_p, "F_stat": f_stat, "F_p": f_p}]
+            ).to_csv(self.outdir / "breuschpagan.csv", index=False)
             self.report["breuschpagan"] = {
-                "LM": lm, "LM_p": lm_p, "F": f_stat, "F_p": f_p}
+                "LM": lm,
+                "LM_p": lm_p,
+                "F": f_stat,
+                "F_p": f_p,
+            }
 
     def advanced(self):
         # Mutual Information
@@ -266,22 +276,24 @@ class EDAnalyzer:
         mi = {}
         for col in self.df.columns:
             if col in nums:
-                mi[col] = mutual_info_regression(
-                    self.df[nums], self.df[col]).mean()
+                mi[col] = mutual_info_regression(self.df[nums], self.df[col]).mean()
             else:
                 codes = self.df[col].astype("category").cat.codes
                 mi[col] = mutual_info_classif(self.df[nums], codes).mean()
-        pd.Series(mi, name="MI").sort_values(
-            ascending=False).to_csv(self.outdir / "mutual_info.csv")
+        pd.Series(mi, name="MI").sort_values(ascending=False).to_csv(
+            self.outdir / "mutual_info.csv"
+        )
         self.report["mutual_info"] = mi
 
         # Time-series decomposition + ACF/PACF
         if isinstance(self.df.index, pd.DatetimeIndex):
             from statsmodels.tsa.seasonal import seasonal_decompose
+
             for col in nums:
                 try:
                     res = seasonal_decompose(
-                        self.df[col].dropna(), model="additive", period=12)
+                        self.df[col].dropna(), model="additive", period=12
+                    )
                     fig = res.plot()
                     fig.suptitle(f"Decompose {col}")
                     plt.tight_layout()
@@ -340,7 +352,7 @@ class EDAnalyzer:
             "timestamp": datetime.utcnow().isoformat(),
             "rows": len(self.df),
             "cols": self.df.shape[1],
-            "artifacts": [p.name for p in sorted(self.outdir.iterdir())]
+            "artifacts": [p.name for p in sorted(self.outdir.iterdir())],
         }
         (self.outdir / "manifest.json").write_text(json.dumps(man, indent=2))
 

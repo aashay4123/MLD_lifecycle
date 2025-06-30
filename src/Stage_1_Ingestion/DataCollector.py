@@ -19,7 +19,6 @@ with contextlib.suppress(ImportError):
     from sqlalchemy import create_engine
     from pymongo import MongoClient
     import paho.mqtt.client as mqtt
-    from datetime import datetime
     import great_expectations as ge
 
 # ─── Logging & Directories ─────────────────────────────────────────────────────
@@ -31,8 +30,8 @@ LOG_DIR.mkdir(exist_ok=True, parents=True)
 # Configure logging to both file and console
 logging.basicConfig(
     level=logging.INFO,
-    handlers=[logging.FileHandler(LOG_DIR / "ingest.log"),
-              logging.StreamHandler()],
+    handlers=[logging.FileHandler(
+        LOG_DIR / "ingest.log"), logging.StreamHandler()],
     format="%(asctime)s | %(levelname)s | %(message)s",
 )
 log = logging.getLogger("collector")
@@ -66,10 +65,12 @@ def _mask_pii(df: pd.DataFrame) -> pd.DataFrame:
     """
     Redact obvious PII (emails & 10+ digit numbers) by replacing them with [email] and [phone].
     """
+
     def _scrub(cell):
         if not isinstance(cell, str):
             return cell
         return PHONE_PATTERN.sub("[phone]", EMAIL_PATTERN.sub("[email]", cell))
+
     return df.applymap(_scrub)
 
 
@@ -96,7 +97,7 @@ def _semantic_type_profile(df: pd.DataFrame, source: str) -> pd.DataFrame:
         if pd.api.types.is_numeric_dtype(series):
             return True
         try:
-            coerced = pd.to_numeric(series.dropna(), errors='coerce')
+            coerced = pd.to_numeric(series.dropna(), errors="coerce")
             return coerced.notna().mean() > 0.9
         except:
             return False
@@ -112,7 +113,7 @@ def _semantic_type_profile(df: pd.DataFrame, source: str) -> pd.DataFrame:
     def is_time_only(series: pd.Series) -> bool:
         pattern = re.compile(r"^\d{1,2}:\d{2}(:\d{2})?(\s?[APMapm]{2})?$")
         vals = series.dropna().astype(str).str.strip()
-        return (vals.apply(lambda x: bool(pattern.match(x))).mean() > 0.9)
+        return vals.apply(lambda x: bool(pattern.match(x))).mean() > 0.9
 
     def is_duration(series: pd.Series) -> bool:
         try:
@@ -123,28 +124,28 @@ def _semantic_type_profile(df: pd.DataFrame, source: str) -> pd.DataFrame:
 
     def is_zip(series: pd.Series) -> bool:
         vals = series.dropna().astype(str)
-        return (vals.str.match(r"^\d{5}(-\d{4})?$").mean() > 0.9)
+        return vals.str.match(r"^\d{5}(-\d{4})?$").mean() > 0.9
 
     def is_currency(series: pd.Series) -> bool:
         vals = series.dropna().astype(str)
-        return (vals.str.match(r"^\s*[$₹€£]?[0-9,]+(\.\d{2})?\s*$").mean() > 0.9)
+        return vals.str.match(r"^\s*[$₹€£]?[0-9,]+(\.\d{2})?\s*$").mean() > 0.9
 
     def is_email(series: pd.Series) -> bool:
         vals = series.dropna().astype(str)
-        return (vals.str.contains(r"^[^@]+@[^@]+\.[^@]+$").mean() > 0.9)
+        return vals.str.contains(r"^[^@]+@[^@]+\.[^@]+$").mean() > 0.9
 
     def is_url(series: pd.Series) -> bool:
         vals = series.dropna().astype(str)
-        return (vals.str.contains(r"^(http://|https://|www\.)").mean() > 0.9)
+        return vals.str.contains(r"^(http://|https://|www\.)").mean() > 0.9
 
     def is_json_like(series: pd.Series) -> bool:
         vals = series.dropna().astype(str)
-        return (vals.str.strip().str.startswith("{").mean() > 0.9)
+        return vals.str.strip().str.startswith("{").mean() > 0.9
 
     def is_geo(series: pd.Series) -> bool:
         try:
             fv = series.astype(float)
-            return (((fv >= -180) & (fv <= 180)).mean() > 0.9)
+            return ((fv >= -180) & (fv <= 180)).mean() > 0.9
         except:
             return False
 
@@ -152,13 +153,17 @@ def _semantic_type_profile(df: pd.DataFrame, source: str) -> pd.DataFrame:
         return (series.nunique(dropna=False) / len(series)) < 0.05
 
     def is_constant(series: pd.Series) -> bool:
-        return (series.nunique(dropna=False) == 1)
+        return series.nunique(dropna=False) == 1
 
     def is_id_like(series: pd.Series) -> bool:
         return series.is_unique and (series.nunique() == len(series))
 
     def is_high_card_cat(series: pd.Series) -> bool:
-        return (series.dtype == "object") and (series.nunique(dropna=False) / len(series) > 0.5) and (not series.is_unique)
+        return (
+            (series.dtype == "object")
+            and (series.nunique(dropna=False) / len(series) > 0.5)
+            and (not series.is_unique)
+        )
 
     for col in df.columns:
         series = df[col]
@@ -178,15 +183,32 @@ def _semantic_type_profile(df: pd.DataFrame, source: str) -> pd.DataFrame:
         elif is_boolean(series):
             semantic = "Boolean"
             df_clean[col] = (
-                series.astype(str).str.lower().map(
-                    {"true": True, "false": False, "1": True,
-                        "0": False, "yes": True, "no": False}
+                series.astype(str)
+                .str.lower()
+                .map(
+                    {
+                        "true": True,
+                        "false": False,
+                        "1": True,
+                        "0": False,
+                        "yes": True,
+                        "no": False,
+                    }
                 )
             )
             converted = True
 
         # --- Handle Numeric BEFORE datetime to avoid false conversions ---
-        elif is_numeric(series) or series.dropna().map(lambda x: isinstance(x, (int, float)) or str(x).replace(".", "", 1).isdigit()).mean() > 0.9:
+        elif (
+            is_numeric(series)
+            or series.dropna()
+            .map(
+                lambda x: isinstance(x, (int, float))
+                or str(x).replace(".", "", 1).isdigit()
+            )
+            .mean()
+            > 0.9
+        ):
             num_series = pd.to_numeric(series, errors="coerce")
 
             if num_series.dropna().map(float.is_integer).mean() > 0.9:
@@ -270,7 +292,12 @@ class DataCollector:
     checksum logging, and optional Great Expectations validation.
     """
 
-    def __init__(self, pii_mask: bool = True, validate: bool = True, suite_name: str = "default_suite"):
+    def __init__(
+        self,
+        pii_mask: bool = True,
+        validate: bool = True,
+        suite_name: str = "default_suite",
+    ):
         self.pii_mask = pii_mask
         self.validate = validate
         self.suite_name = suite_name
@@ -294,7 +321,8 @@ class DataCollector:
             if not result.success:
                 raise ValueError(f"GE validation failed for '{source}'")
             log.info(
-                f"GE validation ✓ ({sum(m.success for m in result.results)}/{len(result.results)})")
+                f"GE validation ✓ ({sum(m.success for m in result.results)}/{len(result.results)})"
+            )
         except Exception as e:
             log.warning(f"GE validation exception: {e}")
 
@@ -319,7 +347,8 @@ class DataCollector:
         dup_count = df.duplicated().sum()
         if dup_count:
             log.warning(
-                f"{source:15} | duplicates={dup_count} rows (logged, not dropped).")
+                f"{source:15} | duplicates={dup_count} rows (logged, not dropped)."
+            )
         _audit_checksum(df, source)
         return df
 
@@ -358,7 +387,9 @@ class DataCollector:
         df = pd.read_sql(query, create_engine(dsn))
         return self._postprocess(df, "sql")
 
-    def read_mongo(self, uri: str, db: str, coll: str, query: dict | None = None) -> pd.DataFrame:
+    def read_mongo(
+        self, uri: str, db: str, coll: str, query: dict | None = None
+    ) -> pd.DataFrame:
         cursor = MongoClient(uri)[db][coll].find(query or {})
         df = pd.DataFrame(list(cursor)).drop(columns="_id", errors="ignore")
         return self._postprocess(df, "mongo")
@@ -369,7 +400,9 @@ class DataCollector:
         df = pd.json_normalize(payload)
         return self._postprocess(df, "rest")
 
-    def read_kafka(self, topic: str, bootstrap: str, batch: int = 10, group_id: str = "collector") -> pd.DataFrame:
+    def read_kafka(
+        self, topic: str, bootstrap: str, batch: int = 10, group_id: str = "collector"
+    ) -> pd.DataFrame:
         rows = []
         consumer = kafka.KafkaConsumer(
             topic,
@@ -385,14 +418,19 @@ class DataCollector:
         return self._postprocess(df, "kafka")
 
     def read_gsheet(self, sheet_key: str, creds_json: str) -> pd.DataFrame:
-        sheet = gspread.service_account(
-            filename=creds_json).open_by_key(sheet_key).sheet1
+        sheet = (
+            gspread.service_account(
+                filename=creds_json).open_by_key(sheet_key).sheet1
+        )
         df = pd.DataFrame(sheet.get_all_records())
         return self._postprocess(df, "gsheet")
 
     def read_mqtt(self, broker: str, topic: str, timeout: int = 5) -> pd.DataFrame:
         rows = []
-        def on_msg(client, _, msg): rows.append(json.loads(msg.payload))
+
+        def on_msg(client, _, msg):
+            rows.append(json.loads(msg.payload))
+
         client = mqtt.Client()
         client.connect(broker)
         client.subscribe(topic)

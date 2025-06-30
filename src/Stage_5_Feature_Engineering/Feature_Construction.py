@@ -28,7 +28,7 @@ class FeatureConstructor(BaseEstimator, TransformerMixin):
         rolling_windows: Optional[Dict[str, int]] = None,
         custom_funcs: Optional[Dict[str, callable]] = None,
         n_jobs: int = 1,
-        min_score: Optional[float] = None
+        min_score: Optional[float] = None,
     ):
         self.group_aggs = group_aggs or {}
         self.ratio_pairs = ratio_pairs or []
@@ -47,9 +47,11 @@ class FeatureConstructor(BaseEstimator, TransformerMixin):
         self.report_: Dict[str, float] = {}
 
         import hashlib
+
         self._sha256 = hashlib.sha256
         try:
             from datasketch import MinHash
+
             self._MinHash = MinHash
         except ImportError:
             self._MinHash = None
@@ -64,8 +66,7 @@ class FeatureConstructor(BaseEstimator, TransformerMixin):
         for key, aggs in self.group_aggs.items():
             if key in df.columns:
                 grp = df.groupby(key).agg(aggs)
-                grp.columns = [
-                    f"{key}_{col}_{func}" for col, func in grp.columns]
+                grp.columns = [f"{key}_{col}_{func}" for col, func in grp.columns]
                 df = df.join(grp, on=key)
 
         # 2) ratio pairs
@@ -88,11 +89,13 @@ class FeatureConstructor(BaseEstimator, TransformerMixin):
                     lambda s: self._sha256(s.encode()).hexdigest()
                 )
                 if self._MinHash:
+
                     def make_mh(s: str):
                         m = self._MinHash()
                         for token in s.split():
                             m.update(token.encode())
                         return m.hashvalues
+
                     df[f"{a}_x_{b}_mhsig"] = combined.map(make_mh)
 
         # 5) frequency count
@@ -104,27 +107,30 @@ class FeatureConstructor(BaseEstimator, TransformerMixin):
         # 6) text stats
         for c in self.text_stat_cols:
             if c in df.columns:
-                s = df[c].fillna('').astype(str)
+                s = df[c].fillna("").astype(str)
                 df[f"{c}_char_len"] = s.str.len()
                 df[f"{c}_word_count"] = s.str.split().str.len()
                 df[f"{c}_uniq_words"] = s.apply(lambda x: len(set(x.split())))
                 df[f"{c}_punc_count"] = s.apply(
-                    lambda x: sum(ch in '.,;:!?' for ch in x))
+                    lambda x: sum(ch in ".,;:!?" for ch in x)
+                )
 
         # 7) date differences
         for a, b in self.date_diff_pairs:
             if a in df.columns and b in df.columns:
-                da = pd.to_datetime(df[a], errors='coerce')
-                db = pd.to_datetime(df[b], errors='coerce')
+                da = pd.to_datetime(df[a], errors="coerce")
+                db = pd.to_datetime(df[b], errors="coerce")
                 df[f"{a}_to_{b}_days"] = (da - db).dt.days
 
         # 8) rolling windows
         for c, win in self.rolling_windows.items():
             if c in df.columns and np.issubdtype(df[c].dtype, np.number):
-                df[f"{c}_roll_mean_{win}"] = df[c].rolling(
-                    window=win, min_periods=1).mean()
-                df[f"{c}_roll_std_{win}"] = df[c].rolling(
-                    window=win, min_periods=1).std()
+                df[f"{c}_roll_mean_{win}"] = (
+                    df[c].rolling(window=win, min_periods=1).mean()
+                )
+                df[f"{c}_roll_std_{win}"] = (
+                    df[c].rolling(window=win, min_periods=1).std()
+                )
 
         # 9) custom functions
         for name, func in self.custom_funcs.items():
@@ -132,7 +138,9 @@ class FeatureConstructor(BaseEstimator, TransformerMixin):
 
         return df
 
-    def transform(self, X: pd.DataFrame, y: Optional[Union[pd.Series, np.ndarray]] = None):
+    def transform(
+        self, X: pd.DataFrame, y: Optional[Union[pd.Series, np.ndarray]] = None
+    ):
         df_feats = self._base_transform(X)
         new_cols = [c for c in df_feats.columns if c not in X.columns]
 
@@ -147,8 +155,7 @@ class FeatureConstructor(BaseEstimator, TransformerMixin):
         for c, score in scores.items():
             applied = c in kept
             reason = f"score {score:.4f} {'≥' if applied else '<'} threshold {self.min_score}"
-            self.decisions_[c] = {'score': score,
-                                  'applied': applied, 'reason': reason}
+            self.decisions_[c] = {"score": score, "applied": applied, "reason": reason}
 
         return df_feats[X.columns.tolist() + kept]
 
@@ -156,7 +163,7 @@ class FeatureConstructor(BaseEstimator, TransformerMixin):
         df_feats = self._base_transform(X)
         new_cols = [c for c in df_feats.columns if c not in X.columns]
         y_ser = pd.Series(y) if not isinstance(y, pd.Series) else y
-        is_reg = (y_ser.dtype.kind in "ifu" and y_ser.nunique() > 20)
+        is_reg = y_ser.dtype.kind in "ifu" and y_ser.nunique() > 20
 
         scores: Dict[str, float] = {}
         if is_reg:
@@ -165,7 +172,7 @@ class FeatureConstructor(BaseEstimator, TransformerMixin):
         else:
             y_enc = LabelEncoder().fit_transform(y_ser)
             mi = mutual_info_classif(
-                df_feats[new_cols], y_enc, discrete_features='auto'
+                df_feats[new_cols], y_enc, discrete_features="auto"
             )
             for c, m in zip(new_cols, mi):
                 scores[c] = float(m)

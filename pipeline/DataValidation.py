@@ -10,7 +10,11 @@ from great_expectations.checkpoint import CheckpointResult
 
 from evidently import ColumnMapping
 from evidently.report import Report
-from evidently.metric_preset import DataDriftPreset, DataQualityPreset, ClassificationPerformancePreset
+from evidently.metric_preset import (
+    DataDriftPreset,
+    DataQualityPreset,
+    ClassificationPerformancePreset,
+)
 
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
@@ -44,7 +48,7 @@ def ge_validator_step(data: DataFrame) -> Tuple[bool, Dict[str, Any]]:
         results: CheckpointResult = context.run_checkpoint(
             checkpoint_name=checkpoint_name,
             batch_request=batch_request,
-            run_name="ge_validation_run"
+            run_name="ge_validation_run",
         )
         success = results["success"]
     except Exception as e:
@@ -68,12 +72,15 @@ def ge_validator_step(data: DataFrame) -> Tuple[bool, Dict[str, Any]]:
 
     console.print(table)
     console.print(
-        f"[bold green]Great Expectations validation success: {success}[/bold green]\n")
+        f"[bold green]Great Expectations validation success: {success}[/bold green]\n"
+    )
     return success, results
 
 
 @step
-def evidently_validator_step(reference_data: DataFrame, current_data: DataFrame) -> Tuple[bool, str]:
+def evidently_validator_step(
+    reference_data: DataFrame, current_data: DataFrame
+) -> Tuple[bool, str]:
     """
     Runs Evidently report for data drift, quality, and classification performance.
     Returns success flag and path to HTML report.
@@ -82,13 +89,18 @@ def evidently_validator_step(reference_data: DataFrame, current_data: DataFrame)
     column_mapping = ColumnMapping()
     # TODO: Adjust column mapping as per dataset (e.g., column_mapping.target = "target")
 
-    report = Report(metrics=[
-        DataDriftPreset(),
-        DataQualityPreset(),
-        ClassificationPerformancePreset(),
-    ])
-    report.run(reference_data=reference_data,
-               current_data=current_data, column_mapping=column_mapping)
+    report = Report(
+        metrics=[
+            DataDriftPreset(),
+            DataQualityPreset(),
+            ClassificationPerformancePreset(),
+        ]
+    )
+    report.run(
+        reference_data=reference_data,
+        current_data=current_data,
+        column_mapping=column_mapping,
+    )
 
     report_path = "evidently_report.html"
     report.save_html(report_path)
@@ -124,30 +136,32 @@ def training_step(data: DataFrame, labels: pd.Series) -> str:
     """
     console.rule("[bold blue]Model Training Step[/bold blue]")
     X_train, X_val, y_train, y_val = train_test_split(
-        data, labels, test_size=0.2, random_state=42)
+        data, labels, test_size=0.2, random_state=42
+    )
     model = RandomForestClassifier(n_estimators=100, random_state=42)
     model.fit(X_train, y_train)
 
     train_score = model.score(X_train, y_train)
     val_score = model.score(X_val, y_val)
 
-    console.print(
-        f"Training accuracy: [bold green]{train_score:.4f}[/bold green]")
-    console.print(
-        f"Validation accuracy: [bold green]{val_score:.4f}[/bold green]")
+    console.print(f"Training accuracy: [bold green]{train_score:.4f}[/bold green]")
+    console.print(f"Validation accuracy: [bold green]{val_score:.4f}[/bold green]")
     # TODO: Save model to registry or artifact store and return model version or URI
     return "model_v1"
 
 
 @pipeline
-def full_pipeline(reference_data: DataFrame, current_data: DataFrame, labels: pd.Series):
+def full_pipeline(
+    reference_data: DataFrame, current_data: DataFrame, labels: pd.Series
+):
     """
     Full pipeline combining multiple validation steps and training.
     Aborts training if any validation fails.
     """
     ge_success, ge_results = ge_validator_step(data=current_data)
     evidently_success, evidently_report = evidently_validator_step(
-        reference_data=reference_data, current_data=current_data)
+        reference_data=reference_data, current_data=current_data
+    )
 
     # Proceed to training only if all validations pass
     if ge_success and evidently_success:
@@ -162,18 +176,21 @@ def full_pipeline(reference_data: DataFrame, current_data: DataFrame, labels: pd
 
         failed_str = ", ".join(failures)
         console.print(
-            f"[bold red]Pipeline aborted! Failed validations: {failed_str}[/bold red]")
+            f"[bold red]Pipeline aborted! Failed validations: {failed_str}[/bold red]"
+        )
         raise RuntimeError(f"Pipeline validation failed: {failed_str}")
 
 
 # Example usage (for local or direct run)
 if __name__ == "__main__":
     import sys
+
     # TODO: Replace with actual data loading logic and paths
     reference_df = pd.read_csv("reference.csv")
     current_df = pd.read_csv("current.csv")
     labels = current_df.pop("target")
 
     pipeline_instance = full_pipeline(
-        reference_data=reference_df, current_data=current_df, labels=labels)
+        reference_data=reference_df, current_data=current_df, labels=labels
+    )
     pipeline_instance.run()
