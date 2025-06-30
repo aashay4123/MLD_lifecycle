@@ -52,6 +52,8 @@ def hopkins_statistic(X, m=None, random_state=0):
     nbrs = NearestNeighbors(n_neighbors=1).fit(X)
     du, _ = nbrs.kneighbors(U, return_distance=True)
     dx, _ = nbrs.kneighbors(X_m, return_distance=True)
+    if dx.shape[1] < 1:
+        raise ValueError("Hopkins statistic: insufficient neighbors found.")
     dx = dx[:, 1] if dx.shape[1] > 1 else dx[:, 0]
 
     return float(du.sum() / (du.sum() + dx.sum()))
@@ -268,10 +270,16 @@ class EDAnalyze(PerfMixin):
 
         def compute_mi(col):
             if col in nums:
-                return (col, mutual_info_regression(self.df[nums], self.df[col]).mean())
+                df_nonan = self.df[nums + [col]].dropna()
+                if df_nonan.empty:
+                    return (col, np.nan)  # or 0.0 if you prefer
+                return (col, mutual_info_regression(df_nonan[nums], df_nonan[col]).mean())
             else:
                 codes = self.df[col].astype("category").cat.codes
-                return (col, mutual_info_classif(self.df[nums], codes).mean())
+                df_nonan = self.df[nums].dropna()
+                if df_nonan.empty:
+                    return (col, np.nan)
+                return (col, mutual_info_classif(df_nonan, codes.loc[df_nonan.index]).mean())
 
         mi = dict(parallel(compute_mi, list(self.df.columns)))
         pd.Series(mi, name="MI").sort_values(
