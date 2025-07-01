@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import pickle
-from typing import List, Dict, Any, Tuple
+from typing import List, Dict, Any, Tuple, Optional
 import numpy as np
 import pandas as pd
 from scipy.stats import chi2
@@ -10,8 +10,12 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.neighbors import LocalOutlierFactor
 from sklearn.ensemble import IsolationForest
 from pathlib import Path
-from concurrent.futures import ThreadPoolExecutor
 from src.utils.perfkit import perfclass, PerfMixin
+from configs import global_conf
+import os
+import json
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 
 @perfclass()
@@ -44,6 +48,13 @@ class OutlierDetector(BaseEstimator, TransformerMixin, PerfMixin):
         If True, prints basic log messages during detection & treatment.
     """
 
+    # ─────────────── Instance Variables ───────────────
+    REPORT_PATH = Path(f"{global_conf.PREPROCESSOR_REPORT_PATH}/outliers")
+    REPORT_PATH.mkdir(parents=True, exist_ok=True)
+    MODEL_PATH = Path(
+        f"{global_conf.MODEL_ARTIFACTS_PATH}/outlier_model_state.pkl")
+    MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)
+
     # ─────────────── Class-Level Constants ───────────────
     # Univariate thresholds
     UNIV_IQR_FACTOR = 1.5  # multiplier for IQR fences
@@ -73,6 +84,7 @@ class OutlierDetector(BaseEstimator, TransformerMixin, PerfMixin):
         random_state: int = 42,
         verbose: bool = False,
         n_jobs: int = 1,  # Number of parallel jobs for scoring rules
+        max_charts: int = 50
     ):
         self.outlier_threshold = outlier_threshold
         self.robust_covariance = robust_covariance
@@ -90,6 +102,7 @@ class OutlierDetector(BaseEstimator, TransformerMixin, PerfMixin):
         self.lof_model = None
         self.iso_model = None
         self._n_jobs = n_jobs
+        self.max_charts = max_charts
 
         # After fit, we store:
         self.train_clean_: pd.DataFrame = None  # post-treatment training set
@@ -108,11 +121,39 @@ class OutlierDetector(BaseEstimator, TransformerMixin, PerfMixin):
             "treatment": {},  # details about drop vs winsorize
         }
 
+    def convert_paths_to_str(self, obj):
+        if isinstance(obj, dict):
+            return {k: self.convert_paths_to_str(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [self.convert_paths_to_str(v) for v in obj]
+        elif isinstance(obj, Path):
+            return str(obj)
+        else:
+            return obj
+
+    def _plot_histogram(self, data, title="", hue=None, filename="") -> str:
+        plt.figure(figsize=(6, 4))
+
+        if hue is not None:
+            # Combine data & hue into a long-form DataFrame
+            df = pd.DataFrame({"value": data, "is_outlier": hue})
+            sns.histplot(data=df, x="value", hue="is_outlier",
+                         kde=True, palette="muted")
+        else:
+            sns.histplot(data, kde=True, color="steelblue")
+
+        plt.title(title)
+        chart_path = Path(f"{self.REPORT_PATH}/histogram")
+        chart_path.mkdir(parents=True, exist_ok=True)
+        plt.savefig(f"{chart_path}/{filename}")
+        plt.close()
+        return chart_path
+
     def _log(self, msg: str):
         if self.verbose:
             print(msg)
 
-    def _save_state(self, filepath: str = "outlier_model_state.pkl"):
+    def _save_state(self, filepath: str = MODEL_PATH):
         state = {
             "numeric_cols": self.numeric_cols,
             "scaler": self.scaler,
@@ -131,7 +172,7 @@ class OutlierDetector(BaseEstimator, TransformerMixin, PerfMixin):
             pickle.dump(state, f)
         self._log(f"✔ Model state saved to {filepath}")
 
-    def _load_state(self, filepath: str = "outlier_model_state.pkl"):
+    def _load_state(self, filepath: str = MODEL_PATH):
         if not Path(filepath).exists():
             raise RuntimeError("No model fitted. Run `.fit()` first.")
         with open(filepath, "rb") as f:
@@ -393,6 +434,81 @@ class OutlierDetector(BaseEstimator, TransformerMixin, PerfMixin):
         """
         return df.select_dtypes(include=[np.number]).columns.tolist()
 
+    def report_outlier_detector(self, name: str, component: Any) -> Dict:
+        """Generate a rich outlier detection report with parallel charts + summaries."""
+        report = component.report if hasattr(component, "report") else {}
+        df = getattr(component, "df", None)
+        train_clean = getattr(component, "train_clean_", None)
+        outlier_indices = set(report.get(
+            "real_outliers", {}).get("indices", []))
+        scores = getattr(component, "votes_table_",
+                         {}).get("total_votes", None)
+        cols = getattr(component, "numeric_cols", [])
+
+        charts = []
+        summary = {}
+
+        if df is not None and scores is not None:
+            # Add global summary: rows before/after treatment + missing values
+            summary["rows_before"] = int(df.shape[0])
+            summary["rows_after"] = int(
+                train_clean.shape[0]) if train_clean is not None else None
+            summary["rows_dropped"] = (
+                summary["rows_before"] - summary["rows_after"]
+                if summary["rows_after"] is not None
+                else None
+            )
+            summary["missing_before"] = int(df.isna().sum().sum())
+            summary["missing_after"] = int(
+                train_clean.isna().sum().sum()) if train_clean is not None else None
+
+            # Compute standard deviation of outlier rows → prioritize most variable features
+            stds = {
+                col: df[col].loc[list(outlier_indices)].std()
+                for col in cols
+                if col in df.columns
+            }
+            top_cols = sorted(stds.items(), key=lambda x: x[1], reverse=True)[
+                : self.max_charts]
+
+            def process_col(item):
+                col, _ = item
+                n_outliers = int(
+                    df[col].loc[list(outlier_indices)].dropna().shape[0])
+                chart_path = self._plot_histogram(
+                    df[col],
+                    title=f"{name}: {col} (highlighted outliers)",
+                    hue=df.index.isin(outlier_indices),
+                    filename=f"{name}_{col}_outliers.png",
+                )
+                return {
+                    "col": col,
+                    "chart": chart_path,
+                    "n_outliers": n_outliers,
+                }
+
+            # Parallel chart creation
+            results = self.parallel_map(process_col, top_cols)
+
+            for res in results:
+                summary[res["col"]] = {"outliers_detected": res["n_outliers"]}
+                charts.append(res["chart"])
+
+        report = {"charts": charts, "summary": {**summary, **report}}
+        # preprocessor_report_dir = global_conf.MODEL_ARTIFACTS_PATH
+        # os.makedirs(preprocessor_report_dir, exist_ok=True)
+
+        outlier_detector_path = os.path.join(
+            self.REPORT_PATH, "outlier_detector_report.json"
+        )
+
+        serializable_report = self.convert_paths_to_str(report)
+
+        with open(outlier_detector_path, "w") as f:
+            json.dump(serializable_report, f, indent=2)
+
+        return serializable_report, outlier_detector_path
+
     # ────────────── Main Fit & Fit_Transform ──────────────
 
     def fit(self, df: pd.DataFrame):
@@ -481,7 +597,8 @@ class OutlierDetector(BaseEstimator, TransformerMixin, PerfMixin):
             best = [r[0] for r in sorted_rules[:2]]
             return col, best, fences
 
-        results = self.parallel_map(score_rules, self.numeric_cols, prefer="threads")
+        results = self.parallel_map(
+            score_rules, self.numeric_cols, prefer="threads")
 
         for col, best_rules, fences in results:
             self.best_rules_per_column_[col] = best_rules
@@ -530,7 +647,8 @@ class OutlierDetector(BaseEstimator, TransformerMixin, PerfMixin):
 
             self.train_clean_ = df_clean.copy()
             self.clipped_counts_ = clipped_counts
-            self.report["treatment"] = {"mode": "winsorize", "counts": clipped_counts}
+            self.report["treatment"] = {
+                "mode": "winsorize", "counts": clipped_counts}
         else:
             df_clean.drop(index=real, inplace=True)
             df_clean.reset_index(drop=True, inplace=True)
@@ -538,7 +656,7 @@ class OutlierDetector(BaseEstimator, TransformerMixin, PerfMixin):
             self.clipped_counts_ = clipped_counts
             self.report["treatment"] = {"mode": "drop", "dropped_rows": real}
 
-        self._save_state("outlier_model_state.pkl")
+        self._save_state(self.MODEL_PATH)
         return self
 
     def fit_transform(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -550,7 +668,7 @@ class OutlierDetector(BaseEstimator, TransformerMixin, PerfMixin):
     # ────────────── Transform (Flag Only on New Data) ──────────────
 
     def transform(self, df: pd.DataFrame) -> pd.DataFrame:
-        self._load_state("outlier_model_state.pkl")
+        self._load_state(self.MODEL_PATH)
         result = df.copy()
         numeric_cols = [col for col in self.numeric_cols if col in df.columns]
         df_num = result[numeric_cols].copy()
@@ -591,7 +709,8 @@ class OutlierDetector(BaseEstimator, TransformerMixin, PerfMixin):
                 try:
                     Xz = self.scaler.transform(df_num.loc[mask].values)
                     md = self.cov_estimator.mahalanobis(Xz)
-                    votes.loc[df_num.loc[mask].index[md > self.mahal_threshold]] += 1
+                    votes.loc[df_num.loc[mask].index[md
+                                                     > self.mahal_threshold]] += 1
                 except Exception:
                     pass
 

@@ -28,7 +28,7 @@ from statsmodels.tsa.seasonal import seasonal_decompose
 
 from src.utils.monitor import monitor
 from src.utils.perfkit import PerfMixin, perfclass
-
+from configs import global_conf
 import warnings
 
 warnings.filterwarnings("ignore")
@@ -55,7 +55,7 @@ class UnifiedEPDA(PerfMixin):
         df: pd.DataFrame,
         target: str = None,
         mode: str = "auto",
-        out_dir: str = "epda_output",
+        out_dir: str = global_conf.EPDA_REPORT_PATH,
     ):
         super().__init__()
         self.df = df.copy()
@@ -65,8 +65,10 @@ class UnifiedEPDA(PerfMixin):
         self.out_dir.mkdir(exist_ok=True, parents=True)
         self.start_time = datetime.now()
 
-        self.numeric_cols = df.select_dtypes(include=np.number).columns.tolist()
-        self.categorical_cols = df.select_dtypes(exclude=np.number).columns.tolist()
+        self.numeric_cols = df.select_dtypes(
+            include=np.number).columns.tolist()
+        self.categorical_cols = df.select_dtypes(
+            exclude=np.number).columns.tolist()
         if target and target in df.columns:
             self.y = df[target]
         else:
@@ -82,16 +84,19 @@ class UnifiedEPDA(PerfMixin):
                 self.df[self.numeric_cols]
                 .std()
                 .sort_values(ascending=False)
-                .head(50)
+                .head(100)
                 .index.tolist()
             )
             self.categorical_cols = self.categorical_cols[:20]
 
-    def _save_plot(self, fig, name):
+    def _save_plot(self, fig, dir, name):
         if self.plot_counter >= MAX_PLOTS:
             plt.close(fig)
             return
-        path = self.out_dir / f"{name}.png"
+
+        out = Path(f"{self.out_dir}/{dir}")
+        out.mkdir(exist_ok=True, parents=True)
+        path = out / f"{name}.png"
         fig.savefig(path, bbox_inches="tight")
         self.plot_counter += 1
         plt.close(fig)
@@ -112,7 +117,7 @@ class UnifiedEPDA(PerfMixin):
             sns.barplot(x=miss_ratio.index, y=miss_ratio.values, ax=ax)
             ax.set_title("Missing Value Ratio per Column")
             ax.tick_params(axis="x", rotation=90)
-            self._save_plot(fig, "missing_ratio_bar")
+            self._save_plot(fig, "other", "missing_ratio_bar")
 
     def _run_correlation_heatmap(self):
         """Correlation heatmap for numeric variables."""
@@ -122,7 +127,7 @@ class UnifiedEPDA(PerfMixin):
         fig, ax = plt.subplots(figsize=(12, 10))
         sns.heatmap(corr, cmap="coolwarm", center=0, ax=ax)
         ax.set_title("Correlation Heatmap")
-        self._save_plot(fig, "correlation_heatmap")
+        self._save_plot(fig, "other", "correlation_heatmap")
 
     def _run_normality_tests(self):
         """Run Shapiro and Jarque-Bera tests for normality."""
@@ -137,7 +142,8 @@ class UnifiedEPDA(PerfMixin):
                 results.append((col, shapiro_p, jb_p))
             except Exception:
                 continue
-        norm_df = pd.DataFrame(results, columns=["column", "shapiro_p", "jb_p"])
+        norm_df = pd.DataFrame(
+            results, columns=["column", "shapiro_p", "jb_p"])
         norm_df.to_csv(self.out_dir / "normality_tests.csv", index=False)
 
     def _run_vif_analysis(self):
@@ -158,11 +164,12 @@ class UnifiedEPDA(PerfMixin):
             var_ratio = pca.explained_variance_ratio_
 
             fig, ax = plt.subplots(figsize=(8, 4))
-            sns.lineplot(x=range(1, len(var_ratio) + 1), y=var_ratio, marker="o", ax=ax)
+            sns.lineplot(x=range(1, len(var_ratio) + 1),
+                         y=var_ratio, marker="o", ax=ax)
             ax.set_title("PCA Scree Plot")
             ax.set_xlabel("Component")
             ax.set_ylabel("Explained Variance Ratio")
-            self._save_plot(fig, "pca_scree")
+            self._save_plot(fig, "other", "pca_scree")
         except Exception:
             pass
 
@@ -179,7 +186,8 @@ class UnifiedEPDA(PerfMixin):
 
             rand_pts = uniform(X.min().values, X.max().values, (m, d))
             u_dist, _ = nbrs.kneighbors(rand_pts, 2, return_distance=True)
-            x_dist, _ = nbrs.kneighbors(X.sample(m).values, 2, return_distance=True)
+            x_dist, _ = nbrs.kneighbors(
+                X.sample(m).values, 2, return_distance=True)
 
             H = u_dist[:, 0].sum() / (u_dist[:, 0].sum() + x_dist[:, 0].sum())
             return H
@@ -203,7 +211,7 @@ class UnifiedEPDA(PerfMixin):
             ax[0].set_title("KMeans Inertia")
             sns.lineplot(x=range(2, 7), y=silhouettes, ax=ax[1], marker="o")
             ax[1].set_title("Silhouette Scores")
-            self._save_plot(fig, "kmeans_elbow_silhouette")
+            self._save_plot(fig, "other", "kmeans_elbow_silhouette")
 
             hopkins = self._hopkins_statistic(X)
             with open(self.out_dir / "hopkins_score.txt", "w") as f:
@@ -223,7 +231,7 @@ class UnifiedEPDA(PerfMixin):
             fig, ax = plt.subplots()
             sns.scatterplot(data=proj_df, x="TSNE1", y="TSNE2", ax=ax)
             ax.set_title("t-SNE Projection")
-            self._save_plot(fig, "tsne_projection")
+            self._save_plot(fig, "other", "tsne_projection")
         except Exception:
             pass
 
@@ -233,13 +241,13 @@ class UnifiedEPDA(PerfMixin):
         axs[0].set_title(f"Histogram - {col}")
         sns.boxplot(x=self.df[col], ax=axs[1])
         axs[1].set_title(f"Boxplot - {col}")
-        self._save_plot(fig, f"hist_box_{col}")
+        self._save_plot(fig, "hist", f"hist_box_{col}")
 
     def _plot_qq(self, col):
         fig = plt.figure()
         stats.probplot(self.df[col].dropna(), dist="norm", plot=plt)
         plt.title(f"QQ Plot - {col}")
-        self._save_plot(fig, f"qq_{col}")
+        self._save_plot(fig, "qq", f"qq_{col}")
 
     def _plot_acf_pacf(self, col):
         values = self.df[col].dropna().values
@@ -250,7 +258,7 @@ class UnifiedEPDA(PerfMixin):
         axs[0].set_title(f"ACF - {col}")
         axs[1].stem(pacf(values, nlags=20))
         axs[1].set_title(f"PACF - {col}")
-        self._save_plot(fig, f"acf_pacf_{col}")
+        self._save_plot(fig, "acf_pacf", f"acf_pacf_{col}")
 
     def _run_parallel_distributions(self):
         Parallel(n_jobs=N_JOBS)(
@@ -299,7 +307,7 @@ class UnifiedEPDA(PerfMixin):
         fig, ax = plt.subplots()
         sns.histplot(pit.flatten(), kde=True, ax=ax, bins=20)
         ax.set_title(f"PIT Histogram - {col}")
-        self._save_plot(fig, f"pit_{col}")
+        self._save_plot(fig, "pit", f"pit_{col}")
 
     def _run_parallel_pit(self):
         Parallel(n_jobs=N_JOBS)(
@@ -439,7 +447,8 @@ class UnifiedEPDA(PerfMixin):
             else:
                 model = RandomForestRegressor()
             model.fit(X, self.y)
-            importances = pd.Series(model.feature_importances_, index=self.numeric_cols)
+            importances = pd.Series(
+                model.feature_importances_, index=self.numeric_cols)
             importances.sort_values(ascending=False).to_csv(
                 self.out_dir / "feature_importance.csv"
             )
@@ -489,9 +498,10 @@ class UnifiedEPDA(PerfMixin):
             "timestamp": self.start_time.strftime("%Y-%m-%d %H:%M:%S"),
             "plots_generated": self.plot_counter,
         }
-        pd.Series(manifest).to_json(self.out_dir / "epda_manifest.json", indent=4)
+        pd.Series(manifest).to_json(
+            self.out_dir / "epda_manifest.json", indent=4)
 
         print(
             f"[UnifiedEPDA] Completed in {round(duration.total_seconds(), 2)} seconds"
         )
-        return self.df, manifest
+        return manifest

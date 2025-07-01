@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Tuple, Dict, Any
 import os
 from typing_extensions import Annotated
 import pandas as pd
@@ -10,6 +10,7 @@ from configs import global_conf
 from .BaselineModel import AutoBaseline
 from .ThreeWaySplit import SplitThreeWay
 import json
+from src.Stage_3_Split_data.leakage_detection import LeakageDetector
 
 DATASET_TARGET_COLUMN_NAME = "label"
 
@@ -18,7 +19,8 @@ DATASET_TARGET_COLUMN_NAME = "label"
 @monitor(name="baseline_step", track_memory=True, track_input_size=True)
 def baseline(train: pd.DataFrame, test: pd.DataFrame) -> None:
     if train.empty or test.empty:
-        raise ValueError("Train or test data is empty. Cannot run baseline model.")
+        raise ValueError(
+            "Train or test data is empty. Cannot run baseline model.")
 
     baseline_model = AutoBaseline(target=DATASET_TARGET_COLUMN_NAME)
     baseline_results = baseline_model.run(train, test)
@@ -26,7 +28,8 @@ def baseline(train: pd.DataFrame, test: pd.DataFrame) -> None:
     baseline_report_dir = global_conf.BASELINE_REPORT_PATH
     os.makedirs(baseline_report_dir, exist_ok=True)
 
-    baseline_report_path = os.path.join(baseline_report_dir, "baseline_metrics.json")
+    baseline_report_path = os.path.join(
+        baseline_report_dir, "baseline_metrics.json")
     with open(baseline_report_path, "w") as f:
         json.dump(baseline_results, f, indent=2)
 
@@ -86,5 +89,30 @@ def data_splitter(
         mlflow.log_metric("test_rows", len(test))
         mlflow.log_metric("val_rows", len(val))
         mlflow.log_artifact(summary_path)
+
+    return train, test, val
+
+
+@step
+@monitor(name="data_leak_step", track_memory=True, track_input_size=True)
+def data_leakage_detection(
+    train: pd.DataFrame,
+    test: pd.DataFrame,
+    val: pd.DataFrame,
+    target: str = DATASET_TARGET_COLUMN_NAME,
+) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    if train.empty or test.empty or val.empty:
+        raise ValueError(
+            "Train, test, or validation data is empty. Cannot detect leakage.")
+
+    leak_checker = LeakageDetector(corr_threshold=0.99)
+    X_train_proc = train.drop(columns=target)
+    y_train = train[target]
+    X_test_proc = test.drop(columns=target)
+    y_test = test[target]
+    leak_checker.fit(X=X_train_proc, y=y_train,
+                     X_test=X_test_proc, y_test=y_test)
+
+    leak_checker.dump_report()
 
     return train, test, val

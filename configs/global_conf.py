@@ -15,6 +15,7 @@ PREPROCESSOR_REPORT_PATH = "reports/preprocessor_report"
 MODEL_ARTIFACTS_PATH = "reports/Models"
 
 PIPELINE_LOGS_PATH = "reports/logs/pipeline_monitor.log"
+MLFLOW_REPORT_PATH = "reports/mlflow/"
 
 # Model training and evaluation parameters
 RANDOM_STATE = 23

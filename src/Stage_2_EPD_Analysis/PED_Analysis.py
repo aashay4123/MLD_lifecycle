@@ -89,13 +89,12 @@ def UnifiedPEDAnalyze(df: pd.DataFrame, project: str = "Default") -> pd.DataFram
 
     eda_path = os.path.join(eda_report_dir, "eda_summary.json")
     report_serializable = serialize(report)
+
     with open(eda_path, "w") as f:
         json.dump(report_serializable, f, indent=2)
+
     with mlflow.start_run(run_name="unified_ped_analyze", nested=True):
-        mlflow.log_param("project", project)
+        mlflow.log_param("eda_report_dir", eda_report_dir)
         mlflow.log_artifact(eda_path)
-        if hasattr(unified_ped, "generated_figures"):
-            for fig_paths in unified_ped.generated_figures:
-                mlflow.log_artifact(fig_paths)
 
     return df

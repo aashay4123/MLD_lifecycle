@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Union
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.base import BaseEstimator, TransformerMixin
+from configs import global_conf
 
 
 class LeakageDetector(BaseEstimator, TransformerMixin):
@@ -87,7 +88,8 @@ class LeakageDetector(BaseEstimator, TransformerMixin):
                 if X[col].var(ddof=0) == 0:
                     continue
                 try:
-                    corr = np.corrcoef(X[col].astype(float), y.astype(float))[0, 1]
+                    corr = np.corrcoef(X[col].astype(
+                        float), y.astype(float))[0, 1]
                 except Exception:
                     continue
                 if np.isnan(corr):
@@ -118,6 +120,8 @@ class LeakageDetector(BaseEstimator, TransformerMixin):
 
                 bad_vals = []
                 for val, grp in groups:
+                    if len(grp) < 10:  # ignore bins/groups with <10 samples
+                        continue
                     if grp.nunique(dropna=False) == 1:
                         bad_vals.append(val)
                 if bad_vals:
@@ -155,7 +159,8 @@ class LeakageDetector(BaseEstimator, TransformerMixin):
             try:
                 if col in categorical_cols:
                     # one‐hot encode, find per‐level AUC
-                    dummies = pd.get_dummies(X[col], prefix=col, dummy_na=False)
+                    dummies = pd.get_dummies(
+                        X[col], prefix=col, dummy_na=False)
                     per_level_aucs: List[float] = []
                     for dummy_col in dummies.columns:
                         try:
@@ -176,7 +181,9 @@ class LeakageDetector(BaseEstimator, TransformerMixin):
                     auc_val = roc_auc_score(y, xv.fillna(0.5))
                     max_auc = float(auc_val)
 
-                auc_scores[col] = max_auc
+                if max_auc >= max(0.8, self.auc_threshold):
+                    auc_scores[col] = max_auc
+
                 if max_auc >= self.auc_threshold:
                     leaky_feats.append(col)
                     self._log(
@@ -206,8 +213,10 @@ class LeakageDetector(BaseEstimator, TransformerMixin):
         """
         from sklearn.metrics import roc_auc_score
 
-        combined = pd.concat([train_df, test_df], axis=0).reset_index(drop=True)
-        labels = np.concatenate([np.zeros(len(train_df)), np.ones(len(test_df))])
+        combined = pd.concat([train_df, test_df],
+                             axis=0).reset_index(drop=True)
+        labels = np.concatenate(
+            [np.zeros(len(train_df)), np.ones(len(test_df))])
         sep_feats: List[str] = []
         auc_scores: Dict[str, float] = {}
 
@@ -215,11 +224,13 @@ class LeakageDetector(BaseEstimator, TransformerMixin):
             try:
                 values = combined[col]
                 if col in categorical_cols:
-                    dummies = pd.get_dummies(values, prefix=col, dummy_na=False)
+                    dummies = pd.get_dummies(
+                        values, prefix=col, dummy_na=False)
                     per_level_aucs: List[float] = []
                     for dummy_col in dummies.columns:
                         try:
-                            auc_val = roc_auc_score(labels, dummies[dummy_col].values)
+                            auc_val = roc_auc_score(
+                                labels, dummies[dummy_col].values)
                             per_level_aucs.append(float(auc_val))
                         except Exception:
                             continue
@@ -232,9 +243,11 @@ class LeakageDetector(BaseEstimator, TransformerMixin):
                     if xv.nunique() <= 1:
                         continue
                     xv_scaled = (xv - xv.min()) / (xv.max() - xv.min() + 1e-9)
-                    max_auc = float(roc_auc_score(labels, xv_scaled.fillna(0.5)))
+                    max_auc = float(roc_auc_score(
+                        labels, xv_scaled.fillna(0.5)))
+                if max_auc >= max(0.8, self.auc_threshold):
+                    auc_scores[col] = max_auc
 
-                auc_scores[col] = max_auc
                 if max_auc >= self.auc_threshold:
                     sep_feats.append(col)
                     self._log(
@@ -390,7 +403,8 @@ class LeakageDetector(BaseEstimator, TransformerMixin):
             self.leakage_report_["unseen_test_categories"] = {}
 
         self._fitted = True
-        return self
+        self.dump_report(global_conf.HEALTH_CHECK_REPORT_PATH)
+        return X
 
     def transform(
         self, X: Union[pd.DataFrame, np.ndarray]
@@ -409,7 +423,6 @@ class LeakageDetector(BaseEstimator, TransformerMixin):
         self,
         X: Union[pd.DataFrame, np.ndarray],
         y: Union[pd.Series, np.ndarray],
-        *,
         X_test: Optional[Union[pd.DataFrame, np.ndarray]] = None,
         y_test: Optional[Union[pd.Series, np.ndarray]] = None,
         categorical_cols: Optional[List[str]] = None,
@@ -418,7 +431,7 @@ class LeakageDetector(BaseEstimator, TransformerMixin):
         """
         Convenience method: runs all leakage checks, then returns X unchanged.
         """
-        return self.fit(
+        df = self.fit(
             X,
             y,
             X_test=X_test,
@@ -426,38 +439,27 @@ class LeakageDetector(BaseEstimator, TransformerMixin):
             categorical_cols=categorical_cols,
             numeric_cols=numeric_cols,
         ).transform(X)
+        self.dump_report(global_conf.HEALTH_CHECK_REPORT_PATH)
 
-    def dump_report(self, path: str = "leakage_report.json") -> None:
+        return df
+
+    def serialize_for_json(self, obj):
+        """Recursively convert objects to JSON-serializable format."""
+        if isinstance(obj, dict):
+            return {k: self.serialize_for_json(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [self.serialize_for_json(v) for v in obj]
+        elif isinstance(obj, pd.Interval):
+            return str(obj)
+        else:
+            return obj
+
+    def dump_report(self, path: str = global_conf.HEALTH_CHECK_REPORT_PATH) -> None:
         """
         Write self.leakage_report_ to JSON for later inspection.
         """
-        Path(path).parent.mkdir(parents=True, exist_ok=True)
-        with open(path, "w") as f:
-            json.dump(self.leakage_report_, f, indent=2)
-
-
-# import pandas as pd
-# from sklearn.pipeline import Pipeline
-# from sklearn.ensemble import RandomForestClassifier
-
-# # 1. Suppose you have an “upstream” pipeline that produces a numpy array or DataFrame X_train, X_test:
-# #    For example:
-# #    preprocess = Pipeline([... your imputation/encoding steps ...])
-# #    X_train_proc = preprocess.fit_transform(X_train_raw)
-# #    X_test_proc  = preprocess.transform(X_test_raw)
-
-# # 2. Now insert LeakageDetector before final estimator:
-# leak_checker = LeakageDetector(corr_threshold=0.99)
-# leak_checker.fit(X_train_proc, y_train, X_test=X_test_proc, y_test=y_test)
-
-# # 3. Inspect the report:
-# if leak_checker.leakage_report_:
-#     print("Potential leakage issues found:")
-#     for key, val in leak_checker.leakage_report_.items():
-#         print(f"  • {key}: {val}")
-# else:
-#     print("No obvious leakage detected.")
-
-# # 4. If clean, proceed to model training:
-# model = RandomForestClassifier(random_state=42)
-# model.fit(X_train_proc, y_train)
+        report_Path = f"{path}/leakage_report.json"
+        Path(report_Path).parent.mkdir(parents=True, exist_ok=True)
+        serializable_report = self.serialize_for_json(self.leakage_report_)
+        with open(report_Path, "w") as f:
+            json.dump(serializable_report, f, indent=2)

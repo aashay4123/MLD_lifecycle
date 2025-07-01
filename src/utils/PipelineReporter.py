@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any, Dict, Union, Optional
 import logging
 import os
-
+from configs import global_conf
 try:
     import mlflow
 except ImportError:
@@ -28,7 +28,7 @@ class PipelineReporter:
     def __init__(
         self,
         max_charts: int = 50,
-        report_dir: Union[str, Path] = "reports",
+        report_dir: Union[str, Path] = global_conf.PREPROCESSOR_REPORT_PATH,
         enable_mlflow: bool = True,
     ):
         self.max_charts = max_charts
@@ -44,9 +44,11 @@ class PipelineReporter:
 
     def _report_outlier_detector(self, name: str, component: Any) -> Dict:
         report = component.report if hasattr(component, "report") else {}
-        outlier_indices = set(report.get("real_outliers", {}).get("indices", []))
+        outlier_indices = set(report.get(
+            "real_outliers", {}).get("indices", []))
         df = getattr(component, "df", None)
-        scores = getattr(component, "votes_table_", {}).get("total_votes", None)
+        scores = getattr(component, "votes_table_",
+                         {}).get("total_votes", None)
         cols = getattr(component, "numeric_cols", [])
 
         charts = []
@@ -181,7 +183,8 @@ class PipelineReporter:
         # Static report blocks
         for name, report in self.static_reports.items():
             markdown.append(f"## 📌 {name} (static report)\n")
-            markdown.append("```json\n" + json.dumps(report, indent=2) + "\n```\n")
+            markdown.append(
+                "```json\n" + json.dumps(report, indent=2) + "\n```\n")
             for chart in self.chart_paths.get(name, []):
                 markdown.append(f"![{name}]({chart})\n")
             final_report[name] = {
@@ -206,7 +209,8 @@ class PipelineReporter:
             result = self._extract_summary_and_charts(name, comp)
             if result["summary"]:
                 markdown.append(
-                    "```json\n" + json.dumps(result["summary"], indent=2) + "\n```\n"
+                    "```json\n"
+                    + json.dumps(result["summary"], indent=2) + "\n```\n"
                 )
             for chart in result["charts"]:
                 markdown.append(f"![{name}]({chart})\n")
@@ -219,20 +223,21 @@ class PipelineReporter:
 
         # Save all files
         json_path = self.report_dir / f"{output_name}.json"
-        md_path = self.report_dir / f"{output_name}.md"
-        html_path = self.report_dir / f"{output_name}.html"
+        # md_path = self.report_dir / f"{output_name}.md"
+        # html_path = self.report_dir / f"{output_name}.html"
 
         with open(json_path, "w") as f:
             json.dump(final_report, f, indent=2)
-        with open(md_path, "w") as f:
-            f.write("\n".join(markdown))
-        with open(html_path, "w") as f:
-            f.write("<html><body>" + "<br><hr><br>".join(markdown) + "</body></html>")
+        # with open(md_path, "w") as f:
+        #     f.write("\n".join(markdown))
+        # with open(html_path, "w") as f:
+        #     f.write("<html><body>"
+        #             + "<br><hr><br>".join(markdown) + "</body></html>")
 
         if self.enable_mlflow and mlflow:
             mlflow.log_artifact(json_path)
-            mlflow.log_artifact(md_path)
-            mlflow.log_artifact(html_path)
+            # mlflow.log_artifact(md_path)
+            # mlflow.log_artifact(html_path)
             for sect in final_report.values():
                 for chart in sect.get("charts", []):
                     mlflow.log_artifact(chart)

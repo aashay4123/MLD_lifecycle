@@ -39,24 +39,13 @@ def missing_imputer(
         random_state=0,
         verbose=False,
     )
+
     train_imp = missing_imputer.fit_transform(train)
     test_imp = missing_imputer.transform(test)
     val_imp = missing_imputer.transform(val)
 
-    # Generate report
-    reporter = PipelineReporter()
-    reporter.register("missing_imputer", missing_imputer)
-    report = reporter.generate_report("missing_imputer_report")
-
-    preprocessor_report_dir = global_conf.MODEL_ARTIFACTS_PATH
-    os.makedirs(preprocessor_report_dir, exist_ok=True)
-
-    missing_imputer_path = os.path.join(
-        preprocessor_report_dir, "missing_imputer_report.json"
-    )
-
-    with open(missing_imputer_path, "w") as f:
-        json.dump(report, f, indent=2)
+    _, missing_imputer_path = missing_imputer.report_missing_imputer(
+        train, train_imp)
 
     # MLflow logging
     with mlflow.start_run(run_name="missing_imputer", nested=True):
@@ -90,20 +79,8 @@ def outlier_detector(
     test_clean = detector.transform(test)
     val_clean = detector.transform(val)
 
-    # Generate report
-    reporter = PipelineReporter()
-    reporter.register("outlier_detector", detector)
-    report = reporter.generate_report("outlier_detector_report")
-
-    preprocessor_report_dir = global_conf.MODEL_ARTIFACTS_PATH
-    os.makedirs(preprocessor_report_dir, exist_ok=True)
-
-    outlier_detector_path = os.path.join(
-        preprocessor_report_dir, "outlier_detector_report.json"
-    )
-
-    with open(outlier_detector_path, "w") as f:
-        json.dump(report, f, indent=2)
+    report, outlier_detector_path = detector.report_outlier_detector(
+        "outlier_detector", detector)
 
     # MLflow logging
     with mlflow.start_run(run_name="outlier_detector", nested=True):
@@ -112,41 +89,3 @@ def outlier_detector(
         mlflow.log_artifact(outlier_detector_path)
 
     return train_clean, test_clean, val_clean
-
-
-@step
-def fit_data_preprocessor_step(context: StepContext, train_df: pd.DataFrame) -> Tuple[
-    pd.DataFrame,
-    pd.DataFrame,
-    pd.DataFrame,
-]:
-    """Fit on training data: detects outliers, imputes, and saves both models."""
-    outlier_model = OutlierDetector(verbose=True)
-    cleaned_df = outlier_model.fit_transform(train_df)
-    outlier_model_path = f"{context.artifact_uri}/outlier_model_state.pkl"
-    outlier_model.save_state(outlier_model_path)
-    context.log_artifact("outlier_model", outlier_model_path)
-
-    imputer = MissingImputer()
-    imputed_df = imputer.fit_transform(cleaned_df)
-    imputer_model_path = f"{context.artifact_uri}/missing_model_state.pkl"
-    imputer.save_state(imputer_model_path)
-    context.log_artifact("missing_model", imputer_model_path)
-
-    return imputed_df, Path(outlier_model_path), Path(imputer_model_path)
-
-
-@step
-def transform_data_preprocessor_step(
-    input_df: pd.DataFrame, outlier_model_path: Path, missing_model_path: Path
-) -> pd.DataFrame:
-    """Apply saved outlier + imputer models to validation/test data."""
-    outlier_model = OutlierDetector()
-    outlier_model.load_state(str(outlier_model_path))
-    df_cleaned = outlier_model.transform(input_df)
-
-    imputer = MissingImputer()
-    imputer.load_state(str(missing_model_path))
-    df_final = imputer.transform(df_cleaned)
-
-    return df_final

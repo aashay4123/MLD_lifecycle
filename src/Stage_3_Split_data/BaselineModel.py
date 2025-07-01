@@ -23,8 +23,6 @@ class AutoBaseline:
         self.target = target
         self.verbose = verbose
         self.results: Dict[str, Dict[str, Any]] = {}
-        self.REPORT_DIR = Path("reports/baseline")
-        self.REPORT_DIR.mkdir(parents=True, exist_ok=True)
 
     def run(
         self, train_df: pd.DataFrame, test_df: pd.DataFrame
@@ -38,7 +36,8 @@ class AutoBaseline:
         if is_regression:
             self._run_regression_baselines(train_df, test_df, y_train, y_test)
         else:
-            self._run_classification_baselines(train_df, test_df, y_train, y_test)
+            self._run_classification_baselines(
+                train_df, test_df, y_train, y_test)
 
         # TODO: Add Report to HTML file named baseline model stats
         # self.REPORT_DIR

@@ -9,8 +9,7 @@ import pathlib as Path
 import re
 import time
 import pandas as pd
-from datetime import datetime
-
+from configs import global_conf
 with contextlib.suppress(ImportError):
     import boto3
     import requests
@@ -22,18 +21,18 @@ with contextlib.suppress(ImportError):
     import great_expectations as ge
 
 # ─── Logging & Directories ─────────────────────────────────────────────────────
-LOG_DIR = Path.Path("reports/logs")
-REPORT_DIR = Path.Path("reports/profiling")
+# LOG_DIR = Path.Path("reports/logs")
+REPORT_DIR = Path.Path(global_conf.HEALTH_CHECK_REPORT_PATH)
 REPORT_DIR.mkdir(parents=True, exist_ok=True)
-LOG_DIR.mkdir(exist_ok=True, parents=True)
+# LOG_DIR.mkdir(exist_ok=True, parents=True)
 
-# Configure logging to both file and console
-logging.basicConfig(
-    level=logging.INFO,
-    handlers=[logging.FileHandler(
-        LOG_DIR / "ingest.log"), logging.StreamHandler()],
-    format="%(asctime)s | %(levelname)s | %(message)s",
-)
+# # Configure logging to both file and console
+# logging.basicConfig(
+#     level=logging.INFO,
+#     handlers=[logging.FileHandler(
+#         LOG_DIR / "ingest.log"), logging.StreamHandler()],
+#     format="%(asctime)s | %(levelname)s | %(message)s",
+# )
 log = logging.getLogger("collector")
 
 # ─── PII Regex Patterns ────────────────────────────────────────────────────────
