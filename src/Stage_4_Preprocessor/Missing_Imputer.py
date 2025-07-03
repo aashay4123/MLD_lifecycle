@@ -122,9 +122,9 @@ class MissingnessAnalyzer:
                 }
 
         # Write JSON
-        outpath = REPORT_PATH / "column_missingness.json"
-        with open(outpath, "w") as f:
-            json.dump(results, f, indent=2)
+        # outpath = REPORT_PATH / "column_missingness.json"
+        # with open(outpath, "w") as f:
+        #     json.dump(results, f, indent=2)
 
         return results
 
@@ -941,23 +941,6 @@ class MissingImputer(PerfMixin):
                     imp.transform(block), columns=valid_num_cols, index=block.index
                 )
 
-        # 3) Numeric column-wise imputation
-        for col, (method, imputer_obj) in self.numeric_imputers.items():
-            if col not in df1.columns:
-                continue
-            series = df1[col]
-            if method == "none":
-                continue
-            elif method in ["mean", "median", "fallback_mean"]:
-                df1[col] = imputer_obj.transform(
-                    series.values.reshape(-1, 1)).flatten()
-            elif method == "knn" and knn_imputed_block is not None:
-                df1[col] = knn_imputed_block[col]
-            elif method == "mice" and mice_imputed_block is not None:
-                df1[col] = mice_imputed_block[col]
-            elif method == "random_sample":
-                df1[col] = self._random_sample_impute_num(series)
-
         def _transform_numeric_column(
             col, method, imputer_obj, df1, knn_block, mice_block
         ):
@@ -965,14 +948,22 @@ class MissingImputer(PerfMixin):
                 return
             series = df1[col]
             if method == "none":
-                return
+                df1[col] = series.fillna(series.mean())
             elif method in ["mean", "median", "fallback_mean"]:
                 df1[col] = imputer_obj.transform(
                     series.values.reshape(-1, 1)).flatten()
             elif method == "knn" and knn_block is not None:
                 df1[col] = knn_block[col]
+            elif method == "knn" and knn_block is None:
+                print(
+                    f"[WARN] KNN block missing for '{col}' → fallback to mean")
+                df1[col] = series.fillna(series.mean())
             elif method == "mice" and mice_block is not None:
                 df1[col] = mice_block[col]
+            elif method == "mice" and mice_block is None:
+                print(
+                    f"[WARN] mice block missing for '{col}' → fallback to mean")
+                df1[col] = series.fillna(series.mean())
             elif method == "random_sample":
                 nonnull = series.dropna().values
                 mask = series.isna()

@@ -68,7 +68,7 @@ def outlier_detector(
     pd.DataFrame,
 ]:
     detector = OutlierDetector(
-        outlier_threshold=3,
+        outlier_threshold=5,
         robust_covariance=True,
         cap_outliers=None,  # winsorize
         model_family="linear",
@@ -79,13 +79,13 @@ def outlier_detector(
     test_clean = detector.transform(test)
     val_clean = detector.transform(val)
 
-    report, outlier_detector_path = detector.report_outlier_detector(
+    report, report_path = detector.report_outlier_detector(
         "outlier_detector", detector)
 
     # MLflow logging
     with mlflow.start_run(run_name="outlier_detector", nested=True):
-        mlflow.log_param("outlier_threshold", 3)
+        mlflow.log_param("outlier_threshold", 5)
         mlflow.log_metric("num_outliers", detector.outlier_flags_.sum())
-        mlflow.log_artifact(outlier_detector_path)
+        mlflow.log_artifact(report_path)
 
     return train_clean, test_clean, val_clean

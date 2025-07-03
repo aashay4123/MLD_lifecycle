@@ -1,0 +1,107 @@
+
+🔵 Dataset: synthetic_regression (regression)
+🔎 Detected task: regression (unique=320, unique_ratio=1.0000)
+🔎 Models detected: []
+🔎 Available search space keys: ['RandomForestRegressor', 'GradientBoostingRegressor', 'ExtraTreesRegressor', 'Ridge', 'Lasso', 'XGBRegressor', 'LGBMRegressor', 'LinearRegression']
+
+🔎 Starting HPO for model: RandomForestRegressor
+[32m[I 2025-07-02 23:39:28,314][0m Trial 0 finished with value: 0.6011771085977836 and parameters: {'n_estimators': 180, 'max_depth': 39, 'min_samples_split': 23, 'min_samples_leaf': 12, 'max_features': 'sqrt'}. Best is trial 0 with value: 0.6011771085977836.[0m
+[32m[I 2025-07-02 23:39:29,278][0m Trial 1 finished with value: 0.6503104025856128 and parameters: {'n_estimators': 360, 'max_depth': 25, 'min_samples_split': 22, 'min_samples_leaf': 1, 'max_features': 'sqrt'}. Best is trial 0 with value: 0.6011771085977836.[0m
+[32m[I 2025-07-02 23:39:30,166][0m Trial 2 finished with value: 0.6203768967456514 and parameters: {'n_estimators': 110, 'max_depth': 9, 'min_samples_split': 10, 'min_samples_leaf': 11, 'max_features': None}. Best is trial 0 with value: 0.6011771085977836.[0m
+[32m[I 2025-07-02 23:39:30,263][0m Trial 3 finished with value: 0.6200519195744831 and parameters: {'n_estimators': 100, 'max_depth': 13, 'min_samples_split': 12, 'min_samples_leaf': 10, 'max_features': 'sqrt'}. Best is trial 0 with value: 0.6011771085977836.[0m
+[32m[I 2025-07-02 23:39:30,497][0m Trial 4 finished with value: 0.5265557729880385 and parameters: {'n_estimators': 260, 'max_depth': 3, 'min_samples_split': 19, 'min_samples_leaf': 4, 'max_features': None}. Best is trial 4 with value: 0.5265557729880385.[0m
+✅ RandomForestRegressor best CV r2: 0.5266
+📉 0 trials were pruned for RandomForestRegressor.
+✅ Best trial for RandomForestRegressor: 0.52656
+
+🔎 Starting HPO for model: GradientBoostingRegressor
+[32m[I 2025-07-02 23:39:31,229][0m Trial 0 finished with value: 0.43865921427394694 and parameters: {'n_estimators': 340, 'max_depth': 7, 'learning_rate': 0.0017456037635797405, 'subsample': 0.8421165132560784, 'min_samples_split': 14, 'min_samples_leaf': 3, 'max_features': None}. Best is trial 0 with value: 0.43865921427394694.[0m
+[32m[I 2025-07-02 23:39:31,313][0m Trial 1 finished with value: 0.4952705093881905 and parameters: {'n_estimators': 140, 'max_depth': 14, 'learning_rate': 0.005917607170144194, 'subsample': 0.7600340105889054, 'min_samples_split': 17, 'min_samples_leaf': 4, 'max_features': 'sqrt'}. Best is trial 0 with value: 0.43865921427394694.[0m
+[32m[I 2025-07-02 23:39:31,520][0m Trial 2 finished with value: 0.8365087228824388 and parameters: {'n_estimators': 370, 'max_depth': 13, 'learning_rate': 0.19212959255386391, 'subsample': 0.5442462510259598, 'min_samples_split': 7, 'min_samples_leaf': 1, 'max_features': 'log2'}. Best is trial 0 with value: 0.43865921427394694.[0m
+[32m[I 2025-07-02 23:39:31,666][0m Trial 3 finished with value: 0.631728655348434 and parameters: {'n_estimators': 340, 'max_depth': 8, 'learning_rate': 0.0049648810171066555, 'subsample': 0.7713480415791243, 'min_samples_split': 6, 'min_samples_leaf': 17, 'max_features': 'log2'}. Best is trial 0 with value: 0.43865921427394694.[0m
+[32m[I 2025-07-02 23:39:31,728][0m Trial 4 finished with value: 0.8883112914956925 and parameters: {'n_estimators': 120, 'max_depth': 2, 'learning_rate': 0.10471209213501693, 'subsample': 0.8534286719238086, 'min_samples_split': 23, 'min_samples_leaf': 16, 'max_features': 'log2'}. Best is trial 0 with value: 0.43865921427394694.[0m
+✅ GradientBoostingRegressor best CV r2: 0.4387
+📉 0 trials were pruned for GradientBoostingRegressor.
+✅ Best trial for GradientBoostingRegressor: 0.43866
+
+🔎 Starting HPO for model: ExtraTreesRegressor
+[32m[I 2025-07-02 23:39:32,419][0m Trial 0 finished with value: 0.7485281225105057 and parameters: {'n_estimators': 360, 'max_depth': 26, 'min_samples_split': 11, 'min_samples_leaf': 2, 'max_features': None}. Best is trial 0 with value: 0.7485281225105057.[0m
+[32m[I 2025-07-02 23:39:32,555][0m Trial 1 finished with value: 0.5952947244148207 and parameters: {'n_estimators': 270, 'max_depth': 36, 'min_samples_split': 15, 'min_samples_leaf': 3, 'max_features': 'log2'}. Best is trial 1 with value: 0.5952947244148207.[0m
+[32m[I 2025-07-02 23:39:32,690][0m Trial 2 finished with value: 0.40741635631414014 and parameters: {'n_estimators': 320, 'max_depth': 21, 'min_samples_split': 17, 'min_samples_leaf': 9, 'max_features': 'log2'}. Best is trial 2 with value: 0.40741635631414014.[0m
+[32m[I 2025-07-02 23:39:32,825][0m Trial 3 finished with value: 0.5312713077802156 and parameters: {'n_estimators': 270, 'max_depth': 14, 'min_samples_split': 16, 'min_samples_leaf': 19, 'max_features': None}. Best is trial 2 with value: 0.40741635631414014.[0m
+[32m[I 2025-07-02 23:39:32,888][0m Trial 4 finished with value: 0.4580293805396005 and parameters: {'n_estimators': 130, 'max_depth': 5, 'min_samples_split': 10, 'min_samples_leaf': 4, 'max_features': 'sqrt'}. Best is trial 2 with value: 0.40741635631414014.[0m
+✅ ExtraTreesRegressor best CV r2: 0.4074
+📉 0 trials were pruned for ExtraTreesRegressor.
+✅ Best trial for ExtraTreesRegressor: 0.40742
+
+🔎 Starting HPO for model: XGBRegressor
+[32m[I 2025-07-02 23:39:33,732][0m Trial 0 finished with value: 0.5117872544003604 and parameters: {'n_estimators': 360, 'max_depth': 17, 'learning_rate': 0.003188210535930767, 'subsample': 0.9462794992449889, 'colsample_bytree': 0.7236053451493905, 'gamma': 8.074401551640625, 'reg_alpha': 8.960912999234932, 'reg_lambda': 3.1800347497186388}. Best is trial 0 with value: 0.5117872544003604.[0m
+[32m[I 2025-07-02 23:39:33,857][0m Trial 1 finished with value: 0.5402219568493264 and parameters: {'n_estimators': 80, 'max_depth': 7, 'learning_rate': 0.014215138980634387, 'subsample': 0.9090073829612466, 'colsample_bytree': 0.916438349953806, 'gamma': 0.06952130531190703, 'reg_alpha': 5.107473025775658, 'reg_lambda': 4.17411003148779}. Best is trial 0 with value: 0.5117872544003604.[0m
+[32m[I 2025-07-02 23:39:33,932][0m Trial 2 finished with value: 0.4165394236833532 and parameters: {'n_estimators': 120, 'max_depth': 5, 'learning_rate': 0.008151043683305624, 'subsample': 0.9714548519562596, 'colsample_bytree': 0.5939217592124532, 'gamma': 5.187906217433661, 'reg_alpha': 7.030189588951778, 'reg_lambda': 3.63629602379294}. Best is trial 2 with value: 0.4165394236833532.[0m
+[32m[I 2025-07-02 23:39:34,341][0m Trial 3 finished with value: 0.5540837006531897 and parameters: {'n_estimators': 390, 'max_depth': 20, 'learning_rate': 0.004781375634172095, 'subsample': 0.7486242529461927, 'colsample_bytree': 0.5805269858900618, 'gamma': 2.848404943774676, 'reg_alpha': 0.36886947354532795, 'reg_lambda': 6.095643339798968}. Best is trial 2 with value: 0.4165394236833532.[0m
+[32m[I 2025-07-02 23:39:34,389][0m Trial 4 finished with value: 0.4404944946855692 and parameters: {'n_estimators': 230, 'max_depth': 3, 'learning_rate': 0.005650130110168201, 'subsample': 0.9541329429833268, 'colsample_bytree': 0.5437371344001835, 'gamma': 1.448948720912231, 'reg_alpha': 4.89452760277563, 'reg_lambda': 9.856504541106007}. Best is trial 2 with value: 0.4165394236833532.[0m
+✅ XGBRegressor best CV r2: 0.4165
+📉 0 trials were pruned for XGBRegressor.
+✅ Best trial for XGBRegressor: 0.41654
+
+🔎 Starting HPO for model: LGBMRegressor
+[32m[I 2025-07-02 23:39:34,927][0m Trial 0 finished with value: 0.18773636578764596 and parameters: {'n_estimators': 130, 'num_leaves': 208, 'max_depth': 30, 'learning_rate': 0.004379016717149333, 'subsample': 0.8641081743059298, 'colsample_bytree': 0.620669879631552, 'min_child_samples': 65, 'reg_alpha': 6.335297107608947, 'reg_lambda': 5.357746840747585}. Best is trial 0 with value: 0.18773636578764596.[0m
+[32m[I 2025-07-02 23:39:35,135][0m Trial 1 finished with value: 0.10312032904792515 and parameters: {'n_estimators': 80, 'num_leaves': 254, 'max_depth': 12, 'learning_rate': 0.003187189344661403, 'subsample': 0.520387570777382, 'colsample_bytree': 0.754535765912945, 'min_child_samples': 70, 'reg_alpha': 0.16587828927856152, 'reg_lambda': 5.12093058299281}. Best is trial 1 with value: 0.10312032904792515.[0m
+[32m[I 2025-07-02 23:39:35,604][0m Trial 2 finished with value: 0.8568569658664256 and parameters: {'n_estimators': 130, 'num_leaves': 201, 'max_depth': 6, 'learning_rate': 0.07325212536639251, 'subsample': 0.6933676731502687, 'colsample_bytree': 0.9620379932420408, 'min_child_samples': 18, 'reg_alpha': 3.410663510502585, 'reg_lambda': 1.1347352124058907}. Best is trial 1 with value: 0.10312032904792515.[0m
+[32m[I 2025-07-02 23:39:36,101][0m Trial 3 finished with value: 0.8298735297952404 and parameters: {'n_estimators': 380, 'num_leaves': 266, 'max_depth': 9, 'learning_rate': 0.06043341601953106, 'subsample': 0.9086111001006079, 'colsample_bytree': 0.7331204869596775, 'min_child_samples': 55, 'reg_alpha': 2.418522909004517, 'reg_lambda': 0.9310276780589921}. Best is trial 1 with value: 0.10312032904792515.[0m
+[32m[I 2025-07-02 23:39:36,381][0m Trial 4 finished with value: 0.388810083282536 and parameters: {'n_estimators': 370, 'num_leaves': 273, 'max_depth': 25, 'learning_rate': 0.008223017918502924, 'subsample': 0.6746047873063304, 'colsample_bytree': 0.8355734073221437, 'min_child_samples': 91, 'reg_alpha': 8.870864242651173, 'reg_lambda': 7.798755458576238}. Best is trial 1 with value: 0.10312032904792515.[0m
+✅ LGBMRegressor best CV r2: 0.1031
+📉 0 trials were pruned for LGBMRegressor.
+✅ Best trial for LGBMRegressor: 0.10312
+
+🔎 Starting HPO for model: Ridge
+[32m[I 2025-07-02 23:39:36,579][0m Trial 0 finished with value: 0.9884619410041054 and parameters: {'alpha': 3.1204808598131857}. Best is trial 0 with value: 0.9884619410041054.[0m
+[32m[I 2025-07-02 23:39:36,592][0m Trial 1 finished with value: 0.9885889773667765 and parameters: {'alpha': 0.00038813227242790306}. Best is trial 0 with value: 0.9884619410041054.[0m
+[32m[I 2025-07-02 23:39:36,604][0m Trial 2 finished with value: 0.9885889868954167 and parameters: {'alpha': 0.0013533215536719134}. Best is trial 0 with value: 0.9884619410041054.[0m
+[32m[I 2025-07-02 23:39:36,618][0m Trial 3 finished with value: 0.796754374896525 and parameters: {'alpha': 194.93028586787347}. Best is trial 3 with value: 0.796754374896525.[0m
+[32m[I 2025-07-02 23:39:36,630][0m Trial 4 finished with value: 0.9885556797981468 and parameters: {'alpha': 1.7579374477367966}. Best is trial 3 with value: 0.796754374896525.[0m
+✅ Ridge best CV r2: 0.7968
+📉 0 trials were pruned for Ridge.
+✅ Best trial for Ridge: 0.79675
+
+🔎 Starting HPO for model: Lasso
+[32m[I 2025-07-02 23:39:36,722][0m Trial 0 finished with value: 0.9885889755940827 and parameters: {'alpha': 0.0001159790003962822}. Best is trial 0 with value: 0.9885889755940827.[0m
+[32m[I 2025-07-02 23:39:36,737][0m Trial 1 finished with value: 0.9885890046159466 and parameters: {'alpha': 0.0005132167239268602}. Best is trial 0 with value: 0.9885889755940827.[0m
+[32m[I 2025-07-02 23:39:36,751][0m Trial 2 finished with value: 0.9788878757891517 and parameters: {'alpha': 4.410749400409233}. Best is trial 2 with value: 0.9788878757891517.[0m
+[32m[I 2025-07-02 23:39:36,763][0m Trial 3 finished with value: 0.9885889751514533 and parameters: {'alpha': 0.00010850033695663425}. Best is trial 2 with value: 0.9788878757891517.[0m
+[32m[I 2025-07-02 23:39:36,775][0m Trial 4 finished with value: 0.9885890278896247 and parameters: {'alpha': 0.001335538339589572}. Best is trial 2 with value: 0.9788878757891517.[0m
+✅ Lasso best CV r2: 0.9789
+📉 0 trials were pruned for Lasso.
+✅ Best trial for Lasso: 0.97889
+
+🔎 Starting HPO for model: LinearRegression
+⚠️ Skipping LinearRegression: no search space defined.
+❌ Failed for RandomForestRegressor on synthetic_regression: continuous format is not supported
+❌ Failed for GradientBoostingRegressor on synthetic_regression: continuous format is not supported
+❌ Failed for ExtraTreesRegressor on synthetic_regression: continuous format is not supported
+❌ Failed for XGBRegressor on synthetic_regression: continuous format is not supported
+❌ Failed for LGBMRegressor on synthetic_regression: continuous format is not supported
+❌ Failed for Ridge on synthetic_regression: continuous format is not supported
+❌ Failed for Lasso on synthetic_regression: continuous format is not supported
+🔗 Selected top-3 models: ['LGBMRegressor', 'ExtraTreesRegressor', 'XGBRegressor']
+🔎 Re-training LGBMRegressor on full dataset...
+🔎 Re-training ExtraTreesRegressor on full dataset...
+🔎 Re-training XGBRegressor on full dataset...
+✅ LGBMRegressor classes_: N/A
+✅ ExtraTreesRegressor classes_: N/A
+✅ XGBRegressor classes_: N/A
+[32m[I 2025-07-02 23:39:38,309][0m Trial 0 finished with value: 0.3202290082312026 and parameters: {'method': 'soft'}. Best is trial 0 with value: 0.3202290082312026.[0m
+[32m[I 2025-07-02 23:39:39,505][0m Trial 1 finished with value: 0.36807832389728523 and parameters: {'method': 'weighted', 'weight_LGBMRegressor': 0.6579179623606282, 'weight_ExtraTreesRegressor': 1.6461421391864308, 'weight_XGBRegressor': 1.6066587914563562}. Best is trial 0 with value: 0.3202290082312026.[0m
+[32m[I 2025-07-02 23:39:46,260][0m Trial 2 finished with value: 0.9885751127210025 and parameters: {'method': 'stack_ridge'}. Best is trial 0 with value: 0.3202290082312026.[0m
+[32m[I 2025-07-02 23:39:46,400][0m Trial 3 finished with value: 0.9853594822941606 and parameters: {'method': 'residual'}. Best is trial 0 with value: 0.3202290082312026.[0m
+[32m[I 2025-07-02 23:39:47,600][0m Trial 4 finished with value: 0.3231547951199626 and parameters: {'method': 'weighted', 'weight_LGBMRegressor': 1.2349288068445898, 'weight_ExtraTreesRegressor': 0.7795268581657453, 'weight_XGBRegressor': 1.7439387743267072}. Best is trial 0 with value: 0.3202290082312026.[0m
+[32m[I 2025-07-02 23:39:47,736][0m Trial 5 finished with value: 0.9853594822941606 and parameters: {'method': 'residual'}. Best is trial 0 with value: 0.3202290082312026.[0m
+[32m[I 2025-07-02 23:39:48,923][0m Trial 6 finished with value: 0.3202290082312026 and parameters: {'method': 'soft'}. Best is trial 0 with value: 0.3202290082312026.[0m
+[32m[I 2025-07-02 23:39:49,061][0m Trial 7 finished with value: 0.9853594822941606 and parameters: {'method': 'residual'}. Best is trial 0 with value: 0.3202290082312026.[0m
+[32m[I 2025-07-02 23:39:49,200][0m Trial 8 finished with value: 0.9853594822941606 and parameters: {'method': 'residual'}. Best is trial 0 with value: 0.3202290082312026.[0m
+[32m[I 2025-07-02 23:39:50,390][0m Trial 9 finished with value: 0.28744259419909063 and parameters: {'method': 'weighted', 'weight_LGBMRegressor': 1.9109374262654564, 'weight_ExtraTreesRegressor': 1.970832531755247, 'weight_XGBRegressor': 0.5278610194713811}. Best is trial 9 with value: 0.28744259419909063.[0m
+⚠️ No holdout set provided; evaluating ensemble on train data.
+✅ Final ensemble built with method: weighted
+❌ Failed to compute metric for ensemble: continuous format is not supported
+
+✅ Results saved to optuna_best_models_validation.csv

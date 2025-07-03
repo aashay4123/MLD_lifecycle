@@ -61,8 +61,8 @@ class OutlierDetector(BaseEstimator, TransformerMixin, PerfMixin):
     UNIV_ZSCORE_CUTOFF = 3.0  # |z| > 3.0
     UNIV_MODZ_CUTOFF = 3.5  # |modified_z| > 3.5
     TUKEY_MULTIPLIER = 2.0  # Tukey uses 2× IQR
-    PCTL_LOW = 3  # 3st percentile
-    PCTL_HIGH = 97  # 97th percentile
+    PCTL_LOW = 5  # 5th percentile
+    PCTL_HIGH = 95  # 95th percentile
 
     # Multivariate settings
     GAUSS_SKEW_THRESH = 1.0  # abs(skew) < 1.0
@@ -79,11 +79,11 @@ class OutlierDetector(BaseEstimator, TransformerMixin, PerfMixin):
         self,
         outlier_threshold: int = 3,
         robust_covariance: bool = True,
-        cap_outliers: bool = True,
+        cap_outliers: bool = False,
         model_family: str = None,
         random_state: int = 42,
         verbose: bool = False,
-        n_jobs: int = 1,  # Number of parallel jobs for scoring rules
+        n_jobs: int = -1,  # Number of parallel jobs for scoring rules
         max_charts: int = 50
     ):
         self.outlier_threshold = outlier_threshold
@@ -115,7 +115,6 @@ class OutlierDetector(BaseEstimator, TransformerMixin, PerfMixin):
         # Reporting
         self.report: Dict[str, Any] = {
             "univariate_outliers": {},  # {column -> {rule_name: count_flagged, ...}, ...}
-            # {"method": str, "indices": [...], "fallback_path": [...]}
             "multivariate_outliers": {},
             "real_outliers": {},  # {"indices": [...], "count": N}
             "treatment": {},  # details about drop vs winsorize
@@ -458,6 +457,20 @@ class OutlierDetector(BaseEstimator, TransformerMixin, PerfMixin):
                 if summary["rows_after"] is not None
                 else None
             )
+            summary["rows_before"] = int(df.shape[0])
+            summary["rows_after"] = int(
+                train_clean.shape[0]) if train_clean is not None else None
+
+            rows_dropped = (
+                summary["rows_before"] - summary["rows_after"]
+                if summary["rows_after"] is not None
+                else None
+            )
+
+            # Only log rows_dropped if it's non-zero and not None
+            if rows_dropped:
+                summary["rows_dropped"] = rows_dropped
+
             summary["missing_before"] = int(df.isna().sum().sum())
             summary["missing_after"] = int(
                 train_clean.isna().sum().sum()) if train_clean is not None else None
@@ -475,12 +488,36 @@ class OutlierDetector(BaseEstimator, TransformerMixin, PerfMixin):
                 col, _ = item
                 n_outliers = int(
                     df[col].loc[list(outlier_indices)].dropna().shape[0])
-                chart_path = self._plot_histogram(
-                    df[col],
-                    title=f"{name}: {col} (highlighted outliers)",
-                    hue=df.index.isin(outlier_indices),
-                    filename=f"{name}_{col}_outliers.png",
-                )
+
+                fig, axs = plt.subplots(1, 2, figsize=(12, 4))
+
+                # Left: feature histogram with hue
+                if df.index.isin(outlier_indices).any():
+                    plot_df = pd.DataFrame({
+                        "value": df[col],
+                        "is_outlier": df.index.isin(outlier_indices)
+                    })
+                    sns.histplot(data=plot_df, x="value", hue="is_outlier",
+                                 kde=True, ax=axs[0], palette="muted")
+                else:
+                    sns.histplot(df[col], kde=True,
+                                 color="steelblue", ax=axs[0])
+                axs[0].set_title(f"{name}: {col} (highlighted outliers)")
+
+                # Right: votes distribution histogram for same rows
+                if scores is not None:
+                    sns.histplot(scores, bins=range(0, scores.max() + 2),
+                                 discrete=True, ax=axs[1], color="coral")
+                    axs[1].set_title(f"{name}: votes distribution")
+
+                plt.tight_layout()
+
+                chart_path = Path(f"{self.REPORT_PATH}/histogram")
+                chart_path.mkdir(parents=True, exist_ok=True)
+                fig.savefig(
+                    f"{chart_path}/{name}_{col}_outliers_and_votes.png")
+                plt.close(fig)
+
                 return {
                     "col": col,
                     "chart": chart_path,
@@ -489,7 +526,11 @@ class OutlierDetector(BaseEstimator, TransformerMixin, PerfMixin):
 
             # Parallel chart creation
             results = self.parallel_map(process_col, top_cols)
-
+            raw_counts = self.report.get("treatment", {}).get("counts", {})
+            filtered_counts = {col: count for col,
+                               count in raw_counts.items() if count > 0}
+            if "treatment" in self.report:
+                self.report["treatment"]["counts"] = filtered_counts
             for res in results:
                 summary[res["col"]] = {"outliers_detected": res["n_outliers"]}
                 charts.append(res["chart"])
@@ -635,20 +676,41 @@ class OutlierDetector(BaseEstimator, TransformerMixin, PerfMixin):
             self.clipped_counts_ = clipped_counts
             self.report["treatment"] = {"mode": "detect_only"}
         elif force_winsorize or self.cap_outliers is True:
+            clipped_counts = {col: 0 for col in self.numeric_cols}
+
+            # Precompute p1 and p99 for each column once
+            percentile_bounds = {}
             for col in self.numeric_cols:
                 arr = self.df[col].dropna().values
                 if arr.size == 0:
                     continue
                 p1, p99 = np.percentile(arr, [self.PCTL_LOW, self.PCTL_HIGH])
-                df_clean[col] = df_clean[col].clip(lower=p1, upper=p99)
-                clipped_counts[col] = int(
-                    (df_clean[col] < p1).sum() + (df_clean[col] > p99).sum()
-                )
+                percentile_bounds[col] = (p1, p99)
+
+            # Apply winsorization only to detected real outlier indices
+            for idx in self.report.get("real_outliers", {}).get("indices", []):
+                if idx >= len(df_clean):
+                    continue  # skip invalid index
+                for col in self.numeric_cols:
+                    p1, p99 = percentile_bounds.get(col, (None, None))
+                    if p1 is None:
+                        continue
+                    val = df_clean.at[idx, col]
+                    # Apply capping only if the value is outside bounds
+                    if val < p1:
+                        df_clean.at[idx, col] = p1
+                        clipped_counts[col] += 1
+                    elif val > p99:
+                        df_clean.at[idx, col] = p99
+                        clipped_counts[col] += 1
 
             self.train_clean_ = df_clean.copy()
             self.clipped_counts_ = clipped_counts
             self.report["treatment"] = {
-                "mode": "winsorize", "counts": clipped_counts}
+                "mode": "winsorize",
+                "counts": clipped_counts,
+            }
+
         else:
             df_clean.drop(index=real, inplace=True)
             df_clean.reset_index(drop=True, inplace=True)

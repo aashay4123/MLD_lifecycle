@@ -91,10 +91,10 @@ class AutoDR(BaseEstimator, TransformerMixin):
             return "NaNs present"
         if n_feats < 2:
             return "fewer than two numeric features"
-        if n_samples < self.MIN_SAMPLES_PER_FEATURE * n_feats:
-            return f"too few samples ({n_samples}) for {n_feats} features"
-        if cond(np.cov(X, rowvar=False)) > self.COND_THRESH:
-            return "ill-conditioned covariance matrix"
+        # if n_samples < self.MIN_SAMPLES_PER_FEATURE * n_feats:
+        #     return f"too few samples ({n_samples}) for {n_feats} features"
+        # if cond(np.cov(X, rowvar=False)) > self.COND_THRESH:
+        #     return "ill-conditioned covariance matrix"
         return None
 
     # ════════════════════════════════════════════════════════════════════
@@ -124,7 +124,8 @@ class AutoDR(BaseEstimator, TransformerMixin):
         full = IncrementalPCA(random_state=self.random_state).fit(Xs)
         cum = np.cumsum(full.explained_variance_ratio_)
         n_comp = int(np.searchsorted(cum, self.variance_threshold) + 1)
-        model = IncrementalPCA(n_components=n_comp, random_state=self.random_state)
+        model = IncrementalPCA(n_components=n_comp,
+                               random_state=self.random_state)
         Xr = model.fit_transform(Xs)
         info = {
             "type": "IncrementalPCA",
@@ -144,7 +145,8 @@ class AutoDR(BaseEstimator, TransformerMixin):
         )
         cum = np.cumsum(full.explained_variance_ratio_)
         n_comp = int(np.searchsorted(cum, self.variance_threshold) + 1)
-        model = TruncatedSVD(n_components=n_comp, random_state=self.random_state)
+        model = TruncatedSVD(n_components=n_comp,
+                             random_state=self.random_state)
         Xr = model.fit_transform(Xs)
         info = {
             "type": "TruncatedSVD",
@@ -165,7 +167,8 @@ class AutoDR(BaseEstimator, TransformerMixin):
             n_components=min(10, X.shape[1]),
         )
         Xr = model.fit_transform(X)  # KernelPCA expects raw, not scaled
-        info = {"type": "KernelPCA", "params": {"kernel": "rbf", "gamma": gamma}}
+        info = {"type": "KernelPCA", "params": {
+            "kernel": "rbf", "gamma": gamma}}
         self.models["KernelPCA"] = (None, model)
         return Xr, info
 
@@ -275,7 +278,8 @@ class AutoDR(BaseEstimator, TransformerMixin):
     # main API
     def fit(self, df: pd.DataFrame, y: Optional[pd.Series] = None):
         df = df.copy()
-        self.numeric_cols = df.select_dtypes(include=np.number).columns.tolist()
+        self.numeric_cols = df.select_dtypes(
+            include=np.number).columns.tolist()
         if self.target and self.target in self.numeric_cols:
             self.numeric_cols.remove(self.target)
 
@@ -386,12 +390,14 @@ class AutoDR(BaseEstimator, TransformerMixin):
         W = nmf.fit_transform(X)
         H = nmf.components_
         err = float(np.linalg.norm(X - W @ H, ord="fro"))
-        info = {"type": "NMF", "n_components": n_comp, "reconstruction_error": err}
+        info = {"type": "NMF", "n_components": n_comp,
+                "reconstruction_error": err}
         self.models["NMF"] = (None, nmf)
         return W, info
 
     def _apply_random_proj(self, X: np.ndarray) -> Tuple[np.ndarray, Dict]:
-        n_comp = min(X.shape[1], max(2, int(self.variance_threshold * X.shape[1])))
+        n_comp = min(X.shape[1], max(
+            2, int(self.variance_threshold * X.shape[1])))
         rp = GaussianRandomProjection(
             n_components=n_comp, random_state=self.random_state
         )
@@ -406,7 +412,8 @@ class AutoDR(BaseEstimator, TransformerMixin):
         task = self._detect_task(df)
         if task == "classification":
             est, scoring = (
-                LogisticRegression(solver="liblinear", random_state=self.random_state),
+                LogisticRegression(solver="liblinear",
+                                   random_state=self.random_state),
                 "accuracy",
             )
         else:
@@ -437,7 +444,8 @@ class AutoDR(BaseEstimator, TransformerMixin):
         task = self._detect_task(df)
         if task == "classification":
             est, scoring = (
-                LogisticRegression(solver="liblinear", random_state=self.random_state),
+                LogisticRegression(solver="liblinear",
+                                   random_state=self.random_state),
                 "accuracy",
             )
         else:

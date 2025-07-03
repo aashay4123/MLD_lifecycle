@@ -20,8 +20,8 @@ os.environ["MLFLOW_TRACKING_URI"] = "http://localhost:7000"
 print(mlflow.get_tracking_uri())
 
 
-# @pipeline(enable_cache=False)
-@pipeline()
+# @pipeline()
+@pipeline(enable_cache=False)
 def Pipeline():
     # ────────────── Step 1: Data Loader ──────────────
     data_df = dataLoader(global_conf.CSV_PATH, "Breast Cancer")

@@ -1,6 +1,6 @@
 from zenml.steps import step, Output
 from zenml.pipelines import pipeline
-from zenml.integrations.mlflow.mlflow_step_decorator import enable_mlflow
+from zenml.integrations.mlflow.steps import enable_mlflow
 from typing import List, Tuple, Dict, Any
 import pandas as pd
 import mlflow

@@ -57,10 +57,6 @@ class LeakageDetector(BaseEstimator, TransformerMixin):
         self.leakage_report_: Dict[str, Union[Dict, List]] = {}
         self._fitted = False
 
-    def _log(self, msg: str):
-        if self.verbose:
-            print(msg)
-
     def _is_classification_target(self, y: pd.Series) -> bool:
         return not pd.api.types.is_numeric_dtype(y.dtype) or y.nunique() <= 2
 
@@ -96,39 +92,35 @@ class LeakageDetector(BaseEstimator, TransformerMixin):
                     continue
                 if abs(corr) >= self.corr_threshold:
                     corr_leaks[col] = float(corr)
-                    self._log(
-                        f"[LeakageDetector] ⚠ Numeric feature '{col}' has |corr|={abs(corr):.3f} ≥ {self.corr_threshold}"
-                    )
         else:
             # classification target
             for col in numeric_cols + categorical_cols:
                 series = X[col]
                 temp = pd.DataFrame({"feature": series, "target": y})
-                # If numeric with many unique, bin into up to 10 quantiles to check “constant‐target” bins:
-                if col in numeric_cols and series.nunique() > 10:
-                    try:
-                        temp["bin"] = pd.qcut(
-                            temp["feature"],
-                            q=min(10, len(temp["feature"])),
-                            duplicates="drop",
-                        )
-                        groups = temp.groupby("bin")["target"]
-                    except Exception:
-                        groups = temp.groupby("feature")["target"]
-                else:
+                total_rows = len(temp)
+                min_bin_size = 30  # Adjust as needed
+
+                n_bins = max(2, min(10, len(temp) // min_bin_size))
+
+                try:
+                    temp["bin"] = pd.qcut(
+                        temp["feature"], q=n_bins, duplicates="drop")
+                    groups = temp.groupby("bin")["target"]
+                except Exception:
                     groups = temp.groupby("feature")["target"]
 
                 bad_vals = []
                 for val, grp in groups:
-                    if len(grp) < 10:  # ignore bins/groups with <10 samples
+                    if len(grp) < min_bin_size:
                         continue
-                    if grp.nunique(dropna=False) == 1:
+                    frac = len(grp) / total_rows
+                    if grp.nunique(dropna=False) == 1 and frac >= 0.01:
                         bad_vals.append(val)
-                if bad_vals:
+
+                n_flagged_rows = sum(len(groups.get_group(b))
+                                     for b in bad_vals)
+                if len(bad_vals) >= 2 and n_flagged_rows / total_rows >= 0.1:
                     constant_group_leaks[col] = bad_vals
-                    self._log(
-                        f"[LeakageDetector] ⚠ Categorical/numeric feature '{col}' has constant‐target group(s): {bad_vals}"
-                    )
 
         self.leakage_report_["corr_or_constant_group"] = {
             "high_corr_numeric": corr_leaks,
@@ -186,9 +178,7 @@ class LeakageDetector(BaseEstimator, TransformerMixin):
 
                 if max_auc >= self.auc_threshold:
                     leaky_feats.append(col)
-                    self._log(
-                        f"[LeakageDetector] ⚠ Feature '{col}' has AUC→target={max_auc:.3f} ≥ {self.auc_threshold}"
-                    )
+
             except Exception:
                 continue
 
@@ -250,9 +240,7 @@ class LeakageDetector(BaseEstimator, TransformerMixin):
 
                 if max_auc >= self.auc_threshold:
                     sep_feats.append(col)
-                    self._log(
-                        f"[LeakageDetector] ⚠ Feature '{col}' separates train/test (AUC={max_auc:.3f} ≥ {self.auc_threshold})"
-                    )
+
             except Exception:
                 continue
 
@@ -279,9 +267,6 @@ class LeakageDetector(BaseEstimator, TransformerMixin):
             diff = test_vals - train_vals
             if diff:
                 unseen[col] = list(diff)
-                self._log(
-                    f"[LeakageDetector] ℹ Categorical '{col}' has unseen levels in test: {list(diff)}"
-                )
 
         self.leakage_report_["unseen_test_categories"] = unseen
 

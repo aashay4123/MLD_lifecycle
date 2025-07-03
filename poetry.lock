@@ -371,6 +371,53 @@ files = [
 ]
 
 [[package]]
+name = "catboost"
+version = "1.2.8"
+description = "CatBoost Python Package"
+optional = false
+python-versions = "*"
+groups = ["main"]
+files = [
+    {file = "catboost-1.2.8-cp310-cp310-macosx_11_0_universal2.whl", hash = "sha256:8409c8a2e547469070d73681aa615b5e0b0d78367203d201b2f2b25c33cdcbad"},
+    {file = "catboost-1.2.8-cp310-cp310-manylinux2014_aarch64.whl", hash = "sha256:063020755d21de4f5434663a9b1d7cc1507c5b9254e2e8cd9cce9cd3b9ba4bbe"},
+    {file = "catboost-1.2.8-cp310-cp310-manylinux2014_x86_64.whl", hash = "sha256:5ac7c03a619d8eb86d70ec5748c1c9f09d4085033e3a760bf2f7c2892513c8a8"},
+    {file = "catboost-1.2.8-cp310-cp310-win_amd64.whl", hash = "sha256:b661840dc65e6ab4e62484dbf1556fed7736bb9196c6b5a3abb003cea39f0f91"},
+    {file = "catboost-1.2.8-cp311-cp311-macosx_11_0_universal2.whl", hash = "sha256:29526147f37aa356b94bd06513cf36ebcd5a83a9186cee25a8223b104c016b9b"},
+    {file = "catboost-1.2.8-cp311-cp311-manylinux2014_aarch64.whl", hash = "sha256:af140777a4062aabb4aed6731aee0737c6137dcdd5f7354b5d3b11033c1586ae"},
+    {file = "catboost-1.2.8-cp311-cp311-manylinux2014_x86_64.whl", hash = "sha256:810e00c9b570d449ebb2406183b9e1f8b8ce275b4eedeba750b24f088932264b"},
+    {file = "catboost-1.2.8-cp311-cp311-win_amd64.whl", hash = "sha256:8985dd217fe79161b05ed251c5f8a18130e2330d5c77559ac91b99b0cf781e6b"},
+    {file = "catboost-1.2.8-cp312-cp312-macosx_11_0_universal2.whl", hash = "sha256:29f93b4a89ef807e74c16882623c89f1fb781346e1f4fafb29b6949ab4603e14"},
+    {file = "catboost-1.2.8-cp312-cp312-manylinux2014_aarch64.whl", hash = "sha256:932542f8b416b43ee07f912a9a964635ccca7397da16b61475c76ae4ae96a1df"},
+    {file = "catboost-1.2.8-cp312-cp312-manylinux2014_x86_64.whl", hash = "sha256:35a70d32809a21d06dc0ba161bafdd0450ea71fe176a12ee85d7535883b22624"},
+    {file = "catboost-1.2.8-cp312-cp312-win_amd64.whl", hash = "sha256:319086796084fee5e4254300dc81aad1ae0b201cb576a9e87e6c7d030483be7e"},
+    {file = "catboost-1.2.8-cp313-cp313-macosx_11_0_universal2.whl", hash = "sha256:777987e1483824f93b9cb904860ef46dfb3cd184f879e47413bc7163b9514830"},
+    {file = "catboost-1.2.8-cp313-cp313-manylinux2014_aarch64.whl", hash = "sha256:a72681c50cbfe2fa4a6f85934bc707e0f7ff50a10a51801317418adf09d57cef"},
+    {file = "catboost-1.2.8-cp313-cp313-manylinux2014_x86_64.whl", hash = "sha256:8d2b58781c7ff2f974bde857da0d10d867366979193a4e7052746330a8b76b55"},
+    {file = "catboost-1.2.8-cp313-cp313-win_amd64.whl", hash = "sha256:9c04ab1df71501d75cad80757f33d60bab2704b2450401d2c8cf3f3bcb6bd9f8"},
+    {file = "catboost-1.2.8-cp38-cp38-macosx_11_0_universal2.whl", hash = "sha256:54677216e1fef3abfafd62b6dcb9dd151a31cb77b28bc399cff9386287d064cb"},
+    {file = "catboost-1.2.8-cp38-cp38-manylinux2014_aarch64.whl", hash = "sha256:0cc4b735c641011f4c4a10c8113619fe2407866ee33b0d37fd53d9f52fab6cff"},
+    {file = "catboost-1.2.8-cp38-cp38-manylinux2014_x86_64.whl", hash = "sha256:c27ed511bbcd78256cbe7de94ba7f2141d8fc3f95e6fa8f66c190f03f80fdac5"},
+    {file = "catboost-1.2.8-cp38-cp38-win_amd64.whl", hash = "sha256:b639da2386c364e2db52f11ade3335fbde11e139ba79bb47a34cb320d236c95b"},
+    {file = "catboost-1.2.8-cp39-cp39-macosx_11_0_universal2.whl", hash = "sha256:f486ae782a8a91b94e697f75270f5d6da53ab35ee55730a8787643d6be6dd8ef"},
+    {file = "catboost-1.2.8-cp39-cp39-manylinux2014_aarch64.whl", hash = "sha256:910d2596f114a073cb33a145f6114ffb5455b07581a29ec49f67d148cce52999"},
+    {file = "catboost-1.2.8-cp39-cp39-manylinux2014_x86_64.whl", hash = "sha256:9950130cac0a2a9c806386eb98c996d62bdedd638453082bb21a50bf11bf5e27"},
+    {file = "catboost-1.2.8-cp39-cp39-win_amd64.whl", hash = "sha256:a2b59f01c9b1631b8be03637bb7d48a4b1ef657c5d797ad0a9eba40e2be7c4cd"},
+    {file = "catboost-1.2.8.tar.gz", hash = "sha256:4a1d1aca5caecd919ec476f72c7abd98a704c24fda35506d4d7d71f77f07cb29"},
+]
+
+[package.dependencies]
+graphviz = "*"
+matplotlib = "*"
+numpy = ">=1.16.0,<3.0"
+pandas = ">=0.24"
+plotly = "*"
+scipy = "*"
+six = "*"
+
+[package.extras]
+widget = ["ipython", "ipywidgets (>=7.0,<9.0)", "traitlets"]
+
+[[package]]
 name = "certifi"
 version = "2025.6.15"
 description = "Python package for providing Mozilla's CA Bundle."
@@ -604,6 +651,24 @@ files = [
     {file = "colorama-0.4.6.tar.gz", hash = "sha256:08695f5cb7ed6e0531a20572697297273c47b8cae5a63ffc6d6ed5c201be6e44"},
 ]
 markers = {main = "platform_system == \"Windows\" or sys_platform == \"win32\"", dev = "sys_platform == \"win32\""}
+
+[[package]]
+name = "colorlog"
+version = "6.9.0"
+description = "Add colours to the output of Python's logging module."
+optional = false
+python-versions = ">=3.6"
+groups = ["main"]
+files = [
+    {file = "colorlog-6.9.0-py3-none-any.whl", hash = "sha256:5906e71acd67cb07a71e779c47c4bcb45fb8c2993eebe9e5adcd6a6f1b283eff"},
+    {file = "colorlog-6.9.0.tar.gz", hash = "sha256:bfba54a1b93b94f54e1f4fe48395725a3d92fd2a4af702f6bd70946bdc0c6ac2"},
+]
+
+[package.dependencies]
+colorama = {version = "*", markers = "sys_platform == \"win32\""}
+
+[package.extras]
+development = ["black", "flake8", "mypy", "pytest", "types-colorama"]
 
 [[package]]
 name = "comm"
@@ -1334,6 +1399,23 @@ requests-oauthlib = ">=0.7.0"
 
 [package.extras]
 tool = ["click (>=6.0.0)"]
+
+[[package]]
+name = "graphviz"
+version = "0.21"
+description = "Simple Python interface for Graphviz"
+optional = false
+python-versions = ">=3.9"
+groups = ["main"]
+files = [
+    {file = "graphviz-0.21-py3-none-any.whl", hash = "sha256:54f33de9f4f911d7e84e4191749cac8cc5653f815b06738c54db9a15ab8b1e42"},
+    {file = "graphviz-0.21.tar.gz", hash = "sha256:20743e7183be82aaaa8ad6c93f8893c923bd6658a04c32ee115edb3c8a835f78"},
+]
+
+[package.extras]
+dev = ["Flake8-pyproject", "build", "flake8", "pep8-naming", "tox (>=3)", "twine", "wheel"]
+docs = ["sphinx (>=5,<7)", "sphinx-autodoc-typehints", "sphinx-rtd-theme (>=0.2.5)"]
+test = ["coverage", "pytest (>=7,<8.1)", "pytest-cov", "pytest-mock (>=3)"]
 
 [[package]]
 name = "greenlet"
@@ -2458,6 +2540,34 @@ files = [
 rsa = ["cryptography (>=3.0.0)"]
 signals = ["blinker (>=1.4.0)"]
 signedtoken = ["cryptography (>=3.0.0)", "pyjwt (>=2.0.0,<3)"]
+
+[[package]]
+name = "optuna"
+version = "4.4.0"
+description = "A hyperparameter optimization framework"
+optional = false
+python-versions = ">=3.8"
+groups = ["main"]
+files = [
+    {file = "optuna-4.4.0-py3-none-any.whl", hash = "sha256:fad8d9c5d5af993ae1280d6ce140aecc031c514a44c3b639d8c8658a8b7920ea"},
+    {file = "optuna-4.4.0.tar.gz", hash = "sha256:a9029f6a92a1d6c8494a94e45abd8057823b535c2570819072dbcdc06f1c1da4"},
+]
+
+[package.dependencies]
+alembic = ">=1.5.0"
+colorlog = "*"
+numpy = "*"
+packaging = ">=20.0"
+PyYAML = "*"
+sqlalchemy = ">=1.4.2"
+tqdm = "*"
+
+[package.extras]
+benchmark = ["asv (>=0.5.0)", "cma", "virtualenv"]
+checking = ["black", "blackdoc", "flake8", "isort", "mypy", "mypy_boto3_s3", "types-PyYAML", "types-redis", "types-setuptools", "types-tqdm", "typing_extensions (>=3.10.0.0)"]
+document = ["ase", "cmaes (>=0.10.0)", "fvcore", "kaleido (<0.4)", "lightgbm", "matplotlib (!=3.6.0)", "pandas", "pillow", "plotly (>=4.9.0)", "scikit-learn", "sphinx", "sphinx-copybutton", "sphinx-gallery", "sphinx-notfound-page", "sphinx_rtd_theme (>=1.2.0)", "torch", "torchvision"]
+optional = ["boto3", "cmaes (>=0.10.0)", "google-cloud-storage", "grpcio", "matplotlib (!=3.6.0)", "pandas", "plotly (>=4.9.0)", "protobuf (>=5.28.1)", "redis", "scikit-learn (>=0.24.2)", "scipy", "torch ; python_version <= \"3.12\""]
+test = ["coverage", "fakeredis[lua]", "grpcio", "kaleido (<0.4)", "moto", "protobuf (>=5.28.1)", "pytest", "scipy (>=1.9.2)", "torch ; python_version <= \"3.12\""]
 
 [[package]]
 name = "orjson"
@@ -5062,4 +5172,4 @@ vertex = ["google-cloud-aiplatform (>=1.34.0)", "google-cloud-pipeline-component
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11,<3.12"
-content-hash = "73b72dbdeec5ee9b95aef3f200e8bfb8ceb758822e7b12206afa0d3fb75d5f3e"
+content-hash = "33ba2461e07d9e3439de2d1fdec07434a5dcb25331f4d430c4161ef67a013b8f"

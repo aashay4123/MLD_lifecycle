@@ -2,7 +2,8 @@
 
 from zenml.pipelines import pipeline
 from zenml.steps import step, Output
-from zenml.integrations.mlflow.mlflow_step_decorator import enable_mlflow
+from zenml.integrations.mlflow.steps import enable_mlflow
+
 
 import pandas as pd
 import mlflow
@@ -32,9 +33,11 @@ def load_transform_artifacts() -> (
     Output(imputer=Any, transformer=Any, encoder=Any, model=Any)
 ):
     imputer = mlflow.sklearn.load_model("artifacts:/imputer_model/production")
-    transformer = mlflow.sklearn.load_model("artifacts:/scaler_model/production")
+    transformer = mlflow.sklearn.load_model(
+        "artifacts:/scaler_model/production")
     encoder = mlflow.sklearn.load_model("artifacts:/encoder_model/production")
-    baseline_model = mlflow.sklearn.load_model("artifacts:/baseline_model/production")
+    baseline_model = mlflow.sklearn.load_model(
+        "artifacts:/baseline_model/production")
     # model = mlflow.sklearn.load_model("models:/best_model/production")
     return imputer, transformer, encoder, baseline_model
 
