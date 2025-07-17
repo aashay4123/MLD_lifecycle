@@ -7,7 +7,7 @@ RAW_PARQUET_PATH = "Data/raw"
 SPLIT_PARQUET_PATH = "Data/split"
 
 
-INJESTION_LOGS_PATH = "reports/logs/ingest.log"
+LOGS_PATH = "reports/logs"
 HEALTH_CHECK_REPORT_PATH = "reports/health_report"
 EPDA_REPORT_PATH = "reports/epda"
 BASELINE_REPORT_PATH = "reports/baseline_report"

@@ -4,9 +4,9 @@ from zenml.integrations.mlflow.steps import enable_mlflow
 import pandas as pd
 import mlflow
 from configs import global_conf
-from src.Stage_8_HP_tuning.tuner import OptunaHyperTuner
-from src.Stage_8_HP_tuning.ensembler import OptunaEnsembler
-from src.Stage_8_HP_tuning.reporter import OptunaReporter
+from src.Stage_8_HP_tuning.Optuna_tuning import OptunaHyperTuner
+from src.Stage_8_HP_tuning.optuna_tuning_ensemble import OptunaEnsembler
+from src.Stage_8_HP_tuning.Optuna_reporter import OptunaReporter
 from src.utils import monitor
 
 from sklearn.linear_model import LogisticRegression, LinearRegression

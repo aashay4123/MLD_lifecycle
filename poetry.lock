@@ -1015,6 +1015,48 @@ files = [
 ]
 
 [[package]]
+name = "diptest"
+version = "0.9.0"
+description = "Hartigan's diptest."
+optional = false
+python-versions = ">=3.8"
+groups = ["main"]
+files = [
+    {file = "diptest-0.9.0-cp310-cp310-macosx_12_0_arm64.whl", hash = "sha256:b7cc0210f3aa13e83688893d47e3b4fe1955018b6c45181b47b529166a0824bd"},
+    {file = "diptest-0.9.0-cp310-cp310-macosx_12_0_x86_64.whl", hash = "sha256:616ab2b4074093ab8ca4f7ed9705b7d6bd250f0b4116290ed7edc91bab5d01f2"},
+    {file = "diptest-0.9.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:72f3a5c498d3cf5681e5d9e358baec3aa20fe3215c223875e8fef899d095766f"},
+    {file = "diptest-0.9.0-cp310-cp310-win_amd64.whl", hash = "sha256:9c84a0cb82395e4759121027710459dd2970a030f0282787217794afb5b75219"},
+    {file = "diptest-0.9.0-cp311-cp311-macosx_12_0_arm64.whl", hash = "sha256:3014a09aa5ef55bbe5c3654050f54ac055a24796b8dd0835f008650b1c5f21d7"},
+    {file = "diptest-0.9.0-cp311-cp311-macosx_12_0_x86_64.whl", hash = "sha256:451a0e0f84cf2448ce06759265c8d1119bc29288dd8a7d69bcdf9d7694e41269"},
+    {file = "diptest-0.9.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:068d6a12b4052db9848b49a6f8ae6dfbfa5d3aa8ae99338fc47a56e217305560"},
+    {file = "diptest-0.9.0-cp311-cp311-win_amd64.whl", hash = "sha256:2955437f763debc50ac3d5cbeea008ba197097b59f882c6d886ec35be3e31346"},
+    {file = "diptest-0.9.0-cp312-cp312-macosx_12_0_arm64.whl", hash = "sha256:34e0e1a5b70592b8044bfbb81e8c7f5d05c05f2d202ab4d846a13885d972800d"},
+    {file = "diptest-0.9.0-cp312-cp312-macosx_12_0_x86_64.whl", hash = "sha256:c1b7835eb49c6118861060616aa264381f5de9bebeab2aec54cf4ce51568295d"},
+    {file = "diptest-0.9.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:c0575202fbd85f146e44e646edbb1582550f9c20aa2cc7b6134232058ff2a5ca"},
+    {file = "diptest-0.9.0-cp312-cp312-win_amd64.whl", hash = "sha256:d6dacd4f7b35c9fd8f608ed1db2c14db4d6f0bc4bbd2d1deb453221a092cd98f"},
+    {file = "diptest-0.9.0-cp313-cp313-macosx_12_0_arm64.whl", hash = "sha256:bd2bc443ef058cd8ee13d8f1c9bef9354248c69ab776d2fb12d43016b368e76e"},
+    {file = "diptest-0.9.0-cp313-cp313-macosx_12_0_x86_64.whl", hash = "sha256:e3aa647c90750c887ce0401387698838fcf7d51bc598c5d49f6c175eb3e59c4f"},
+    {file = "diptest-0.9.0-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:5730a70c0724ef9284b676b126b0526f437089711af6942eba57cf3e6c902714"},
+    {file = "diptest-0.9.0-cp313-cp313-win_amd64.whl", hash = "sha256:371bc308ad530fd32d1b4a204a273f8571d43c78ad00273a94818c1897729416"},
+    {file = "diptest-0.9.0-cp38-cp38-macosx_12_0_arm64.whl", hash = "sha256:cde592b78b7ed2b7e17475ae864bbde3f89c36c22e1f0c822daa14d8e8f4baf3"},
+    {file = "diptest-0.9.0-cp38-cp38-macosx_12_0_x86_64.whl", hash = "sha256:5194868497401348f2d4671c8d321da1cfbe1e5dceab029d9b8cc906c73098b2"},
+    {file = "diptest-0.9.0-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:04e015b94b45772b204e547d9b6de28be25b2a7e53b33b9a0b4f514ca454abb2"},
+    {file = "diptest-0.9.0-cp38-cp38-win_amd64.whl", hash = "sha256:8b1bbff8dc5f8cbd00404a6b23e8162236705502c59ec3e32a84ec11151208a1"},
+    {file = "diptest-0.9.0-cp39-cp39-macosx_12_0_arm64.whl", hash = "sha256:87d9638e1232e013959bcfdfbf9f514f0af6731b32286112cfe671bbf6662308"},
+    {file = "diptest-0.9.0-cp39-cp39-macosx_12_0_x86_64.whl", hash = "sha256:f75310194ec53de4fb0bc7cbef8332db3d96464081fdf6a08cd6f6ead9d9f962"},
+    {file = "diptest-0.9.0-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:8f1249cf9e7c2ef45a4378cce947c40169d812e0bdd58f0419166d87ccf35267"},
+    {file = "diptest-0.9.0-cp39-cp39-win_amd64.whl", hash = "sha256:9ee14da5e89d6a36d585c9ca0d3b90a5358b5d44f4af4ffdd4d527a3f0d8bb20"},
+    {file = "diptest-0.9.0.tar.gz", hash = "sha256:7fd8aa1b320287c49e3c5ed316af49ddf9787777d31903067d741c6cad17b810"},
+]
+
+[package.dependencies]
+numpy = ">=1.18"
+psutil = "*"
+
+[package.extras]
+test = ["pytest"]
+
+[[package]]
 name = "distro"
 version = "1.9.0"
 description = "Distro - an OS platform information API"
@@ -5172,4 +5214,4 @@ vertex = ["google-cloud-aiplatform (>=1.34.0)", "google-cloud-pipeline-component
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11,<3.12"
-content-hash = "33ba2461e07d9e3439de2d1fdec07434a5dcb25331f4d430c4161ef67a013b8f"
+content-hash = "5303fd8d1bbd1ea58bda61624d83b7ab5739b19b07dcd89c0c08847a8476db35"

@@ -37,6 +37,7 @@ dabl = "^0.3.2"
 scipy = "1.11.3"
 optuna = "^4.4.0"
 catboost = "^1.2.8"
+diptest = "^0.9.0"
 
 
 [tool.poetry.scripts]

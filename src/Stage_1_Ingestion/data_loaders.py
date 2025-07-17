@@ -10,6 +10,8 @@ from .DataHealthCheck import DataHealthCheck
 from configs import global_conf
 from src.utils.monitor import monitor
 import numpy as np
+from pathlib import Path
+
 
 DATASET_TARGET_COLUMN_NAME = "label"
 
@@ -31,7 +33,8 @@ def convert_numpy_types(obj):
 @monitor(name="dataCheck_step", track_memory=True, track_input_size=True)
 def dataCheck(df: pd.DataFrame) -> pd.DataFrame:
     if df is None or df.empty:
-        raise ValueError("DataFrame is None or empty. Cannot perform health check.")
+        raise ValueError(
+            "DataFrame is None or empty. Cannot perform health check.")
     if DATASET_TARGET_COLUMN_NAME not in df.columns:
         raise ValueError(
             f"Target column '{DATASET_TARGET_COLUMN_NAME}' not found in DataFrame."
@@ -42,7 +45,8 @@ def dataCheck(df: pd.DataFrame) -> pd.DataFrame:
 
     results = health_check.get_results()
     safe_results = convert_numpy_types(results)
-    report_path = os.path.join("reports", "health_report", "data_health_report.json")
+    report_path = Path(
+        f"{global_conf.HEALTH_CHECK_REPORT_PATH}/data_health_report.json")
     os.makedirs(os.path.dirname(report_path), exist_ok=True)
     with open(report_path, "w") as f:
         json.dump(safe_results, f, indent=2)
@@ -66,7 +70,8 @@ def dataLoader(file: str = None, project: str = "Default") -> pd.DataFrame:
                 f"File '{file}' does not exist. Please provide a valid file path."
             )
     if not os.path.exists(file):
-        raise ValueError(f"File '{file}' does not exist. Please check the file path.")
+        raise ValueError(
+            f"File '{file}' does not exist. Please check the file path.")
 
     dataCollector = DataCollector(suite_name=project)
     df = dataCollector.read_file(file)

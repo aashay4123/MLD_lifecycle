@@ -23,7 +23,7 @@ except ImportError:
     mlflow = None
 
 logging.basicConfig(
-    filename="pipeline_monitor.log",
+    filename=f"{global_conf.LOGS_PATH}/pipeline_monitor.log",
     filemode="a",
     level=logging.INFO,
     format="%(asctime)s | %(levelname)s | %(message)s",
