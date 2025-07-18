@@ -89,3 +89,27 @@ def outlier_detector(
         mlflow.log_artifact(report_path)
 
     return train_clean, test_clean, val_clean
+
+
+@monitor
+@step(enable_cache=False)
+def categorical_encoding_step(
+    df: pd.DataFrame,
+    y: Optional[pd.Series] = None,
+    onehot_frac: float = 0.05,
+    ordinal_frac: float = 0.20,
+    freq_frac: float = 0.50,
+    output_dir: Path = Path("reports/auto_categorical"),
+    n_jobs: int = -1,
+    output_format: str = "parquet"
+) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    cfg = EncodingConfig(
+        onehot_frac=onehot_frac,
+        ordinal_frac=ordinal_frac,
+        freq_frac=freq_frac,
+        n_jobs=n_jobs,
+        output_format=output_format,
+        output_dir=output_dir
+    )
+    encoder = AutoCategoricalEncoder(cfg)
+    return encoder.fit_transform(df, y)
