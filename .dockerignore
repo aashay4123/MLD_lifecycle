@@ -1,5 +1,77 @@
+# 🔒 Virtual environments
 .venv*
-.github/**
-.scripts/**
-.stacks/**
+env/
+ENV/
+.conda/
+
+# 🔒 Git & GitHub metadata
+.git
+.gitignore
+.github/
+.gitattributes
+
+# 🚫 Editor & system files
+*.swp
+*.swo
+*.DS_Store
+.idea/
+.vscode/
+
+# ⛔️ CI/CD and temp
+.tox/
+.coverage
+.pytest_cache/
+.mypy_cache/
+__pycache__/
+*.log
+*.pid
+
+# 📦 Build/output
+build/
+dist/
+*.egg-info/
+*.egg
+.eggs/
+
+# 🚫 Project scaffolding/scripts/stacks
+.scripts/
+.stacks/
 .requirements*
+Makefile
+
+# 📁 Datasets and artifacts
+*.csv
+*.parquet
+*.pkl
+*.pickle
+*.json
+*.db
+*.zip
+*.h5
+*.npy
+
+# 🔂 ZenML, MLflow, Optuna
+.zen/
+.mlruns/
+optuna_report/
+logs/
+reports/
+health_report/
+data/
+Data/
+mldata/
+mlArtifacts/
+models/
+eda_output/
+
+# 🔍 Notebooks & output
+notebooks/
+*.ipynb
+.ipynb_checkpoints/
+outputs/
+__results__/
+
+# ⛔️ Docker
+docker-compose.override.yml
+Dockerfile.dev
+dev.Dockerfile

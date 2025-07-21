@@ -1,0 +1,56 @@
+# ───────────────────────────────────────────────
+# 📦 Base image with Python and build tools
+# ───────────────────────────────────────────────
+FROM python:3.11-slim
+
+# ───────────────────────────────────────────────
+# 🧱 System-level dependencies
+# ───────────────────────────────────────────────
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential curl git unzip nano libpq-dev gcc libgl1 \
+    && rm -rf /var/lib/apt/lists/*
+
+# ───────────────────────────────────────────────
+# 🧹 Environment Setup
+# ───────────────────────────────────────────────
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    POETRY_HOME="/opt/poetry"
+
+# ───────────────────────────────────────────────
+# 🛠️ Install Poetry
+# ───────────────────────────────────────────────
+RUN curl -sSL https://install.python-poetry.org | python3 -
+
+ENV PATH="$POETRY_HOME/bin:$PATH"
+
+# ───────────────────────────────────────────────
+# 🔁 Create working directory
+# ───────────────────────────────────────────────
+WORKDIR /app
+
+# ───────────────────────────────────────────────
+# 📋 Copy pyproject + poetry.lock
+# ───────────────────────────────────────────────
+COPY pyproject.toml poetry.lock* ./
+
+# ───────────────────────────────────────────────
+# 📦 Install Python deps via Poetry
+# ───────────────────────────────────────────────
+RUN poetry config virtualenvs.create false \
+ && poetry install --no-interaction --no-ansi
+
+# ───────────────────────────────────────────────
+# 💾 Copy source code last (for hot reload)
+# ───────────────────────────────────────────────
+COPY . .
+
+# ───────────────────────────────────────────────
+# 🔌 Default dev port
+# ───────────────────────────────────────────────
+EXPOSE 8501 8000 7000 9000
+
+# ───────────────────────────────────────────────
+# 🧪 Set entrypoint to bash (you override in compose)
+# ───────────────────────────────────────────────
+CMD [ "bash" ]
