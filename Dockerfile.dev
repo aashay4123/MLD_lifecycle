@@ -1,56 +1,29 @@
-# ───────────────────────────────────────────────
-# 📦 Base image with Python and build tools
-# ───────────────────────────────────────────────
+
 FROM python:3.11-slim
 
-# ───────────────────────────────────────────────
-# 🧱 System-level dependencies
-# ───────────────────────────────────────────────
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential curl git unzip nano libpq-dev gcc libgl1 \
-    && rm -rf /var/lib/apt/lists/*
-
-# ───────────────────────────────────────────────
-# 🧹 Environment Setup
-# ───────────────────────────────────────────────
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    POETRY_HOME="/opt/poetry"
-
-# ───────────────────────────────────────────────
-# 🛠️ Install Poetry
-# ───────────────────────────────────────────────
-RUN curl -sSL https://install.python-poetry.org | python3 -
-
-ENV PATH="$POETRY_HOME/bin:$PATH"
-
-# ───────────────────────────────────────────────
-# 🔁 Create working directory
-# ───────────────────────────────────────────────
+# Set working directory
 WORKDIR /app
 
-# ───────────────────────────────────────────────
-# 📋 Copy pyproject + poetry.lock
-# ───────────────────────────────────────────────
-COPY pyproject.toml poetry.lock* ./
+# System dependencies
+RUN apt-get update && apt-get install -y \
+    git curl build-essential libpq-dev && \
+    rm -rf /var/lib/apt/lists/*
 
-# ───────────────────────────────────────────────
-# 📦 Install Python deps via Poetry
-# ───────────────────────────────────────────────
-RUN poetry config virtualenvs.create false \
- && poetry install --no-interaction --no-ansi
+# Copy files
+COPY pyproject.toml poetry.lock ./
 
-# ───────────────────────────────────────────────
-# 💾 Copy source code last (for hot reload)
-# ───────────────────────────────────────────────
+# Install Poetry
+RUN pip install poetry
+
+# Install all deps (incl. dev)
+RUN poetry config virtualenvs.create false && \
+    poetry install --no-root
+
+# Copy rest of project
 COPY . .
 
-# ───────────────────────────────────────────────
-# 🔌 Default dev port
-# ───────────────────────────────────────────────
-EXPOSE 8501 8000 7000 9000
+# Expose useful ports for dev
+EXPOSE 5000 8000 8501 8080
 
-# ───────────────────────────────────────────────
-# 🧪 Set entrypoint to bash (you override in compose)
-# ───────────────────────────────────────────────
-CMD [ "bash" ]
+# Default command
+CMD ["poetry", "run", "streamlit", "run", "app/main.py"]

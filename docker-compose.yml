@@ -1,73 +1,79 @@
-# ─────────────────────────────────────────────
-# 📦 Multi-Service Docker Compose (Dev + Prod)
-# ─────────────────────────────────────────────
-
 version: "3.9"
 
 services:
-  zenml:
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile.dev
-    volumes:
-      - ..:/app
-      - zenml_volume:/app/.zen
-    ports:
-      - "9000:9000"
-    command: ["make", "devup"]
-    environment:
-      - ENV=development
-
   mlflow:
-    image: ghcr.io/mlflow/mlflow
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.${MODE:-dev}
+    container_name: mlflow_container
+    env_file:
+      - .env
     ports:
-      - "7000:5000"
+      - "${MLFLOW_PORT:-5000}:5000"
     volumes:
-      - mlruns_volume:/mlflow/mlruns
-      - ./mlflow:/mlflow
-    command: mlflow server \
-      --backend-store-uri sqlite:///mlflow.db \
-      --default-artifact-root /mlflow/mlruns \
-      --host 0.0.0.0 --port 5000
+      - ./mlruns:/app/mlruns
+      - ./data:/app/data
+      - ./artifacts:/app/artifacts
+      - ./.zen:/app/.zen
+    command: >
+      sh -c "mlflow server 
+        --backend-store-uri sqlite:///app/.zen/mlflow.db 
+        --default-artifact-root /app/mlruns 
+        --host 0.0.0.0 
+        --port 5000"
+
+  zenml:
+    image: python:3.11-slim
+    container_name: zenml_stack
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+    working_dir: /app
+    command: >
+      sh -c "pip install poetry &&
+             poetry install &&
+             poetry run zenml up"
 
   streamlit:
     build:
-      context: ..
-      dockerfile: docker/Dockerfile.dev
-    volumes:
-      - ..:/app
+      context: .
+      dockerfile: docker/Dockerfile.${MODE:-dev}
+    container_name: streamlit_ui
+    env_file:
+      - .env
     ports:
-      - "8501:8501"
-    command: streamlit run dashboard/app.py
+      - "${STREAMLIT_PORT:-8501}:8501"
+    volumes:
+      - .:/app
+    command: >
+      sh -c "streamlit run app/main.py --server.port=8501"
 
   fastapi:
     build:
-      context: ..
-      dockerfile: docker/Dockerfile.dev
-    volumes:
-      - ..:/app
+      context: .
+      dockerfile: docker/Dockerfile.${MODE:-dev}
+    container_name: fastapi_backend
+    env_file:
+      - .env
     ports:
-      - "8080:8080"
-    command: uvicorn src.main:app --host 0.0.0.0 --port 8080
+      - "${FASTAPI_PORT:-8000}:8000"
+    volumes:
+      - .:/app
+    command: >
+      sh -c "uvicorn api.main:app --host 0.0.0.0 --port 8000"
 
   optuna-dashboard:
     image: ghcr.io/optuna/optuna-dashboard
+    container_name: optuna_ui
     ports:
-      - "8088:8080"
-    volumes:
-      - ./optuna_storage:/optuna
-    command: ["optuna-dashboard", "sqlite:///optuna/optuna.db"]
+      - "${OPTUNA_PORT:-8080}:8080"
+    command: ["optuna-dashboard", "sqlite:///optuna.db"]
 
   evidently:
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile.dev
-    volumes:
-      - ..:/app
+    image: evidentlyai/evidently
+    container_name: evidently_report
     ports:
-      - "8888:8888"
-    command: python -m evidently ui
-
-volumes:
-  zenml_volume:
-  mlruns_volume:
+      - "${EVIDENTLY_PORT:-8888}:8501"
+    volumes:
+      - ./reports:/app/reports

@@ -357,3 +357,5 @@ https://khiops.org/tutorials/Notebooks/Use_in_any_ML_pipeline/
 
 https://github.com/cod3licious/autofeat/tree/main/src/autofeat
 https://github.com/automl/DeepCAVE
+https://github.com/Shriram-Vibhute/CampusX-DSMP2.0/tree/main
+https://github.com/Yash-Kavaiya/CampusX-courses/tree/main

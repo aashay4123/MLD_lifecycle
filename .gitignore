@@ -20,3 +20,5 @@ mlartifacts
 *.log
 *.db
 TODO/
+.env
+.env.*
