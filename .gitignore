@@ -1,7 +1,10 @@
 ./test.py
 .venv/
 Data/
+Data/*
 _Data/
+Datasets/
+Files/
 .zen/
 .DS_Store
 __pycache__
