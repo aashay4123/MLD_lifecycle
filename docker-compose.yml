@@ -1,0 +1,67 @@
+version: "3.8"
+
+services:
+  mlflow:
+    build: .
+    container_name: mlflow_service
+    command: poetry run mlflow server --backend-store-uri sqlite:///mlflow.db --default-artifact-root /app/mlruns --host 0.0.0.0 --port 5000
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./mlruns:/app/mlruns
+      - ./configs:/app/configs
+    environment:
+      MLFLOW_TRACKING_URI: http://localhost:5000
+
+  zenml:
+    build: .
+    container_name: zenml_dashboard
+    command: poetry run zenml up --blocking
+    ports:
+      - "9000:9000"
+    volumes:
+      - ./.zen:/root/.zen
+      - ./configs:/app/configs
+
+  fastapi:
+    build: .
+    container_name: fastapi_service
+    command: poetry run uvicorn src.deploy.main:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./src:/app/src
+      - ./configs:/app/configs
+
+  streamlit:
+    build: .
+    container_name: streamlit_ui
+    command: poetry run streamlit run src/ui/dashboard.py --server.port 8501
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./src:/app/src
+      - ./reports:/app/reports
+
+  optuna:
+    build: .
+    container_name: optuna_ui
+    command: poetry run optuna-dashboard sqlite:///optuna.db --host 0.0.0.0 --port 8080
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./optuna.db:/app/optuna.db
+
+  evidently:
+    build: .
+    container_name: evidently_reports
+    command: poetry run python src/reports/evidently_service.py
+    volumes:
+      - ./reports:/app/reports
+    depends_on:
+      - mlflow
+
+volumes:
+  mlruns:
+  reports:
+  .zen:

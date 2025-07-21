@@ -22,6 +22,7 @@ This repository implements a full-scale AutoML pipeline tailored for tabular dat
 - ✅ Regression (e.g., house prices, sales prediction)
 
 Each use case supports:
+
 - Preprocessing and feature engineering tailored to model type
 - Hyperparameter tuning with Optuna
 - Model comparison and selection
@@ -59,21 +60,24 @@ These are listed in [`TODO.md`](./TODO.md) for future inclusion.
 
 ## 🧰 Key Tools & Technologies
 
-| Function              | Tool/Library           |
-|-----------------------|------------------------|
-| Pipeline Orchestration| ZenML                  |
-| Experiment Tracking   | MLflow (local)         |
-| Hyperparameter Tuning | Optuna + DeepCave      |
-| Data Validation       | Pandera, Great Expectations |
-| Encoding & Scaling    | Custom Transformers    |
-| Model Training        | Scikit-Learn, XGBoost  |
-| Deployment            | FastAPI, Docker        |
-| Monitoring            | Evidently, WhyLogs     |
+| Function               | Tool/Library                |
+| ---------------------- | --------------------------- |
+| Pipeline Orchestration | ZenML                       |
+| Experiment Tracking    | MLflow (local)              |
+| Hyperparameter Tuning  | Optuna + DeepCave           |
+| Data Validation        | Pandera, Great Expectations |
+| Encoding & Scaling     | Custom Transformers         |
+| Model Training         | Scikit-Learn, XGBoost       |
+| Deployment             | FastAPI, Docker             |
+| Monitoring             | Evidently, WhyLogs          |
 
 ---
 
 ## 🔗 Additional Docs
 
-- [`ARCHITECTURE.md`](./ARCHITECTURE.md) – Full pipeline structure & tooling map
-- [`GOALS.md`](./GOALS.md) – Vision, constraints, and roadmap
-- [`TODO.md`](./TODO.md) – Pending feature backlog
+- [`ARCHITECTURE.md`](./docs/ARCHITECTURE.md) – Full pipeline structure & tooling map
+- [`ML_steps.md`](./docs/ML_steps.md) – Detailed ML lifecycle steps
+- [`GOALS.md`](./docs/GOALS.md) – Vision, constraints, and roadmap
+- [`DOCKER_README.md`](./docs/DOCKER_README.md) – Docker setup
+- [`TODO.md`](./docs/TODO.md) – Pending feature backlog
+- [`V1_Index.md`](./docs/V1/Stage_0_Index_V1.md) - V1 Readme Index
