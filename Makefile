@@ -34,8 +34,8 @@ devup:
 	lsof -ti tcp:7000 | xargs -r kill -9 && echo "✅ Killed processes on port 7000" || echo "🚫 No processes found."
 	@echo "\033[1;31m🔹 Stopping ZenML stack...\033[0m"
 	poetry run mlflow server \
-		--backend-store-uri sqlite:///.zen/mlflow.db \
-		--default-artifact-root ./.zen/artifacts \
+		--backend-store-uri sqlite:///dvc/mlruns/mlflow.db \
+		--default-artifact-root .dvc//mlruns/artifacts \
 		--host 127.0.0.1 \
 		--port 7000
 

@@ -1,0 +1,4 @@
+[core]
+    remote = local_cache
+['remote "local_cache"']
+    url = cache
