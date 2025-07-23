@@ -6,7 +6,6 @@ import mlflow
 from configs import global_conf
 from src.Stage_8_HP_tuning.Optuna_tuning import OptunaHyperTuner
 from src.Stage_8_HP_tuning.optuna_tuning_ensemble import OptunaEnsembler
-from src.Stage_8_HP_tuning.Optuna_reporter import OptunaReporter
 from src.utils import monitor
 
 from sklearn.linear_model import LogisticRegression, LinearRegression
@@ -97,15 +96,6 @@ def ensemble_step(train: pd.DataFrame, val: pd.DataFrame, best_models: dict) -> 
 
 
 @enable_mlflow
-@step
-@monitor(name="generate_reports")
-def reporting_step(best_models: dict, ensemble_info: dict) -> None:
-    reporter = OptunaReporter(best_models, ensemble=ensemble_info.get(
-        "ensemble_details"), mlflow_run=mlflow.active_run())
-    reporter.generate_reports()
-
-
-@enable_mlflow
 @pipeline(enable_cache=True)
 def optuna_hpo_pipeline(
     load_data, baseline_step, optuna_hpo_step, ensemble_step, reporting_step
@@ -123,5 +113,4 @@ def run_pipeline():
         baseline_step=baseline_step(),
         optuna_hpo_step=optuna_hpo_step(),
         ensemble_step=ensemble_step(),
-        reporting_step=reporting_step(),
     ).run()

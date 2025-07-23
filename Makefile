@@ -35,7 +35,7 @@ devup:
 	@echo "\033[1;31m🔹 Stopping ZenML stack...\033[0m"
 	poetry run mlflow server \
 		--backend-store-uri sqlite:///.zen/mlflow.db \
-		--default-artifact-root ./.zen/mlruns \
+		--default-artifact-root ./.zen/artifacts \
 		--host 127.0.0.1 \
 		--port 7000
 

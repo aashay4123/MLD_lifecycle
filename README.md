@@ -78,6 +78,8 @@ These are listed in [`TODO.md`](./TODO.md) for future inclusion.
 - [`ARCHITECTURE.md`](./docs/ARCHITECTURE.md) – Full pipeline structure & tooling map
 - [`ML_steps.md`](./docs/ML_steps.md) – Detailed ML lifecycle steps
 - [`GOALS.md`](./docs/GOALS.md) – Vision, constraints, and roadmap
+- [`Prediction.md`](./docs/Prediction.md) – Prediction FastAPI details
+- [`Report_Viz.md`](./docs/Report_Viz.md) – Reporting & visualization for entire pipeline
 - [`DOCKER_README.md`](./docs/DOCKER_README.md) – Docker setup
 - [`TODO.md`](./docs/TODO.md) – Pending feature backlog
 - [`V1_Index.md`](./docs/V1/Stage_0_Index_V1.md) - V1 Readme Index

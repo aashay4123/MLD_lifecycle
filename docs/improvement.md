@@ -349,13 +349,16 @@ Add version info of FeatureScalerTransformer in report metadata (e.g., "FeatureS
 <!-- Links for Automl -->
 
 https://github.com/pycaret/pycaret
-https://github.com/AutoViML/AutoViz
+https://github.com/AutoViML/Auto_ViML
 https://github.com/mljar/mljar-supervised
 https://github.com/AxeldeRomblay/MLBox/blob/master/mlbox/model/regression/stacking_regressor.py
-https://github.com/AutoViML/Auto_ViML
 https://khiops.org/tutorials/Notebooks/Use_in_any_ML_pipeline/
 
+https://github.com/mlflow/mlflow/tree/master/docs
+https://github.com/AutoViML/AutoViz
 https://github.com/cod3licious/autofeat/tree/main/src/autofeat
 https://github.com/automl/DeepCAVE
 https://github.com/Shriram-Vibhute/CampusX-DSMP2.0/tree/main
 https://github.com/Yash-Kavaiya/CampusX-courses/tree/main
+https://github.com/zenml-io/zenml-workshop-mlops
+https://github.com/zenml-io/zenml-projects
