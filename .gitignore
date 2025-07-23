@@ -25,3 +25,6 @@ mlartifacts
 TODO/
 .env
 .env.*
+/Data
+/artifacts
+/.zen

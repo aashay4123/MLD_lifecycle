@@ -18,9 +18,12 @@ Example: You already ignore `Data/`, `reports/`, `mlruns/`, etc.
 Now explicitly track these with DVC:
 
 ```bash
-dvc add Data/raw/
+dvc add Data/
 dvc add reports/
-dvc add artifacts/final_data/
+dvc add artifacts/
+dvc add mlruns/
+dvc add .zen/
+
 ```
 
 This will generate `.dvc` files (`Data/raw.dvc`, etc.). Add them to Git:

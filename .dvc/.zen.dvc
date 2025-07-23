@@ -1,0 +1,6 @@
+outs:
+- md5: a9b5b72c884b2b65243d637371c1b6f6.dir
+  size: 536686
+  nfiles: 2
+  hash: md5
+  path: .zen
