@@ -20,7 +20,7 @@ class DataHealthCheck:
     ✅ World-class data diagnostics tool.
     - Outputs JSON, Markdown, and diagnostic PNG charts
     - Supports MLflow integration
-    - Use `.get_results()` and `.get_chart_paths()` for PipelineReporter
+    - Use `.get_results()` and `.get_chart_paths()` for Reports
     """
 
     def __init__(

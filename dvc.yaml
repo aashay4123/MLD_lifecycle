@@ -1,0 +1,219 @@
+stages:
+  ingest_data:
+    cmd: python - << 'EOF'
+from src.Stage_1_Ingestion.data_injection.DataCollector import DataCollector
+import pandas as pd
+df = DataCollector(pii_mask=True).read_file("data.csv")
+df.to_parquet("data/raw/data.parquet", index=False)
+EOF
+    deps:
+      - data.csv
+      - src/Stage_1_Ingestion/data_injection/DataCollector.py
+    outs:
+      - data/raw/data.parquet
+
+  inspect_data:
+    cmd: python - << 'EOF'
+import pandas as pd
+from src.Stage_1_Ingestion.DataHealthCheck import DataHealthCheck
+df = pd.read_parquet("data/raw/data.parquet")
+checker = DataHealthCheck(df)
+checker.run_all_checks()
+df.to_parquet("data/clean/data.parquet", index=False)
+EOF
+    deps:
+      - data/raw/data.parquet
+      - src/Stage_1_Ingestion/DataHealthCheck.py
+    outs:
+      - data/clean/data.parquet
+
+  split_data:
+    cmd: python - << 'EOF'
+import os
+import pandas as pd
+from sklearn.model_selection import train_test_split
+df = pd.read_parquet("data/clean/data.parquet")
+train_val, test = train_test_split(df, test_size=0.1, random_state=42)
+train, val = train_test_split(train_val, test_size=0.1, random_state=42)
+os.makedirs("artifacts/splits", exist_ok=True)
+train.to_parquet("artifacts/splits/train.parquet", index=False)
+val.to_parquet("artifacts/splits/val.parquet", index=False)
+test.to_parquet("artifacts/splits/test.parquet", index=False)
+EOF
+    deps:
+      - data/clean/data.parquet
+      - src/Stage_1_Ingestion/DataHealthCheck.py
+    outs:
+      - artifacts/splits/train.parquet
+      - artifacts/splits/val.parquet
+      - artifacts/splits/test.parquet
+
+  impute_data:
+    cmd: python - << 'EOF'
+import json, mlflow
+import pandas as pd
+from src.stage_4_preprocessing.Missing_Imputer import MissingImputer
+train = pd.read_parquet("artifacts/splits/train.parquet")
+val   = pd.read_parquet("artifacts/splits/val.parquet")
+test  = pd.read_parquet("artifacts/splits/test.parquet")
+imputer = MissingImputer()
+imputer.fit(train)
+train_i, val_i, test_i = imputer.transform(train), imputer.transform(val), imputer.transform(test)
+train_i.to_parquet("artifacts/imputed/train.parquet", index=False)
+val_i.to_parquet(  "artifacts/imputed/val.parquet",   index=False)
+test_i.to_parquet( "artifacts/imputed/test.parquet",  index=False)
+with open("artifacts/imputed/imputer_report.json","w") as f:
+    json.dump(imputer.report,f)
+mlflow.log_artifact("artifacts/imputed/imputer_report.json")
+EOF
+    deps:
+      - artifacts/splits/train.parquet
+      - src/stage_4_preprocessing/Missing_Imputer.py
+    outs:
+      - artifacts/imputed/train.parquet
+      - artifacts/imputed/val.parquet
+      - artifacts/imputed/test.parquet
+      - artifacts/imputed/imputer_report.json
+
+  scale_transform:
+    cmd: python - << 'EOF'
+import mlflow, pandas as pd
+from src.Stage_5_Feature_Engineering.Feature_Transformer import SmartFeatureTransformer
+train = pd.read_parquet("artifacts/imputed/train.parquet")
+val   = pd.read_parquet("artifacts/imputed/val.parquet")
+test  = pd.read_parquet("artifacts/imputed/test.parquet")
+numeric = train.select_dtypes("number").columns.tolist()
+transformer = SmartFeatureTransformer(mode="adaptive", verbose=False)
+X_train = transformer.fit_transform(train, numeric)
+X_val   = transformer.transform(val)
+X_test  = transformer.transform(test)
+X_train.to_parquet("artifacts/scaled/train.parquet", index=False)
+X_val.to_parquet(  "artifacts/scaled/val.parquet",   index=False)
+X_test.to_parquet( "artifacts/scaled/test.parquet",  index=False)
+mlflow.sklearn.log_model(transformer, artifact_path="scaler_model")
+EOF
+    deps:
+      - artifacts/imputed/train.parquet
+      - src/Stage_5_Feature_Engineering/Feature_Transformer.py
+    outs:
+      - artifacts/scaled/train.parquet
+      - artifacts/scaled/val.parquet
+      - artifacts/scaled/test.parquet
+
+  detect_outliers:
+    cmd: python - << 'EOF'
+import json, mlflow, pandas as pd
+from src.stage_4_preprocessing.Outlier_Detection import OutlierDetector
+train = pd.read_parquet("artifacts/scaled/train.parquet")
+val   = pd.read_parquet("artifacts/scaled/val.parquet")
+test  = pd.read_parquet("artifacts/scaled/test.parquet")
+detector = OutlierDetector()
+train_o = detector.fit_transform(train)
+val_o, test_o = detector.transform(val), detector.transform(test)
+train_o.to_parquet("artifacts/outliers/train.parquet", index=False)
+val_o.to_parquet(  "artifacts/outliers/val.parquet",   index=False)
+test_o.to_parquet( "artifacts/outliers/test.parquet",  index=False)
+with open("artifacts/outliers/outlier_log.json","w") as f:
+    json.dump(detector.report,f)
+mlflow.log_artifact("artifacts/outliers/outlier_log.json")
+EOF
+    deps:
+      - artifacts/scaled/train.parquet
+      - src/stage_4_preprocessing/Outlier_Detection.py
+    outs:
+      - artifacts/outliers/train.parquet
+      - artifacts/outliers/val.parquet
+      - artifacts/outliers/test.parquet
+      - artifacts/outliers/outlier_log.json
+
+  feature_split:
+    cmd: python - << 'EOF'
+import pandas as pd
+from src.Stage_5_Feature_Engineering.Feature_Splitting import AdvancedFeatureSplitterV4
+train = pd.read_parquet("artifacts/outliers/train.parquet")
+val   = pd.read_parquet("artifacts/outliers/val.parquet")
+test  = pd.read_parquet("artifacts/outliers/test.parquet")
+splitter = AdvancedFeatureSplitterV4(n_jobs=2)
+splitter.transform(train).to_parquet("artifacts/split_features/train.parquet", index=False)
+splitter.transform(val).to_parquet(  "artifacts/split_features/val.parquet",   index=False)
+splitter.transform(test).to_parquet( "artifacts/split_features/test.parquet",  index=False)
+EOF
+    deps:
+      - artifacts/outliers/train.parquet
+      - src/Stage_5_Feature_Engineering/Feature_Splitting.py
+    outs:
+      - artifacts/split_features/train.parquet
+      - artifacts/split_features/val.parquet
+      - artifacts/split_features/test.parquet
+
+  feature_construct:
+    cmd: python - << 'EOF'
+import pandas as pd
+from src.Stage_5_Feature_Engineering.Feature_Construction import AdvancedFeatureConstructorV4
+train = pd.read_parquet("artifacts/split_features/train.parquet")
+val   = pd.read_parquet("artifacts/split_features/val.parquet")
+test  = pd.read_parquet("artifacts/split_features/test.parquet")
+constructor = AdvancedFeatureConstructorV4()
+constructor.transform(train).to_parquet("artifacts/constructed/train.parquet", index=False)
+constructor.transform(val).to_parquet(  "artifacts/constructed/val.parquet",   index=False)
+constructor.transform(test).to_parquet( "artifacts/constructed/test.parquet",  index=False)
+EOF
+    deps:
+      - artifacts/split_features/train.parquet
+      - src/Stage_5_Feature_Engineering/Feature_Construction.py
+    outs:
+      - artifacts/constructed/train.parquet
+      - artifacts/constructed/val.parquet
+      - artifacts/constructed/test.parquet
+
+  encode:
+    cmd: python - << 'EOF'
+import os, json, pandas as pd
+from src.Stage_5_Feature_Engineering.Feature_Encoding import FeatureEncoder
+train = pd.read_parquet("artifacts/constructed/train.parquet")
+val   = pd.read_parquet("artifacts/constructed/val.parquet")
+test  = pd.read_parquet("artifacts/constructed/test.parquet")
+encoder = FeatureEncoder()
+train_e = encoder.encode_train(train)
+val_e   = encoder.encode_test(val)
+test_e  = encoder.encode_test(test)
+os.makedirs("artifacts/final_data", exist_ok=True)
+train_e.to_parquet("artifacts/final_data/train.parquet", index=False)
+val_e.to_parquet(  "artifacts/final_data/val.parquet",   index=False)
+test_e.to_parquet( "artifacts/final_data/test.parquet",  index=False)
+with open("artifacts/final_data/encoding_report.json","w") as f:
+    json.dump(encoder.report,f)
+EOF
+    deps:
+      - artifacts/constructed/train.parquet
+      - src/Stage_5_Feature_Engineering/Feature_Encoding.py
+    outs:
+      - artifacts/final_data/train.parquet
+      - artifacts/final_data/val.parquet
+      - artifacts/final_data/test.parquet
+      - artifacts/final_data/encoding_report.json
+
+  train_baseline:
+    cmd: python - << 'EOF'
+import os
+import pandas as pd
+from sklearn.dummy import DummyClassifier
+from sklearn.metrics import accuracy_score
+import mlflow
+train = pd.read_parquet("artifacts/final_data/train.parquet")
+val   = pd.read_parquet("artifacts/final_data/val.parquet")
+TARGET = os.getenv("TARGET_COL", "target")
+model = DummyClassifier(strategy="most_frequent")
+model.fit(train.drop(columns=TARGET), train[TARGET])
+preds = model.predict(val.drop(columns=TARGET))
+acc = accuracy_score(val[TARGET], preds)
+mlflow.log_metric("baseline_accuracy", acc)
+mlflow.sklearn.log_model(model, artifact_path="baseline_model")
+with open("metrics/baseline_accuracy.txt","w") as f:
+    f.write(str(acc))
+EOF
+    deps:
+      - artifacts/final_data/train.parquet
+      - src/Stage_7_Evaluation/Evaluate_register.py
+    outs:
+      - metrics/baseline_accuracy.txt

@@ -56,7 +56,7 @@ def ingest_data() -> Output(data=pd.DataFrame):
 @step
 @monitor(name="inspect_data", log_args=True, log_result=False, track_input_size=True)
 def inspect_data(data: pd.DataFrame) -> Output(valid_data=pd.DataFrame):
-    checker = DataFrameHealthCheck(data)
+    checker = DataHealthCheck(data)
     checker.run_all_checks()
     return data
 
@@ -198,7 +198,8 @@ def encode(
 
     # Save processed final versions
     os.makedirs("artifacts/final_data", exist_ok=True)
-    train_e.to_parquet("artifacts/final_data/train_encoded.parquet", index=False)
+    train_e.to_parquet(
+        "artifacts/final_data/train_encoded.parquet", index=False)
     val_e.to_parquet("artifacts/final_data/val_encoded.parquet", index=False)
     test_e.to_parquet("artifacts/final_data/test_encoded.parquet", index=False)
 

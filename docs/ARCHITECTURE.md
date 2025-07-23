@@ -121,66 +121,6 @@ flowchart TD
 | Deployment            | FastAPI + Docker           |
 | Monitoring            | Evidently, WhyLogs         |
 
-## 🧰 Tooling Layered Architecture
-
-```mermaid
-flowchart TD
-
-    %% Layer 1 - Ingestion & EDA
-    A1(["Start"])
-    A2(["Data Ingestion<br/>DataCollector.py, data_loaders.py"])
-    A3(["Exploratory Profiling<br/>EDAnalyzer.py, PDAnalysis.py"])
-    A4(["Schema Validation<br/>DataHealthCheck.py"])
-    A1 --> A2 --> A3 --> A4
-
-    %% Layer 2 - Split
-    A4 --> B1(["Train/Test Split<br/>ThreeWaySplit.py, leakage_detection.py"])
-
-    %% Layer 3 - Model Type Branching
-    B1 --> C1(["Linear-Type Pipeline"])
-    B1 --> C2(["Tree-Based Pipeline"])
-    B1 --> C3(["Distance-Based Pipeline"])
-
-    %% Layer 4 - Preprocessing (Parallel)
-    C1 --> D1(["Preprocess + FE<br/>Feature_Encoding, mi.py"])
-    C2 --> D2(["Preprocess + FE<br/>Outlier_Detection, Feature_Selection"])
-    C3 --> D3(["Preprocess + FE<br/>scaling_transform_stage3.py"])
-
-    %% Layer 5 - Dummy Baseline
-    D1 --> E1(["Train DummyClassifier (Linear)"])
-    D2 --> E2(["Train DummyClassifier (Tree)"])
-    D3 --> E3(["Train DummyClassifier (KNN)"])
-
-    %% Layer 6 - HPO
-    E1 --> F1(["Optuna Tuning - Linear"])
-    E2 --> F2(["Optuna Tuning - Tree"])
-    E3 --> F3(["Optuna Tuning - KNN"])
-
-    %% Layer 7 - Best Model Selection
-    F1 --> G1(["Compare & Select Best Model"])
-    F2 --> G1
-    F3 --> G1
-
-    %% Layer 8 - Final Evaluation
-    G1 --> H1(["Final Evaluation<br/>evaluation.py"])
-
-    %% Layer 9 - Registry & Deployment
-    H1 --> I1(["Register in MLflow"])
-    I1 --> I2(["Deploy via FastAPI<br/>Deploy.py"])
-    I2 --> I3(["Serve Predictions"])
-
-    %% Layer 10 - UI + Monitoring
-    I3 --> J1(["User Interface<br/>Streamlit / REST API"])
-    I3 --> K1(["Drift Monitoring<br/>drift.py, monitor_probabilistic.py"])
-    K1 --> K2{{"Drift Detected?"}}
-    K2 -- "Yes" --> L1(["Retrain via Optuna"])
-    K2 -- "No" --> K1
-    L1 --> F1
-
-```
-
----
-
 ## ✅ Component Responsibilities
 
 | Stage             | Tool(s) Used                    | Key Responsibilities                               |

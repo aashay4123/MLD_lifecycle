@@ -48,7 +48,10 @@ devdown:
 	@echo "\033[1;31m🛑 Stopping ZenML and MLflow services...\033[0m"
 	poetry run zenml logout --local || true
 	@echo "\033[1;31m🔹 Killing MLflow server (if running)...\033[0m"
-	lsof -ti tcp:7000 | xargs -r kill -9 && echo "✅ Killed processes on port 7000" || echo "🚫 No processes found."
+	set -o pipefail; \
+	lsof -ti tcp:7000 | xargs -r kill -9 \
+		&& echo "✅ Killed processes on port 7000" \
+		|| echo "🚫 No processes found on port 7000"
 
 	@echo "\033[1;31m🔹 Stopping ZenML stack...\033[0m"
 
