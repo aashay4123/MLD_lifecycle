@@ -1,32 +1,30 @@
 #!/usr/bin/env python3
-from src.utils.perfkit import perfclass
-from src.utils.monitor import monitor
 import json
+from itertools import combinations
+from pathlib import Path
+
 import matplotlib.pyplot as plt
-import seaborn as sns
 import numpy as np
 import pandas as pd
 import scipy.stats as stats
-
-from statsmodels.distributions.empirical_distribution import ECDF
-
-from sklearn.feature_selection import (
-    mutual_info_classif,
-    mutual_info_regression,
-    f_classif,
-)
-from sklearn.preprocessing import QuantileTransformer
+import seaborn as sns
 from copulas.multivariate import GaussianMultivariate
 from joblib import Parallel, delayed
-from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
-from sklearn.inspection import permutation_importance
-
-from sklearn.metrics import mutual_info_score
-from itertools import combinations
 from scipy.stats import entropy as kl_entropy
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+from sklearn.feature_selection import (
+    f_classif,
+    mutual_info_classif,
+    mutual_info_regression,
+)
+from sklearn.inspection import permutation_importance
+from sklearn.metrics import mutual_info_score
+from sklearn.preprocessing import QuantileTransformer
 from statsmodels.distributions.empirical_distribution import ECDF
+
 from configs import global_conf
-from pathlib import Path
+from src.utils.monitor import monitor
+from src.utils.perfkit import perfclass
 
 REPORT_DIR = Path(f"{global_conf.EPDA_REPORT_PATH}/probalistic")
 

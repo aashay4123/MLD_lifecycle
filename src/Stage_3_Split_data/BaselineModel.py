@@ -1,19 +1,20 @@
 #!/usr/bin/env python3
+import warnings
 from pathlib import Path
+from typing import Any, Dict
+
+import matplotlib.pyplot as plt
 import pandas as pd
-from typing import Dict, Any
 from sklearn.dummy import DummyClassifier, DummyRegressor
 from sklearn.metrics import (
     accuracy_score,
     f1_score,
-    precision_score,
-    recall_score,
     mean_absolute_error,
     mean_squared_error,
+    precision_score,
     r2_score,
+    recall_score,
 )
-import warnings
-import matplotlib.pyplot as plt
 
 warnings.filterwarnings("ignore", category=UserWarning)
 

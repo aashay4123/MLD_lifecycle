@@ -1,10 +1,11 @@
 # optuna_hpo/reporter.py
 
 import os
+from pathlib import Path
+
+import mlflow
 import optuna.visualization as vis
 import pandas as pd
-from pathlib import Path
-import mlflow
 
 
 class OptunaReporter:

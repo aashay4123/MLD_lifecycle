@@ -20,6 +20,7 @@ performed seamlessly across different experiment trackers and stacks.
 
 
 from typing import Optional
+
 from zenml.client import Client
 from zenml.integrations.mlflow.experiment_trackers import (
     MLFlowExperimentTracker,
@@ -81,8 +82,8 @@ def get_current_tracker_run_url() -> Optional[str]:
     experiment_tracker = Client().active_stack.experiment_tracker
     if isinstance(experiment_tracker, MLFlowExperimentTracker):
 
-        from zenml.integrations.mlflow.mlflow_utils import get_tracking_uri
         import mlflow
+        from zenml.integrations.mlflow.mlflow_utils import get_tracking_uri
 
         # remote tracking
         if experiment_tracker.config.tracking_uri:

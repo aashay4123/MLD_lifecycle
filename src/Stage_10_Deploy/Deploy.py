@@ -1,12 +1,12 @@
 # deploy_model.py
 
-from zenml.steps import step
-from zenml.integrations.mlflow.services import MLFlowDeploymentService
-from zenml.integrations.mlflow.steps import mlflow_model_deployer_step
+import mlflow
 from zenml.integrations.mlflow.model_deployers.mlflow_model_deployer import (
     MLFlowModelDeployer,
 )
-import mlflow
+from zenml.integrations.mlflow.services import MLFlowDeploymentService
+from zenml.integrations.mlflow.steps import mlflow_model_deployer_step
+from zenml.steps import step
 
 
 @step

@@ -15,12 +15,13 @@
 """Helper functions used to load models generated and tracked in various stages
 of the pipeline."""
 
-from sklearn.base import ClassifierMixin
 from typing import Optional, Tuple
+
+from sklearn.base import ClassifierMixin
 from zenml.client import Client
 from zenml.enums import ArtifactType
-from zenml.services import BaseService
 from zenml.post_execution import get_pipeline
+from zenml.services import BaseService
 
 
 def load_deployed_model(

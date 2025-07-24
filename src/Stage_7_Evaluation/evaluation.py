@@ -2,8 +2,8 @@ import joblib
 from sklearn.metrics import (
     accuracy_score,
     f1_score,
-    mean_squared_error,
     mean_absolute_error,
+    mean_squared_error,
     r2_score,
 )
 

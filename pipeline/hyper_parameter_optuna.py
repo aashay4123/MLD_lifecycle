@@ -1,8 +1,10 @@
+import warnings
+
 import numpy as np
 import pandas as pd
-import warnings
 from sklearn.datasets import make_classification, make_regression
 from sklearn.model_selection import train_test_split
+
 from configs import global_conf
 from src.Stage_8_HP_tuning.Optuna_tuning import OptunaHyperTuner
 from src.Stage_8_HP_tuning.optuna_tuning_ensemble import OptunaEnsembler

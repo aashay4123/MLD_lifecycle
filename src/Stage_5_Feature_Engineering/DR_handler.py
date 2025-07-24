@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
 
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
 import pickle
 from pathlib import Path
-from src.Stage_5_Feature_Engineering.Dimensionality_Reduction import AutoDR
-from sklearn.model_selection import cross_val_score, StratifiedKFold
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import seaborn as sns
 from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import StratifiedKFold, cross_val_score
+
 from configs import global_conf
+from src.Stage_5_Feature_Engineering.Dimensionality_Reduction import AutoDR
 
 
 def main():

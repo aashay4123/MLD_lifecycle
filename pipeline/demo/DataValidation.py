@@ -1,23 +1,20 @@
-from zenml import pipeline, step
-from typing import Tuple, Dict, Any
-import pandas as pd
-from rich.console import Console
-from rich.table import Table
+from typing import Any, Dict, Tuple
 
 import great_expectations as ge
-from great_expectations.checkpoint import CheckpointResult
-
-
+import pandas as pd
 from evidently import ColumnMapping
-from evidently.report import Report
 from evidently.metric_preset import (
+    ClassificationPerformancePreset,
     DataDriftPreset,
     DataQualityPreset,
-    ClassificationPerformancePreset,
 )
-
+from evidently.report import Report
+from great_expectations.checkpoint import CheckpointResult
+from rich.console import Console
+from rich.table import Table
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
+from zenml import pipeline, step
 
 console = Console()
 

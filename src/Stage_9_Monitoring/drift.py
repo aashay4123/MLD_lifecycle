@@ -1,12 +1,13 @@
 import json
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
+
 import numpy as np
 import pandas as pd
-from scipy.stats import ks_2samp, chi2_contingency, wasserstein_distance
+from scipy.stats import chi2_contingency, ks_2samp, wasserstein_distance
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import roc_auc_score
-from typing import List, Optional, Dict, Any, Tuple
 
 
 class DriftMonitor:

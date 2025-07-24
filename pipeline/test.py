@@ -1,17 +1,19 @@
+import os
 import warnings
+
+import mlflow
 from zenml import pipeline
-from src.Stage_1_Ingestion.data_loaders import dataLoader, dataCheck
+from zenml.client import Client
+
+from configs import global_conf
+from src.Stage_1_Ingestion.data_loaders import dataCheck, dataLoader
 from src.Stage_2_EPD_Analysis.PED_Analysis import UnifiedPEDAnalyze
 from src.Stage_3_Split_data.data_split import (
-    data_splitter,
     baseline,
     data_leakage_detection,
+    data_splitter,
 )
 from src.Stage_4_Preprocessor.preprocessor import missing_imputer, outlier_detector
-from configs import global_conf
-import mlflow
-import os
-from zenml.client import Client
 
 warnings.filterwarnings("ignore")
 mlflow.set_tracking_uri("http://localhost:7000")

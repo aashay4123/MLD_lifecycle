@@ -1,18 +1,19 @@
-import optuna
+import mlflow
 import numpy as np
+import optuna
+from sklearn.base import BaseEstimator, ClassifierMixin, RegressorMixin
 from sklearn.ensemble import (
-    VotingClassifier,
-    VotingRegressor,
     StackingClassifier,
     StackingRegressor,
+    VotingClassifier,
+    VotingRegressor,
 )
-from sklearn.base import BaseEstimator, ClassifierMixin, RegressorMixin
 from sklearn.linear_model import LogisticRegression, Ridge, RidgeClassifier
 from sklearn.metrics import get_scorer
 from sklearn.utils.multiclass import type_of_target
+
 from configs import global_conf
 from src.utils.utils import get_cv, get_metric
-import mlflow
 
 
 class OptunaEnsembler:

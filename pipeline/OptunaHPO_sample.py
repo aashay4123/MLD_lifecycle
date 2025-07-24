@@ -1,17 +1,17 @@
-from zenml.steps import step
-from zenml.pipelines import pipeline
-from zenml.integrations.mlflow.steps import enable_mlflow
-import pandas as pd
 import mlflow
+import pandas as pd
+from sklearn.cluster import KMeans
+from sklearn.linear_model import LinearRegression, LogisticRegression
+from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
+from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
+from zenml.integrations.mlflow.steps import enable_mlflow
+from zenml.pipelines import pipeline
+from zenml.steps import step
+
 from configs import global_conf
 from src.Stage_8_HP_tuning.Optuna_tuning import OptunaHyperTuner
 from src.Stage_8_HP_tuning.optuna_tuning_ensemble import OptunaEnsembler
 from src.utils import monitor
-
-from sklearn.linear_model import LogisticRegression, LinearRegression
-from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
-from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
-from sklearn.cluster import KMeans
 
 
 @enable_mlflow

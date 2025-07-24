@@ -3,29 +3,30 @@
 Patched EDA_combined_v3.py with parallelization, performance decorators, and figure limits
 """
 
+import json
+from datetime import datetime
+from pathlib import Path
+
+import matplotlib
 import matplotlib.pyplot as plt
-from joblib import Parallel, delayed
-from src.utils.perfkit import PerfMixin, perfclass
-from src.utils.monitor import monitor
-from statsmodels.stats.outliers_influence import variance_inflation_factor
-from statsmodels.stats.diagnostic import het_breuschpagan
-from statsmodels.api import OLS, add_constant
+import numpy as np
+import pandas as pd
 import pingouin as pg
+import seaborn as sns
+from joblib import Parallel, delayed
+from scipy import stats
+from scipy.stats import jarque_bera, normaltest, probplot, shapiro
+from sklearn.decomposition import PCA
 from sklearn.feature_selection import mutual_info_classif, mutual_info_regression
 from sklearn.manifold import TSNE
 from sklearn.preprocessing import StandardScaler
-from sklearn.decomposition import PCA
-from scipy.stats import shapiro, normaltest, jarque_bera, probplot
-from scipy import stats
-from configs import global_conf
-import json
-from pathlib import Path
-from datetime import datetime
+from statsmodels.api import OLS, add_constant
+from statsmodels.stats.diagnostic import het_breuschpagan
+from statsmodels.stats.outliers_influence import variance_inflation_factor
 
-import numpy as np
-import pandas as pd
-import seaborn as sns
-import matplotlib
+from configs import global_conf
+from src.utils.monitor import monitor
+from src.utils.perfkit import PerfMixin, perfclass
 
 matplotlib.use("Agg")
 

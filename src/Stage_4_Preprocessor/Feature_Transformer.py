@@ -11,30 +11,31 @@ Usage:
     fst.save("scaler.pkl")
 """
 
-import os
 import json
-import pickle
 import logging
+import os
+import pickle
+import warnings
+from typing import Any, Dict, List, Optional, Tuple
+
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-
 from joblib import Parallel, delayed
 from scipy import stats
-from scipy.stats import gaussian_kde, boxcox, beta, gamma, expon
 from scipy.signal import find_peaks
-from sklearn.preprocessing import (
-    StandardScaler,
-    MinMaxScaler,
-    RobustScaler,
-    QuantileTransformer,
-    PowerTransformer,
-)
+from scipy.stats import beta, boxcox, expon, gamma, gaussian_kde
 from sklearn.cluster import KMeans
-from typing import Dict, Any, Optional, List, Tuple
-import warnings
+from sklearn.preprocessing import (
+    MinMaxScaler,
+    PowerTransformer,
+    QuantileTransformer,
+    RobustScaler,
+    StandardScaler,
+)
+
 from src.utils.monitor import monitor
-from src.utils.perfkit import perfclass, PerfMixin
+from src.utils.perfkit import PerfMixin, perfclass
 
 try:
     from diptest import diptest

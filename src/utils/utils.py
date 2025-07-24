@@ -1,11 +1,12 @@
 # optuna_hpo/utils.py
 
-from sklearn.metrics import get_scorer
-import pandas as pd
 import numpy as np
-from sklearn.model_selection import cross_val_score, StratifiedKFold, KFold
-from configs import global_conf
+import pandas as pd
+from sklearn.metrics import get_scorer
+from sklearn.model_selection import KFold, StratifiedKFold, cross_val_score
 from sklearn.utils.multiclass import type_of_target
+
+from configs import global_conf
 
 
 def get_cv(n_splits, task, random_state=42):

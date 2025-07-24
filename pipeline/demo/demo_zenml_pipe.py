@@ -1,12 +1,12 @@
-from sklearn.model_selection import train_test_split
+from typing import Annotated, Tuple
+
+import numpy as np
 from sklearn.datasets import load_iris
 from sklearn.ensemble import RandomForestClassifier
-from zenml import pipeline, step
-from zenml.integrations.sklearn.steps import sklearn_trainer, sklearn_evaluator
-from zenml import step, pipeline, log_metadata
-import numpy as np
-from typing import Annotated, Tuple
 from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import train_test_split
+from zenml import log_metadata, pipeline, step
+from zenml.integrations.sklearn.steps import sklearn_evaluator, sklearn_trainer
 
 
 @step

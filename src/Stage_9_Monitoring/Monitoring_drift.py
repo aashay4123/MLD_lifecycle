@@ -1,16 +1,16 @@
-from src.data_analysis.advanced_drift_monitor import DriftMonitor
-from src.data_analysis.Probabilistic.probabilistic_analysis import ProbabilisticAnalysis
-from pathlib import Path
-from zenml.pipelines import pipeline
-from zenml.steps import step, Output
-import pandas as pd
-import os
 import json
 import logging
-import mlflow
+import os
+from pathlib import Path
 
-from evidently.report import Report
+import mlflow
+import pandas as pd
 from evidently.metric_preset import DataDriftPreset, TargetDriftPreset
+from evidently.report import Report
+from src.data_analysis.advanced_drift_monitor import DriftMonitor
+from src.data_analysis.Probabilistic.probabilistic_analysis import ProbabilisticAnalysis
+from zenml.pipelines import pipeline
+from zenml.steps import Output, step
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

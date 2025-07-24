@@ -2,33 +2,34 @@
 
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import List, Optional, Union, Dict, Set, Any
-from sklearn.feature_selection import SelectFromModel
+from typing import Any, Dict, List, Optional, Set, Union
+
 import numpy as np
 import pandas as pd
 from sklearn.base import BaseEstimator, TransformerMixin
-from sklearn.feature_selection import (
-    VarianceThreshold,
-    mutual_info_classif,
-    mutual_info_regression,
-    f_classif,
-    f_regression,
-    RFE,
-    SequentialFeatureSelector,
-)
-from sklearn.linear_model import (
-    LogisticRegression,
-    LassoCV,
-    ElasticNetCV,
-    LogisticRegressionCV,
-)
 from sklearn.ensemble import (
-    RandomForestClassifier,
-    RandomForestRegressor,
     GradientBoostingClassifier,
     GradientBoostingRegressor,
+    RandomForestClassifier,
+    RandomForestRegressor,
+)
+from sklearn.feature_selection import (
+    RFE,
+    SelectFromModel,
+    SequentialFeatureSelector,
+    VarianceThreshold,
+    f_classif,
+    f_regression,
+    mutual_info_classif,
+    mutual_info_regression,
 )
 from sklearn.inspection import permutation_importance
+from sklearn.linear_model import (
+    ElasticNetCV,
+    LassoCV,
+    LogisticRegression,
+    LogisticRegressionCV,
+)
 from sklearn.preprocessing import LabelEncoder
 
 

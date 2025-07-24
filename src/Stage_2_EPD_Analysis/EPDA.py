@@ -1,35 +1,33 @@
-from joblib import Parallel, delayed
-from scipy.stats import shapiro, kurtosis, skew, entropy
 import os
+import warnings
+from collections import defaultdict
+from datetime import datetime
+from pathlib import Path
+
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 import seaborn as sns
-from pathlib import Path
-from tqdm import tqdm
-from datetime import datetime
-from collections import defaultdict
-
+from joblib import Parallel, delayed
 from scipy import stats
-from scipy.stats import shapiro, kurtosis, skew, entropy, norm
-from sklearn.preprocessing import QuantileTransformer
-from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
-from sklearn.linear_model import LinearRegression
-from sklearn.metrics import mutual_info_score
-from sklearn.decomposition import PCA
-from sklearn.manifold import TSNE
+from scipy.stats import entropy, kurtosis, norm, shapiro, skew
 from sklearn.cluster import KMeans
+from sklearn.decomposition import PCA
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.feature_selection import mutual_info_classif, mutual_info_regression
+from sklearn.linear_model import LinearRegression
+from sklearn.manifold import TSNE
+from sklearn.metrics import mutual_info_score
+from sklearn.preprocessing import QuantileTransformer
 from sklearn.utils import resample
-
 from statsmodels.stats.outliers_influence import variance_inflation_factor
-from statsmodels.tsa.stattools import acf, pacf
 from statsmodels.tsa.seasonal import seasonal_decompose
+from statsmodels.tsa.stattools import acf, pacf
+from tqdm import tqdm
 
+from configs import global_conf
 from src.utils.monitor import monitor
 from src.utils.perfkit import PerfMixin, perfclass
-from configs import global_conf
-import warnings
 
 warnings.filterwarnings("ignore")
 
@@ -172,8 +170,8 @@ class UnifiedEPDA(PerfMixin):
     def _hopkins_statistic(self, X):
         """Hopkins statistic implementation for clustering tendency."""
         try:
-            from sklearn.neighbors import NearestNeighbors
             from numpy.random import uniform
+            from sklearn.neighbors import NearestNeighbors
 
             X = X.dropna().sample(min(100, len(X)), random_state=1)
             n, d = X.shape
@@ -347,7 +345,7 @@ class UnifiedEPDA(PerfMixin):
         df.to_csv(self.out_dir / "bayesian_group_comparison.csv", index=False)
 
     def _fit_best_distribution(self, col):
-        from scipy.stats import norm, expon, gamma, beta, lognorm
+        from scipy.stats import beta, expon, gamma, lognorm, norm
 
         dists = [norm, expon, gamma, beta, lognorm]
         values = self.df[col].dropna()

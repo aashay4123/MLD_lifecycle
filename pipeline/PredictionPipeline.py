@@ -1,16 +1,15 @@
 # test_pipeline.py
 
-from zenml.pipelines import pipeline
-from zenml.steps import step, Output
-from zenml.integrations.mlflow.steps import enable_mlflow
-
-
-import pandas as pd
-import mlflow
-import os
 import json
-from typing import Tuple, Any
+import os
+from typing import Any, Tuple
+
+import mlflow
+import pandas as pd
 from sklearn.metrics import accuracy_score, f1_score
+from zenml.integrations.mlflow.steps import enable_mlflow
+from zenml.pipelines import pipeline
+from zenml.steps import Output, step
 
 from utils.monitor import monitor
 

@@ -1,21 +1,23 @@
 #!/usr/bin/env python3
+import json
+import os
 import pickle
-from typing import List, Dict, Any, Tuple, Optional
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
+
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import seaborn as sns
 from scipy.stats import chi2
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.covariance import EmpiricalCovariance, MinCovDet
-from sklearn.preprocessing import StandardScaler
-from sklearn.neighbors import LocalOutlierFactor
 from sklearn.ensemble import IsolationForest
-from pathlib import Path
-from src.utils.perfkit import perfclass, PerfMixin
+from sklearn.neighbors import LocalOutlierFactor
+from sklearn.preprocessing import StandardScaler
+
 from configs import global_conf
-import os
-import json
-import matplotlib.pyplot as plt
-import seaborn as sns
+from src.utils.perfkit import PerfMixin, perfclass
 
 
 @perfclass()

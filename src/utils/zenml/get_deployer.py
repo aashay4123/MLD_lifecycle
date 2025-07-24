@@ -12,8 +12,9 @@
 #  or implied. See the License for the specific language governing
 #  permissions and limitations under the License.
 
-from zenml.client import Client
 from functools import partial
+
+from zenml.client import Client
 
 
 def get_stack_deployer(model_name: str = "model"):

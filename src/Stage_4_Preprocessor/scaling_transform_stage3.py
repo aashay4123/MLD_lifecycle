@@ -8,20 +8,21 @@ stage4_scaling_transformation.py
 – Offers get_report() to retrieve a DataFrame‐friendly summary.
 """
 
+import warnings
+from typing import Dict, List, Optional, Tuple
+
 import numpy as np
 import pandas as pd
 import scipy.stats as stats
-from scipy.stats import skew, kurtosis, shapiro, boxcox
+from scipy.stats import boxcox, kurtosis, shapiro, skew
+from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.preprocessing import (
-    StandardScaler,
-    RobustScaler,
     MinMaxScaler,
     PowerTransformer,
     QuantileTransformer,
+    RobustScaler,
+    StandardScaler,
 )
-from sklearn.base import BaseEstimator, TransformerMixin
-from typing import List, Dict, Tuple, Optional
-import warnings
 
 warnings.filterwarnings("ignore", category=UserWarning)
 

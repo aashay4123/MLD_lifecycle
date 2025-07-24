@@ -1,17 +1,16 @@
 # core modules
-import logging
 import json
+import logging
 import pickle
+from concurrent.futures import Future, ThreadPoolExecutor
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union
-from dataclasses import dataclass, field
-from concurrent.futures import ThreadPoolExecutor, Future
+
+import mlflow
 
 # libraries
 import pandas as pd
-import mlflow
-from joblib import Parallel, delayed
-from sklearn.preprocessing import OneHotEncoder, OrdinalEncoder
 from category_encoders import (
     BinaryEncoder,
     HashingEncoder,
@@ -20,11 +19,14 @@ from category_encoders import (
     LeaveOneOutEncoder,
     TargetEncoder,
 )
+from joblib import Parallel, delayed
+from sklearn.preprocessing import OneHotEncoder, OrdinalEncoder
 
 # zenml integrations
 from zenml import step
-from src.utils.perfkit import perfclass, PerfMixin
+
 from src.utils.monitor import monitor
+from src.utils.perfkit import PerfMixin, perfclass
 
 log = logging.getLogger(__name__)
 DEFAULT_REPORT_DIR = Path("reports/auto_categorical")

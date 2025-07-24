@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-import os
-import sys
-import yaml
 import argparse
 import importlib.util
+import os
+import sys
 from pathlib import Path
+
+import yaml
 
 
 def load_global_conf(conf_path: Path):

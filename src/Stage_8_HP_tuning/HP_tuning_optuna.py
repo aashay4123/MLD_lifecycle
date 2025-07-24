@@ -1,30 +1,30 @@
-from zenml.steps import step, Output
-import pandas as pd
-import numpy as np
-import optuna
-import joblib
 import logging
 import warnings
-from sklearn.metrics import accuracy_score, f1_score, log_loss
-from sklearn.model_selection import train_test_split
-from sklearn.base import ClassifierMixin
-from sklearn.linear_model import LogisticRegression, RidgeClassifier
-from sklearn.ensemble import (
-    RandomForestClassifier,
-    ExtraTreesClassifier,
-    GradientBoostingClassifier,
-    AdaBoostClassifier,
-    VotingClassifier,
-    StackingClassifier,
-)
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.svm import SVC
-from sklearn.neighbors import KNeighborsClassifier
 from typing import Any, Dict, List
 
-from xgboost import XGBClassifier
-from lightgbm import LGBMClassifier
+import joblib
+import numpy as np
+import optuna
+import pandas as pd
 from catboost import CatBoostClassifier
+from lightgbm import LGBMClassifier
+from sklearn.base import ClassifierMixin
+from sklearn.ensemble import (
+    AdaBoostClassifier,
+    ExtraTreesClassifier,
+    GradientBoostingClassifier,
+    RandomForestClassifier,
+    StackingClassifier,
+    VotingClassifier,
+)
+from sklearn.linear_model import LogisticRegression, RidgeClassifier
+from sklearn.metrics import accuracy_score, f1_score, log_loss
+from sklearn.model_selection import train_test_split
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.svm import SVC
+from sklearn.tree import DecisionTreeClassifier
+from xgboost import XGBClassifier
+from zenml.steps import Output, step
 
 warnings.filterwarnings("ignore")
 logger = logging.getLogger(__name__)
@@ -206,7 +206,7 @@ def hp_tuning_optuna_probabilistic_approach(
     joblib.dump(final_model, "artifacts/final_model.joblib")
 
     try:
-        from mlflow import log_metric, log_params, log_artifacts
+        from mlflow import log_artifacts, log_metric, log_params
 
         log_params(study.best_params)
         for k, v in metrics.items():

@@ -17,18 +17,19 @@ NEW vs v3 ───────────────────────�
   5. MAX_RAM_FRACTION guard                        (#18)
 """
 from __future__ import annotations
-import os
-import time
+
 import functools
 import inspect
-import logging
-import psutil
-import pickle
 import json
-from typing import Callable, Any, Dict, List, Sequence, Union, Optional
+import logging
+import os
+import pickle
+import time
+from typing import Any, Callable, Dict, List, Optional, Sequence, Union
 
 import numpy as np
-from joblib import Parallel, delayed, cpu_count
+import psutil
+from joblib import Parallel, cpu_count, delayed
 
 log = logging.getLogger("perfkit")
 

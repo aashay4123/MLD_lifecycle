@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from __future__ import annotations
+
 import contextlib
 import hashlib
 import io
@@ -8,18 +9,20 @@ import logging
 import pathlib as Path
 import re
 import time
+
 import pandas as pd
+
 from configs import global_conf
 
 with contextlib.suppress(ImportError):
     import boto3
-    import requests
-    import kafka
-    import gspread
-    from sqlalchemy import create_engine
-    from pymongo import MongoClient
-    import paho.mqtt.client as mqtt
     import great_expectations as ge
+    import gspread
+    import kafka
+    import paho.mqtt.client as mqtt
+    import requests
+    from pymongo import MongoClient
+    from sqlalchemy import create_engine
 
 # ─── Logging & Directories ─────────────────────────────────────────────────────
 # LOG_DIR = Path.Path(global_conf.LOGS_PATH)

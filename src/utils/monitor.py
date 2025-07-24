@@ -1,16 +1,18 @@
 # utils/monitor.py
 
 import functools
+import inspect
+import json
 import logging
+import os
+import sys
 import time
 import traceback
 import tracemalloc
-import sys
-import inspect
-import json
-import os
-import joblib
 from typing import Any
+
+import joblib
+
 from configs import global_conf
 
 try:

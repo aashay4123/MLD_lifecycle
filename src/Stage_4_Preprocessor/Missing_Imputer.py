@@ -1,23 +1,26 @@
 #!/usr/bin/env python3
 from __future__ import annotations
-import matplotlib.pyplot as plt
-import time
+
 import json
-from pathlib import Path
-from typing import List, Dict, Tuple, Optional, Union
+import os
 import pickle
+import time
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple, Union
+
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import scipy.stats as stats
-from src.utils.perfkit import perfclass, PerfMixin
-from sklearn.base import clone
-
-from sklearn.impute import SimpleImputer, KNNImputer, IterativeImputer
-from sklearn.linear_model import BayesianRidge, LogisticRegression
-from sklearn.covariance import EmpiricalCovariance
 from joblib import Parallel, delayed
-import os
+from sklearn.base import clone
+from sklearn.covariance import EmpiricalCovariance
+from sklearn.impute import IterativeImputer, KNNImputer, SimpleImputer
+from sklearn.linear_model import BayesianRidge, LogisticRegression
+
 from configs import global_conf
+from src.utils.perfkit import PerfMixin, perfclass
+
 from .missingness_analyzer import MissingnessAnalyzer
 
 REPORT_PATH = Path(f"{global_conf.PREPROCESSOR_REPORT_PATH}/missingness")
@@ -254,7 +257,7 @@ class MissingImputer(PerfMixin):
         orig = df0[col]
         n_missing = int(orig.isna().sum())
         if n_missing == 0:
-            self._log(f"  • Numeric '{col}': no missing → skip")
+            self._log(f"  • Numeric {col!r}: no missing → skip")
             self.report["missing_numeric"][col] = {
                 "chosen": "none",
                 "note": "no missing",
@@ -278,7 +281,7 @@ class MissingImputer(PerfMixin):
             )
             ks_p, vr, cc = self._evaluate_impute_num(col, orig_series, arr, cov_before)
             if np.isnan(cc) or np.isnan(vr):
-                continue  # skip this imputer
+                pass  # skip this imputer
             runtime = time.time() - start
             metrics["mean"] = (ks_p, vr, cc, runtime)
             candidates["mean"] = arr
@@ -299,7 +302,7 @@ class MissingImputer(PerfMixin):
             )
             ks_p, vr, cc = self._evaluate_impute_num(col, orig_series, arr, cov_before)
             if np.isnan(cc) or np.isnan(vr):
-                continue  # skip this imputer
+                pass  # skip this imputer
 
             runtime = time.time() - start
             metrics["median"] = (ks_p, vr, cc, runtime)
@@ -317,7 +320,7 @@ class MissingImputer(PerfMixin):
             arr = self._random_sample_impute_num(orig_series)
             ks_p, vr, cc = self._evaluate_impute_num(col, orig_series, arr, cov_before)
             if np.isnan(cc) or np.isnan(vr):
-                continue  # skip this imputer
+                pass  # skip this imputer
             runtime = time.time() - start
             metrics["random_sample"] = (ks_p, vr, cc, runtime)
             candidates["random_sample"] = arr
@@ -337,7 +340,7 @@ class MissingImputer(PerfMixin):
                     col, orig_series, arr, cov_before
                 )
                 if np.isnan(cc) or np.isnan(vr):
-                    continue  # skip this imputer
+                    pass  # skip this imputer
                 runtime = time.time() - start
                 metrics["knn"] = (ks_p, vr, cc, runtime)
                 candidates["knn"] = arr
@@ -357,7 +360,7 @@ class MissingImputer(PerfMixin):
                     col, orig_series, arr, cov_before
                 )
                 if np.isnan(cc) or np.isnan(vr):
-                    continue  # skip this imputer
+                    pass  # skip this imputer
                 runtime = time.time() - start
                 metrics["mice"] = (ks_p, vr, cc, runtime)
                 candidates["mice"] = arr
@@ -404,7 +407,7 @@ class MissingImputer(PerfMixin):
             "metrics": best_score,
         }
         self._log(
-            f"    → Selected '{best_method}' for '{col}' with metrics={best_score}"
+            f"    → Selected {best_method!r} for {col!r} with metrics={best_score}"
         )
 
         df0[col] = candidates[best_method].values
@@ -619,7 +622,9 @@ class MissingImputer(PerfMixin):
                 )
                 self.report["rare_levels"][col] = list(rare_levels)
                 self._log(
-                    f"  • Categorical '{col}': collapsed {len(rare_levels)} rare levels → '__RARE__'"
+                    (
+                        f" • Categorical {col!r}: collapsed {len(rare_levels)} rare levels → __RARE__"
+                    )
                 )
 
         # 9) Impute remaining categorical columns
@@ -627,7 +632,7 @@ class MissingImputer(PerfMixin):
             orig = df0[col].astype(object)
             n_missing = int(orig.isna().sum())
             if n_missing == 0:
-                self._log(f"  • Categorical '{col}': no missing → skip")
+                self._log(f"  • Categorical {col!r}: no missing → skip")
                 self.report["missing_categorical"][col] = {
                     "chosen": "none",
                     "note": "no missing",
@@ -636,7 +641,7 @@ class MissingImputer(PerfMixin):
                 continue
 
             self._log(
-                f"  • Categorical '{col}': {n_missing} missing, evaluating imputers"
+                f"  • Categorical {col!r}: {n_missing} missing, evaluating imputers"
             )
             # Compute mode
             if not orig.dropna().empty:

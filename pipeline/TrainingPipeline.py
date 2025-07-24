@@ -1,39 +1,32 @@
-from zenml.pipelines import pipeline
-from zenml.steps import step, Output
-from zenml.integrations.mlflow.mlflow_step_decorator import enable_mlflow
-import pandas as pd
-from typing import Tuple, Any
-import mlflow
 import json
 import os
+from typing import Any, Tuple
+
+import mlflow
+import pandas as pd
 from sklearn.dummy import DummyClassifier
 from sklearn.metrics import accuracy_score
-
+from src.Stage_2_ED_Analysis.EDAnalyzer import EDAnalyzer
+from src.Stage_2_ED_Analysis.PDAnalysis import ProbabilisticAnalysis
+from src.Stage_2_ED_Analysis.UnifiedEPDA import UnifiedEPDA
+from src.stage_4_preprocessing.Missing_Imputer import MissingImputer
+from src.stage_4_preprocessing.Outlier_Detection import OutlierDetector
+from zenml.integrations.mlflow.mlflow_step_decorator import enable_mlflow
+from zenml.pipelines import pipeline
+from zenml.steps import Output, step
 
 from src.Stage_1_Ingestion.data_injection.DataCollector import DataCollector
 from src.Stage_1_Ingestion.DataHealthCheck import DataHealthCheck
-
-from src.Stage_2_ED_Analysis.UnifiedEPDA import UnifiedEPDA
-from src.Stage_2_ED_Analysis.EDAnalyzer import EDAnalyzer
-from src.Stage_2_ED_Analysis.PDAnalysis import ProbabilisticAnalysis
-
-from src.Stage_3_Split_data.ThreeWaySplit import SplitThreeWay
 from src.Stage_3_Split_data.base import SplitThreeWay
-
-
-from src.stage_4_preprocessing.Missing_Imputer import MissingImputer
-from src.stage_4_preprocessing.Outlier_Detection import OutlierDetector
-
+from src.Stage_3_Split_data.ThreeWaySplit import SplitThreeWay
+from src.Stage_5_Feature_Engineering.Dimensionality_Reduction import AutoDR
+from src.Stage_5_Feature_Engineering.Feature_Construction import FeatureConstructor
 from src.Stage_5_Feature_Engineering.Feature_Encoding import FeatureEncoder
 from src.Stage_5_Feature_Engineering.Feature_Splitting import FeatureSplitter
-from src.Stage_5_Feature_Engineering.Feature_Construction import FeatureConstructor
 from src.Stage_5_Feature_Engineering.Feature_Transformer import FeatureTransformer
-from src.Stage_5_Feature_Engineering.Dimensionality_Reduction import AutoDR
-
 
 # from src.stage_6_modeling import ModelTrainer
 from src.Stage_7_Evaluation.Evaluate_register import evaluate_and_register
-
 from src.utils.monitor import monitor
 
 mlflow.set_tag("zenml_pipeline", "training_pipeline_v1")

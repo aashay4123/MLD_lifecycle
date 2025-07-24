@@ -3,6 +3,7 @@
 # Author: ChatGPT • 2025-06-07
 
 from __future__ import annotations
+
 import logging
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
@@ -10,19 +11,19 @@ import numpy as np
 import pandas as pd
 from numpy.linalg import cond
 from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.cross_decomposition import PLSRegression
 from sklearn.decomposition import (
+    NMF,
     PCA,
     IncrementalPCA,
-    TruncatedSVD,
-    NMF,
     KernelPCA,
+    TruncatedSVD,
 )
-from sklearn.cross_decomposition import PLSRegression
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.feature_selection import SequentialFeatureSelector
 from sklearn.linear_model import LogisticRegression, Ridge
 from sklearn.manifold import trustworthiness  # t-SNE dropped for OOS-transform
-from sklearn.model_selection import StratifiedKFold, KFold, cross_val_score
+from sklearn.model_selection import KFold, StratifiedKFold, cross_val_score
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.random_projection import GaussianRandomProjection

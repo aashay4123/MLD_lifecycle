@@ -1,15 +1,17 @@
-import os
 import json
 import logging
+import os
+from itertools import combinations
+from typing import List, Optional
+
+import matplotlib.pyplot as plt
+import mlflow
 import numpy as np
 import pandas as pd
 import seaborn as sns
-import matplotlib.pyplot as plt
-from typing import Optional, List
-from itertools import combinations
 from statsmodels.stats.outliers_influence import variance_inflation_factor
+
 from configs import global_conf
-import mlflow
 
 logger = logging.getLogger("DataHealthLogger")
 logger.setLevel(logging.INFO)

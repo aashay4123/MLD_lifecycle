@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 
 import os
-import pandas as pd
+
 import numpy as np
-from sklearn.datasets import load_iris, load_wine, load_breast_cancer
-from sklearn.impute import SimpleImputer
+import pandas as pd
+from sklearn.datasets import load_breast_cancer, load_iris, load_wine
 from sklearn.ensemble import IsolationForest
+from sklearn.impute import SimpleImputer
+
 from src.Stage_4_Preprocessor.Feature_Transformer import FeatureScalerTransformer
 
 

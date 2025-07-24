@@ -1,17 +1,19 @@
-import os
-import pandas as pd
 import json
+import os
+from pathlib import Path
+from typing import Tuple
+
 import mlflow
+import numpy as np
+import pandas as pd
 from zenml import step
 from zenml.steps import get_step_context
-from typing import Tuple
-from .DataCollector import DataCollector
-from .DataHealthCheck import DataHealthCheck
+
 from configs import global_conf
 from src.utils.monitor import monitor
-import numpy as np
-from pathlib import Path
 
+from .DataCollector import DataCollector
+from .DataHealthCheck import DataHealthCheck
 
 DATASET_TARGET_COLUMN_NAME = "label"
 

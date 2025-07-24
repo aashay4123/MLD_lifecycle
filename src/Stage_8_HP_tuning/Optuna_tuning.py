@@ -1,42 +1,44 @@
-import optuna
-import numpy as np
 import warnings
-import pandas as pd
+
 import joblib
 import mlflow
+import numpy as np
+import optuna
+import optuna.visualization as vis
+import pandas as pd
+from catboost import CatBoostClassifier
+from lightgbm import LGBMClassifier, LGBMRegressor
 from sklearn.base import clone
+from sklearn.cluster import DBSCAN, KMeans
 from sklearn.ensemble import (
-    RandomForestClassifier,
-    GradientBoostingClassifier,
     ExtraTreesClassifier,
-    RandomForestRegressor,
-    GradientBoostingRegressor,
     ExtraTreesRegressor,
+    GradientBoostingClassifier,
+    GradientBoostingRegressor,
+    RandomForestClassifier,
+    RandomForestRegressor,
 )
+from sklearn.exceptions import ConvergenceWarning
 from sklearn.linear_model import (
-    LogisticRegression,
-    Ridge,
     Lasso,
     LinearRegression,
+    LogisticRegression,
+    Ridge,
     RidgeClassifier,
 )
-from sklearn.svm import SVC
-from sklearn.cluster import KMeans, DBSCAN
+from sklearn.metrics import get_scorer
 from sklearn.mixture import GaussianMixture
+from sklearn.svm import SVC
 from xgboost import XGBClassifier, XGBRegressor
-from lightgbm import LGBMClassifier, LGBMRegressor
-from catboost import CatBoostClassifier
+
 from configs import global_conf
 from src.utils.utils import (
+    compute_metric,
+    cross_val_objective,
     detect_task_and_search_space,
     get_cv,
     get_metric,
-    cross_val_objective,
-    compute_metric,
 )
-import optuna.visualization as vis
-from sklearn.metrics import get_scorer
-from sklearn.exceptions import ConvergenceWarning
 
 # Suppress specific sklearn convergence warnings
 warnings.filterwarnings("ignore", category=ConvergenceWarning)

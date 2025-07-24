@@ -1,16 +1,17 @@
-import re
 import json
-import threading
 import os
-import numpy as np
-import pandas as pd
-from urllib.parse import urlparse, parse_qs
-from sklearn.base import BaseEstimator, TransformerMixin
+import re
+import threading
 from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
+from typing import Dict, List, Optional, Tuple, Union
+from urllib.parse import parse_qs, urlparse
+
+import numpy as np
+import pandas as pd
+from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.feature_selection import mutual_info_classif
 from sklearn.preprocessing import LabelEncoder
-from typing import Dict, List, Tuple, Optional, Union
 
 
 class FeatureSplitter(BaseEstimator, TransformerMixin):

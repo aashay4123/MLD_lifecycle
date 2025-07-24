@@ -1,16 +1,17 @@
-from zenml.pipelines import pipeline
-from zenml.steps import step
 from typing import List
 
-# === Step imports ===
-from training_pipeline import training_pipeline
-from test_prediction_pipeline import test_prediction_pipeline
-from optuna_hpo_with_ensemble_pipeline import optuna_hpo_with_ensemble_pipeline
+from deploy_model import deploy_model
 from drift_monitoring_pipeline import (
     drift_monitoring_pipeline,
 )
 from evaluate_and_register import evaluate_and_register
-from deploy_model import deploy_model
+from optuna_hpo_with_ensemble_pipeline import optuna_hpo_with_ensemble_pipeline
+from test_prediction_pipeline import test_prediction_pipeline
+
+# === Step imports ===
+from training_pipeline import training_pipeline
+from zenml.pipelines import pipeline
+from zenml.steps import step
 
 
 @step
