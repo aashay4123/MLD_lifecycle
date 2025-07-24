@@ -54,6 +54,21 @@ flake8-comprehensions = "^3.16.0"
 flake8-black = "^0.3.6"
 flake8-print = "^5.0.0"
 
+[tool.black]
+line-length = 88
+target-version = ['py39']    
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.git
+  | \.mypy_cache
+  | \.pytest_cache
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"

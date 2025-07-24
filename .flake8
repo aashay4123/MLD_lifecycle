@@ -2,7 +2,7 @@
 max-line-length = 88
 
 max-complexity = 10
-select = B,C,E,F,W,T4,B9
+select = B,C,E,F,W,T4,D,B9
 
 ignore =
     E203  
