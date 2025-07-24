@@ -1,13 +1,15 @@
 import importlib
 import os
 import subprocess
-from typing import Any, Dict, List, Optional, Union
+from contextlib import contextmanager
+from typing import Any, Dict, Generator, List, Optional, Union
 
 import mlflow
 import yaml
 from mlflow import ActiveRun
 from mlflow.artifacts import download_artifacts
-from mlflow.entities import ModelVersion, ViewType
+from mlflow.entities import ViewType
+from mlflow.entities.model_registry import ModelVersion
 from mlflow.exceptions import MlflowException
 from mlflow.tracking import MlflowClient
 
@@ -15,7 +17,7 @@ from mlflow.tracking import MlflowClient
 # Configuration
 # ─────────────────────────────────────────────
 MLFLOW_TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI", "http://127.0.0.1:7000")
-MLFLOW_EXPERIMENT = os.getenv("MLFLOW_EXPERIMENT", "AutoML_Local")
+MLFLOW_EXPERIMENT = os.getenv("MLFLOW_EXPERIMENT", "ML_Local")
 
 mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
 mlflow.set_experiment(MLFLOW_EXPERIMENT)
@@ -26,18 +28,19 @@ _client = MlflowClient()
 # ─────────────────────────────────────────────
 
 
+# @contextmanager
 def start_run(
     run_name: Optional[str] = None,
     experiment_name: Optional[str] = None,
     tags: Optional[Dict[str, str]] = None,
     nested: bool = False,
-) -> ActiveRun:
+) -> Generator[ActiveRun, None, None]:
     if experiment_name:
         mlflow.set_experiment(experiment_name)
-    # return mlflow.start_run(run_name=run_name, nested=nested, tags=tags)
+    # with mlflow.start_run(run_name=run_name, nested=nested, tags=tags) as active_run:
+    #     yield active_run
     # __enter__ returns the ActiveRun
-    with mlflow.start_run(run_name=run_name, nested=nested, tags=tags) as active_run:
-        yield active_run
+    return mlflow.start_run(run_name=run_name, nested=nested, tags=tags)
 
 
 end_run = mlflow.end_run
@@ -299,6 +302,32 @@ def list_runs(
         order_by=order_by or ["attributes.start_time desc"],
     )
 
+
+__all__ = [
+    "start_run",
+    "end_run",
+    "log_params",
+    "log_metrics",
+    "log_artifacts",
+    "download_artifact",
+    "list_artifacts",
+    "enable_autologging",
+    "log_sklearn_model",
+    "load_sklearn_model",
+    "log_xgboost_model",
+    "load_xgboost_model",
+    "log_lightgbm_model",
+    "load_lightgbm_model",
+    "log_pyfunc_model",
+    "load_pyfunc_model",
+    "register_model",
+    "promote_model",
+    "archive_model",
+    "serve_model",
+    "log_conda_env",
+    "list_model_flavors",
+    "list_runs",
+]
 
 # ───────────────────────────────────────────── Example Usage ─────────────────────────────────────────────
 
