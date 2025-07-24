@@ -47,6 +47,8 @@ devup_bg:
 devdown:
 	@echo "\033[1;31m🛑 Stopping ZenML and MLflow services...\033[0m"
 	poetry run zenml logout --local || true
+	poetry run zenml disconnect
+
 	@echo "\033[1;31m🔹 Killing MLflow server (if running)...\033[0m"
 	set -o pipefail; \
 	lsof -ti tcp:7000 | xargs -r kill -9 \

@@ -181,9 +181,9 @@ if st.button("Predict"):
 - [x] Full inference pipeline
 - [x] Metadata for input structure
 - [x] Streamlit integration
-- [ ] Auth/RBAC (optional)
-- [ ] Async job handling (future)
-- [ ] Logging to MLflow or Evidently
+- [x] Auth/RBAC
+- [x] Async job handling
+- [x] Logging to MLflow or Evidently
 
 ---
 

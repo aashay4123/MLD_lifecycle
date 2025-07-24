@@ -4,39 +4,6 @@ This document describes the architecture of this ML system — how data flows, w
 
 ---
 
-## 🗂️ Project Directory Structure (High-level)
-
-```
-MLD_LIFECYCLE/
-├── configs/                  # Global config files
-├── Data/                     # Local data storage (raw/processed)
-├── docs/                     # Documentation and reporting artifacts
-├── mlruns/                   # MLflow experiment logs (ignored by DVC)
-├── notebooks/                # Jupyter notebooks for prototyping
-├── pipeline/                 # ZenML pipeline definitions
-├── reports/                  # Validation, drift, explainability reports
-├── src/                      # Core pipeline logic (see below)
-│   ├── Stage_1_Ingestion/
-│   ├── Stage_2_EPD_Analysis/
-│   ├── Stage_3_Split_data/
-│   ├── Stage_4_Preprocessor/
-│   ├── Stage_5_Feature_Engineering/
-│   ├── Stage_6_Modelling/
-│   ├── Stage_7_Evaluation/
-│   ├── Stage_8_HP_tuning/
-│   ├── Stage_9_Monitoring/
-│   └── Stage_10_Deploy/
-├── stacks/                   # ZenML stack setup scripts
-├── utils/                    # Common utilities
-├── .gitignore, Makefile      # Project control files
-├── pyproject.toml, poetry.lock
-└── README.md, ARCHITECTURE.md
-```
-
-Each `Stage_` folder represents a self-contained ZenML step in your pipeline.
-
----
-
 ## 🧭 Pipeline Stage Overview
 
 ```mermaid
@@ -158,7 +125,7 @@ flowchart TD
 - **GitHub Actions** triggers:
 
   - `pytest`-based test runs for all stages
-  - `flake8`/`black` formatting
+  - `flake8` formatting
   - ZenML `pipeline.run()` on merges to `main`
   - Optional artifact building (Docker)
 

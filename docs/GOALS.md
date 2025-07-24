@@ -10,13 +10,13 @@ Build a **modular, local-first AutoML framework** for tabular datasets with zero
 
 ## 🧱 Design Philosophy
 
-| Principle             | Description |
-|-----------------------|-------------|
-| **Modularity**        | Each pipeline stage is a standalone class integrated with ZenML |
-| **Reproducibility**   | Every transformation is tracked with fixed seeds and MLflow |
-| **Parallelism**       | Preprocessing and modeling pipelines are branched by model family |
-| **Transparency**      | Explainability and metadata logging included |
-| **Flexibility**       | Supports any tabular dataset and auto-adapts to its type |
+| Principle           | Description                                                       |
+| ------------------- | ----------------------------------------------------------------- |
+| **Modularity**      | Each pipeline stage is a standalone class integrated with ZenML   |
+| **Reproducibility** | Every transformation is tracked with fixed seeds and MLflow       |
+| **Parallelism**     | Preprocessing and modeling pipelines are branched by model family |
+| **Transparency**    | Explainability and metadata logging included                      |
+| **Flexibility**     | Supports any tabular dataset and auto-adapts to its type          |
 
 ---
 
@@ -29,7 +29,7 @@ Build a **modular, local-first AutoML framework** for tabular datasets with zero
 
 ---
 
-## 🚧 Future Goals (Planned)
+## 🚧 Future Goals (V3)
 
 - NLP support via spaCy / HuggingFace pipelines
 - Time Series support (ARIMA, Prophet, LSTM hybrids)
