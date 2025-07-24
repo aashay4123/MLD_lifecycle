@@ -40,7 +40,8 @@ class CustomPipelineBuilder:
         pipeline = joblib.load(self.persist_path)
         self.steps = OrderedDict(pipeline.steps)
         print(
-            f"[CustomPipelineBuilder] Loaded pipeline with steps: {list(self.steps.keys())}")
+            f"[CustomPipelineBuilder] Loaded pipeline with steps: {list(self.steps.keys())}"
+        )
 
     def export_pipeline(self):
         return self.build_pipeline()
@@ -48,5 +49,7 @@ class CustomPipelineBuilder:
     # builder = CustomPipelineBuilder()
     # builder.add_step("encoder", encoder)
     # builder.save()
+
+
 # final_pipeline = CustomPipelineBuilder().export_pipeline()
 # mlflow.sklearn.log_model(final_pipeline, artifact_path="full_pipeline")

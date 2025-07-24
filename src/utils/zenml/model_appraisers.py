@@ -137,8 +137,7 @@ def model_analysis(
                 suite_html = f.read()
         log_text(suite_html, f"{name}.html")
         passed_checks = suite_result.get_passed_checks()
-        failed_checks = suite_result.get_not_passed_checks(
-            fail_if_warning=False)
+        failed_checks = suite_result.get_not_passed_checks(fail_if_warning=False)
         warning_checks = [
             check
             for check in suite_result.get_not_passed_checks(fail_if_warning=True)

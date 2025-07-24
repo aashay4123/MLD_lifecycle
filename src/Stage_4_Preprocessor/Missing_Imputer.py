@@ -22,8 +22,7 @@ from .missingness_analyzer import MissingnessAnalyzer
 
 REPORT_PATH = Path(f"{global_conf.PREPROCESSOR_REPORT_PATH}/missingness")
 REPORT_PATH.mkdir(parents=True, exist_ok=True)
-DEFAULT_MODEL_PATH = Path(
-    f"{global_conf.MODEL_ARTIFACTS_PATH}/missing_model_state.pkl")
+DEFAULT_MODEL_PATH = Path(f"{global_conf.MODEL_ARTIFACTS_PATH}/missing_model_state.pkl")
 DEFAULT_MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)
 
 MAX_MISSING_FRAC_DROP: float = 0.90
@@ -108,8 +107,7 @@ class MissingImputer(PerfMixin):
         }
         with open(filepath, "wb") as f:
             pickle.dump(state, f)
-        self._log(
-            f"✔ Saved MissingImputer model to {Path(filepath).resolve()}")
+        self._log(f"✔ Saved MissingImputer model to {Path(filepath).resolve()}")
 
     def load(self, filepath: Union[str, Path]):
         with open(filepath, "rb") as f:
@@ -146,6 +144,7 @@ class MissingImputer(PerfMixin):
                         (x2.count(".") <= 1)
                         and all(ch.isdigit() for ch in x2.replace(".", ""))
                     )
+
                 total = len(series)
                 if total > 0:
                     digit_like_count = series.map(is_digit_like).sum()
@@ -213,12 +212,9 @@ class MissingImputer(PerfMixin):
             ks_p = 0.0
 
         # 2) Variance ratio
-        var_orig = float(np.nanvar(orig_nonnull)) if len(
-            orig_nonnull) > 0 else np.nan
-        var_imp = float(np.nanvar(imp_nonnull)) if len(
-            imp_nonnull) > 0 else np.nan
-        var_ratio = var_imp / \
-            var_orig if (var_orig and var_orig > 0) else np.nan
+        var_orig = float(np.nanvar(orig_nonnull)) if len(orig_nonnull) > 0 else np.nan
+        var_imp = float(np.nanvar(imp_nonnull)) if len(imp_nonnull) > 0 else np.nan
+        var_ratio = var_imp / var_orig if (var_orig and var_orig > 0) else np.nan
 
         # 3) Covariance change
         if cov_before is None:
@@ -232,8 +228,7 @@ class MissingImputer(PerfMixin):
                 cov_change = np.nan
             else:
                 cov_after = (
-                    EmpiricalCovariance().fit(
-                        temp.loc[complete_idx].values).covariance_
+                    EmpiricalCovariance().fit(temp.loc[complete_idx].values).covariance_
                 )
                 idx_feat = self.numeric_cols.index(col)
                 diff = np.abs(cov_after[idx_feat, :] - cov_before[idx_feat, :])
@@ -243,8 +238,7 @@ class MissingImputer(PerfMixin):
 
     def get_imputer(self, col: str) -> Optional[Tuple[str, Optional[object]]]:
         return (
-            self.numeric_imputers.get(
-                col) or self.categorical_imputers.get(col) or None
+            self.numeric_imputers.get(col) or self.categorical_imputers.get(col) or None
         )
 
     def _evaluate_single_numeric_column(
@@ -268,8 +262,7 @@ class MissingImputer(PerfMixin):
             self.numeric_imputers[col] = ("none", None)
             return
 
-        self._log(
-            f"  • Numeric '{col}': {n_missing} missing, evaluating imputers")
+        self._log(f"  • Numeric '{col}': {n_missing} missing, evaluating imputers")
         orig_series = orig.copy()
         metrics: Dict[str, Tuple[float, float, float, float]] = {}
         candidates: Dict[str, pd.Series] = {}
@@ -283,8 +276,7 @@ class MissingImputer(PerfMixin):
                 imp.fit_transform(orig_series.values.reshape(-1, 1)).flatten(),
                 index=orig_series.index,
             )
-            ks_p, vr, cc = self._evaluate_impute_num(
-                col, orig_series, arr, cov_before)
+            ks_p, vr, cc = self._evaluate_impute_num(col, orig_series, arr, cov_before)
             if np.isnan(cc) or np.isnan(vr):
                 continue  # skip this imputer
             runtime = time.time() - start
@@ -305,8 +297,7 @@ class MissingImputer(PerfMixin):
                 imp.fit_transform(orig_series.values.reshape(-1, 1)).flatten(),
                 index=orig_series.index,
             )
-            ks_p, vr, cc = self._evaluate_impute_num(
-                col, orig_series, arr, cov_before)
+            ks_p, vr, cc = self._evaluate_impute_num(col, orig_series, arr, cov_before)
             if np.isnan(cc) or np.isnan(vr):
                 continue  # skip this imputer
 
@@ -324,8 +315,7 @@ class MissingImputer(PerfMixin):
         try:
             start = time.time()
             arr = self._random_sample_impute_num(orig_series)
-            ks_p, vr, cc = self._evaluate_impute_num(
-                col, orig_series, arr, cov_before)
+            ks_p, vr, cc = self._evaluate_impute_num(col, orig_series, arr, cov_before)
             if np.isnan(cc) or np.isnan(vr):
                 continue  # skip this imputer
             runtime = time.time() - start
@@ -396,8 +386,7 @@ class MissingImputer(PerfMixin):
         if best_method is None:
             # Fallback → mean
             arr = orig_series.fillna(orig_series.mean())
-            ks_p, vr, cc = self._evaluate_impute_num(
-                col, orig_series, arr, cov_before)
+            ks_p, vr, cc = self._evaluate_impute_num(col, orig_series, arr, cov_before)
             best_method = "fallback_mean"
             imp_fb = SimpleImputer(strategy="mean")
             imp_fb.fit(orig_series.values.reshape(-1, 1))
@@ -421,7 +410,9 @@ class MissingImputer(PerfMixin):
         df0[col] = candidates[best_method].values
         self.numeric_imputers[col] = (best_method, imputers.get(best_method))
 
-    def report_missing_imputer(self, df_before: pd.DataFrame, df_after: pd.DataFrame) -> Dict:
+    def report_missing_imputer(
+        self, df_before: pd.DataFrame, df_after: pd.DataFrame
+    ) -> Dict:
         """
         Comprehensive missingness report:
         - Logs missing counts before and after
@@ -443,8 +434,11 @@ class MissingImputer(PerfMixin):
         print(f"🔎 Total missing after imputation:  {missing_after_total}")
 
         # 2️⃣ Determine top N columns with most missing before imputation
-        top_missing_cols = missing_before.sort_values(
-            ascending=False).head(self.max_figures).index.tolist()
+        top_missing_cols = (
+            missing_before.sort_values(ascending=False)
+            .head(self.max_figures)
+            .index.tolist()
+        )
 
         charts = []
 
@@ -482,8 +476,12 @@ class MissingImputer(PerfMixin):
             # includes missing patterns, strategies, etc.
             "fit_report": self.report,
             "dropped_columns": self.cols_to_drop,
-            "numeric_imputers": {col: info[0] for col, info in self.numeric_imputers.items()},
-            "categorical_imputers": {col: info[0] for col, info in self.categorical_imputers.items()},
+            "numeric_imputers": {
+                col: info[0] for col, info in self.numeric_imputers.items()
+            },
+            "categorical_imputers": {
+                col: info[0] for col, info in self.categorical_imputers.items()
+            },
         }
 
         preprocessor_report_dir = global_conf.PREPROCESSOR_REPORT_PATH
@@ -535,8 +533,7 @@ class MissingImputer(PerfMixin):
             for c in df0.select_dtypes(include=[np.number]).columns
             if c not in self.cols_to_drop
         ]
-        self.categorical_cols = [
-            c for c in df0.columns if c not in self.numeric_cols]
+        self.categorical_cols = [c for c in df0.columns if c not in self.numeric_cols]
 
         # 4) Keep a copy of numeric block for covariance computations
         if not self.numeric_cols:
@@ -743,8 +740,7 @@ class MissingImputer(PerfMixin):
                 )
 
         df1 = df.copy()
-        print(
-            f"MissingImputer → transform() on {df1.isnull().sum().sum()} ")
+        print(f"MissingImputer → transform() on {df1.isnull().sum().sum()} ")
         # 1) Drop the same columns
         df1 = df1.drop(
             columns=[c for c in self.cols_to_drop if c in df1.columns], errors="ignore"
@@ -760,7 +756,8 @@ class MissingImputer(PerfMixin):
             if imp and valid_num_cols:
                 if len(imp.feature_names_in_) != len(valid_num_cols):
                     raise ValueError(
-                        f"[KNN] Column mismatch: expected {len(imp.feature_names_in_)}, got {len(valid_num_cols)}")
+                        f"[KNN] Column mismatch: expected {len(imp.feature_names_in_)}, got {len(valid_num_cols)}"
+                    )
                 block = df1[valid_num_cols]
                 knn_imputed_block = pd.DataFrame(
                     imp.transform(block), columns=valid_num_cols, index=block.index
@@ -771,7 +768,8 @@ class MissingImputer(PerfMixin):
             if imp and valid_num_cols:
                 if len(imp.feature_names_in_) != len(valid_num_cols):
                     raise ValueError(
-                        f"[KNN] Column mismatch: expected {len(imp.feature_names_in_)}, got {len(valid_num_cols)}")
+                        f"[KNN] Column mismatch: expected {len(imp.feature_names_in_)}, got {len(valid_num_cols)}"
+                    )
                 block = df1[valid_num_cols]
                 mice_imputed_block = pd.DataFrame(
                     imp.transform(block), columns=valid_num_cols, index=block.index
@@ -786,19 +784,16 @@ class MissingImputer(PerfMixin):
             if method == "none":
                 df1[col] = series.fillna(series.mean())
             elif method in ["mean", "median", "fallback_mean"]:
-                df1[col] = imputer_obj.transform(
-                    series.values.reshape(-1, 1)).flatten()
+                df1[col] = imputer_obj.transform(series.values.reshape(-1, 1)).flatten()
             elif method == "knn" and knn_block is not None:
                 df1[col] = knn_block[col]
             elif method == "knn" and knn_block is None:
-                print(
-                    f"[WARN] KNN block missing for '{col}' → fallback to mean")
+                print(f"[WARN] KNN block missing for '{col}' → fallback to mean")
                 df1[col] = series.fillna(series.mean())
             elif method == "mice" and mice_block is not None:
                 df1[col] = mice_block[col]
             elif method == "mice" and mice_block is None:
-                print(
-                    f"[WARN] mice block missing for '{col}' → fallback to mean")
+                print(f"[WARN] mice block missing for '{col}' → fallback to mean")
                 df1[col] = series.fillna(series.mean())
             elif method == "random_sample":
                 nonnull = series.dropna().values
@@ -822,8 +817,11 @@ class MissingImputer(PerfMixin):
         rare_levels = self.report.get("rare_levels", {})
         for col, levels in rare_levels.items():
             if col in df1.columns:
-                df1[col] = df1[col].where(~df1[col].isin(
-                    levels), "__RARE__").astype("category")
+                df1[col] = (
+                    df1[col]
+                    .where(~df1[col].isin(levels), "__RARE__")
+                    .astype("category")
+                )
                 self._log(f"  • Re-applied rare collapse to '{col}'")
 
         # 4) Categorical column-wise imputation
@@ -851,8 +849,7 @@ class MissingImputer(PerfMixin):
             delayed(_transform_categorical_column)(col, strategy, val, df1)
             for col, (strategy, val) in self.categorical_imputers.items()
         )
-        print(
-            f"MissingImputer → transform() on {df1.isnull().sum().sum()} ")
+        print(f"MissingImputer → transform() on {df1.isnull().sum().sum()} ")
         return df1
 
     def fit_transform(self, df: pd.DataFrame) -> pd.DataFrame:

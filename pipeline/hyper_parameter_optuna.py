@@ -18,9 +18,13 @@ datasets = {
     #     "task": "classification"
     # },
     "synthetic_regression": {
-        "X": make_regression(n_samples=500, n_features=10, noise=15, random_state=42)[0],
-        "y": make_regression(n_samples=500, n_features=10, noise=15, random_state=42)[1],
-        "task": "regression"
+        "X": make_regression(n_samples=500, n_features=10, noise=15, random_state=42)[
+            0
+        ],
+        "y": make_regression(n_samples=500, n_features=10, noise=15, random_state=42)[
+            1
+        ],
+        "task": "regression",
     },
 }
 
@@ -31,21 +35,33 @@ for dataset_name, dataset in datasets.items():
 
     print(f"\n🔵 Dataset: {dataset_name} ({task})")
 
-    stratify_main = y if (task == "classification" and len(
-        np.unique(y)) < 20) else None
+    stratify_main = y if (task == "classification" and len(np.unique(y)) < 20) else None
     X_train_val, X_test, y_train_val, y_test = train_test_split(
-        X, y, stratify=stratify_main, test_size=0.2, random_state=global_conf.RANDOM_STATE
+        X,
+        y,
+        stratify=stratify_main,
+        test_size=0.2,
+        random_state=global_conf.RANDOM_STATE,
     )
 
-    stratify_val = y_train_val if (task == "classification" and len(
-        np.unique(y_train_val)) < 20) else None
+    stratify_val = (
+        y_train_val
+        if (task == "classification" and len(np.unique(y_train_val)) < 20)
+        else None
+    )
     X_train, X_val, y_train, y_val = train_test_split(
-        X_train_val, y_train_val, stratify=stratify_val, test_size=0.2, random_state=global_conf.RANDOM_STATE
+        X_train_val,
+        y_train_val,
+        stratify=stratify_val,
+        test_size=0.2,
+        random_state=global_conf.RANDOM_STATE,
     )
 
     tuner = OptunaHyperTuner(
-        X_train, y_train,
-        X_test, y_test,
+        X_train,
+        y_train,
+        X_test,
+        y_test,
         n_trials=5,
         cv_folds=global_conf.DEFAULT_CV_FOLDS,
         scoring=global_conf.DEFAULT_METRIC_REGRESSION,
@@ -65,22 +81,27 @@ for dataset_name, dataset in datasets.items():
             # retrained_model.fit(X_train, y_train)
 
             train_score = compute_metric(
-                y_train, retrained_model, X_train, metric_str, task=task)
+                y_train, retrained_model, X_train, metric_str, task=task
+            )
             test_score = compute_metric(
-                y_test, retrained_model, X_test, metric_str, task=task)
+                y_test, retrained_model, X_test, metric_str, task=task
+            )
 
-            results.append({
-                "dataset": dataset_name,
-                "task": task,
-                "model": model_name,
-                "best_cv_score": study.best_value,
-                "train_score": train_score,
-                "test_score": test_score,
-                "best_params": best_params,
-            })
+            results.append(
+                {
+                    "dataset": dataset_name,
+                    "task": task,
+                    "model": model_name,
+                    "best_cv_score": study.best_value,
+                    "train_score": train_score,
+                    "test_score": test_score,
+                    "best_params": best_params,
+                }
+            )
 
             print(
-                f"✅ {model_name}: train {metric_str}={train_score:.4f}, test {metric_str}={test_score:.4f}")
+                f"✅ {model_name}: train {metric_str}={train_score:.4f}, test {metric_str}={test_score:.4f}"
+            )
 
         except Exception as e:
             print(f"❌ Failed for {model_name} on {dataset_name}: {e}")
@@ -106,21 +127,25 @@ for dataset_name, dataset in datasets.items():
 
         # Evaluate ensemble on test set
         ensemble_test_score = compute_metric(
-            y_test, ensemble, X_test, metric_str, task=task)
+            y_test, ensemble, X_test, metric_str, task=task
+        )
         print(
-            f"✅ Final ensemble: test {metric_str}={ensemble_test_score:.4f} | fallback_used={ensemble_info['fallback_used']}")
+            f"✅ Final ensemble: test {metric_str}={ensemble_test_score:.4f} | fallback_used={ensemble_info['fallback_used']}"
+        )
     except Exception as e:
         print(f"❌ Failed to compute metric for ensemble: {e}")
     # Record ensemble results
-    results.append({
-        "dataset": dataset_name,
-        "task": task,
-        "model": "OptimizedEnsemble",
-        "best_cv_score": ensemble_info["ensemble_score"],
-        "train_score": None,
-        "test_score": ensemble_test_score,
-        "best_params": ensemble_info["ensemble_details"],
-    })
+    results.append(
+        {
+            "dataset": dataset_name,
+            "task": task,
+            "model": "OptimizedEnsemble",
+            "best_cv_score": ensemble_info["ensemble_score"],
+            "train_score": None,
+            "test_score": ensemble_test_score,
+            "best_params": ensemble_info["ensemble_details"],
+        }
+    )
 
 # Save all results
 df = pd.DataFrame(results)

@@ -26,6 +26,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib
+
 matplotlib.use("Agg")
 
 
@@ -149,8 +150,7 @@ class EDAnalyze(PerfMixin):
 
         norm_res = parallel(norm_test_plot, list(num_cols))
         norm_res = [r for r in norm_res if r is not None]
-        pd.DataFrame(norm_res).to_csv(
-            self.outdir / "normality_tests.csv", index=False)
+        pd.DataFrame(norm_res).to_csv(self.outdir / "normality_tests.csv", index=False)
         self.report["normality"] = norm_res
 
     def bivariate(self):
@@ -173,8 +173,9 @@ class EDAnalyze(PerfMixin):
                 plt.close()
                 self.fig_count += 1
 
-        parallel(process_num_num, [(x, y)
-                 for i, x in enumerate(nums) for y in nums[i + 1:]])
+        parallel(
+            process_num_num, [(x, y) for i, x in enumerate(nums) for y in nums[i + 1 :]]
+        )
 
         def process_num_cat(pair):
             cat, num = pair
@@ -210,18 +211,24 @@ class EDAnalyze(PerfMixin):
                 plt.close()
                 self.fig_count += 1
 
-        parallel(process_cat_cat, [(a, b)
-                 for i, a in enumerate(cats) for b in cats[i + 1:]])
+        parallel(
+            process_cat_cat, [(a, b) for i, a in enumerate(cats) for b in cats[i + 1 :]]
+        )
         self.report["bivariate"] = brep
 
     def multivariate(self):
         nums = self.df.select_dtypes("number").columns.dropna()
         X = self.df[nums].dropna()
 
-        vif = pd.DataFrame({
-            "feature": nums,
-            "VIF": parallel(lambda i: variance_inflation_factor(X.values, i), list(range(X.shape[1])))
-        })
+        vif = pd.DataFrame(
+            {
+                "feature": nums,
+                "VIF": parallel(
+                    lambda i: variance_inflation_factor(X.values, i),
+                    list(range(X.shape[1])),
+                ),
+            }
+        )
         vif.to_csv(self.outdir / "vif.csv", index=False)
         self.report["vif"] = vif
 
@@ -245,24 +252,28 @@ class EDAnalyze(PerfMixin):
 
         mH, mP = pg.multivariate_normality(X, alpha=self.norm_alpha)[:2]
         pd.DataFrame([{"H": mH, "p": mP}]).to_csv(
-            self.outdir / "mardia.csv", index=False)
+            self.outdir / "mardia.csv", index=False
+        )
         self.report["mardia"] = {"H": mH, "p": mP}
 
         H = hopkins_statistic(X)
-        pd.DataFrame([{"Hopkins": H}]).to_csv(
-            self.outdir / "hopkins.csv", index=False)
+        pd.DataFrame([{"Hopkins": H}]).to_csv(self.outdir / "hopkins.csv", index=False)
         self.report["hopkins"] = H
 
         if len(nums) > 1:
             y = X[nums[0]]
             X_ = add_constant(X[nums[1:]])
             model = OLS(y, X_).fit()
-            lm, lm_p, f_stat, f_p = het_breuschpagan(
-                model.resid, model.model.exog)
-            pd.DataFrame([{"LM_stat": lm, "LM_p": lm_p, "F_stat": f_stat, "F_p": f_p}]).to_csv(
-                self.outdir / "breuschpagan.csv", index=False)
+            lm, lm_p, f_stat, f_p = het_breuschpagan(model.resid, model.model.exog)
+            pd.DataFrame(
+                [{"LM_stat": lm, "LM_p": lm_p, "F_stat": f_stat, "F_p": f_p}]
+            ).to_csv(self.outdir / "breuschpagan.csv", index=False)
             self.report["breuschpagan"] = {
-                "LM": lm, "LM_p": lm_p, "F": f_stat, "F_p": f_p}
+                "LM": lm,
+                "LM_p": lm_p,
+                "F": f_stat,
+                "F_p": f_p,
+            }
 
     def advanced(self):
         nums = self.df.select_dtypes("number").columns
@@ -273,17 +284,24 @@ class EDAnalyze(PerfMixin):
                 df_nonan = self.df[nums + [col]].dropna()
                 if df_nonan.empty:
                     return (col, np.nan)  # or 0.0 if you prefer
-                return (col, mutual_info_regression(df_nonan[nums], df_nonan[col]).mean())
+                return (
+                    col,
+                    mutual_info_regression(df_nonan[nums], df_nonan[col]).mean(),
+                )
             else:
                 codes = self.df[col].astype("category").cat.codes
                 df_nonan = self.df[nums].dropna()
                 if df_nonan.empty:
                     return (col, np.nan)
-                return (col, mutual_info_classif(df_nonan, codes.loc[df_nonan.index]).mean())
+                return (
+                    col,
+                    mutual_info_classif(df_nonan, codes.loc[df_nonan.index]).mean(),
+                )
 
         mi = dict(parallel(compute_mi, list(self.df.columns)))
-        pd.Series(mi, name="MI").sort_values(
-            ascending=False).to_csv(self.outdir / "mutual_info.csv")
+        pd.Series(mi, name="MI").sort_values(ascending=False).to_csv(
+            self.outdir / "mutual_info.csv"
+        )
         self.report["mutual_info"] = mi
 
         Xs = StandardScaler().fit_transform(self.df[nums].dropna())
@@ -316,7 +334,8 @@ class EDAnalyze(PerfMixin):
 
         num_cols = self.df.select_dtypes(include=[np.number]).columns.tolist()
         cat_cols = self.df.select_dtypes(
-            include=["object", "category"]).columns.tolist()
+            include=["object", "category"]
+        ).columns.tolist()
 
         corr_num = []
         for c in num_cols:
@@ -329,7 +348,8 @@ class EDAnalyze(PerfMixin):
                 r, p = stats.pearsonr(self.df[c], tgt)
                 corr_num.append({"feature": c, "pearson_r": r, "p": p})
         pd.DataFrame(corr_num).to_csv(
-            self.outdir / "numeric_target_corr.csv", index=False)
+            self.outdir / "numeric_target_corr.csv", index=False
+        )
         self.report["numeric_target_corr"] = corr_num
 
         cat_v = {}
@@ -340,10 +360,12 @@ class EDAnalyze(PerfMixin):
         pd.Series(cat_v).to_csv(self.outdir / "categorical_target_v.csv")
         self.report["categorical_target_v"] = cat_v
 
-        dates = self.df.select_dtypes(
-            include=["datetime64"]).apply(lambda x: x.view(int))
+        dates = self.df.select_dtypes(include=["datetime64"]).apply(
+            lambda x: x.view(int)
+        )
         if not dates.empty and tgt.nunique() <= 2:
             from sklearn.metrics import roc_auc_score
+
             auc = roc_auc_score(tgt, dates.fillna(0), average="macro")
             self.report["leakage_auc"] = float(auc)
             print(f"🚨 Leakage AUC detected: {auc:.4f}")

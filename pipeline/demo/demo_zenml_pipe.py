@@ -12,8 +12,7 @@ from sklearn.linear_model import LinearRegression
 @step
 def load_data() -> (
     Tuple[
-        Annotated[np.ndarray, "training_data"], Annotated[np.ndarray,
-                                                          "training_labels"]
+        Annotated[np.ndarray, "training_data"], Annotated[np.ndarray, "training_labels"]
     ]
 ):
     data = np.random.rand(100, 2)
@@ -58,8 +57,7 @@ def data_loader():
 @step
 def get_model():
     # Here you define which sklearn model and params to use
-    model = RandomForestClassifier(
-        n_estimators=100, max_depth=3, random_state=42)
+    model = RandomForestClassifier(n_estimators=100, max_depth=3, random_state=42)
     return model
 
 
@@ -69,8 +67,7 @@ def sklearn_pipeline(data_loader, get_model, trainer, evaluator):
     model = get_model()
     # trainer trains the model
     trained_model = trainer(X_train, y_train, model=model)
-    evaluator(model=trained_model, X=X_test,
-              y=y_test)  # evaluator evaluates it
+    evaluator(model=trained_model, X=X_test, y=y_test)  # evaluator evaluates it
 
 
 if __name__ == "__main__":

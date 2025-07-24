@@ -12,6 +12,7 @@ import os
 import joblib
 from typing import Any
 from configs import global_conf
+
 try:
     import psutil
 except ImportError:
@@ -113,8 +114,7 @@ def monitor(
                     }
                     logger.info(f"[{step_id}] Input sizes: {sizes}")
                 except Exception:
-                    logger.warning(
-                        f"[{step_id}] Failed to estimate input sizes")
+                    logger.warning(f"[{step_id}] Failed to estimate input sizes")
 
             if log_args:
                 logger.info(f"[{step_id}] Args: {args}")
@@ -132,14 +132,11 @@ def monitor(
 
                     if log_result:
                         try:
-                            logger.info(
-                                f"[{step_id}] Result type: {type(result)}")
+                            logger.info(f"[{step_id}] Result type: {type(result)}")
                             if hasattr(result, "shape"):
-                                logger.info(
-                                    f"[{step_id}] Result shape: {result.shape}")
+                                logger.info(f"[{step_id}] Result shape: {result.shape}")
                         except Exception:
-                            logger.warning(
-                                f"[{step_id}] Result inspection failed")
+                            logger.warning(f"[{step_id}] Result inspection failed")
 
                     if track_memory:
                         current, peak = tracemalloc.get_traced_memory()
@@ -154,8 +151,7 @@ def monitor(
                     if mlflow_report:
                         log_report(mlflow_report, name=f"{step_id}_report")
                     if mlflow_model:
-                        log_model_artifact(
-                            mlflow_model, name=f"{step_id}_model.joblib")
+                        log_model_artifact(mlflow_model, name=f"{step_id}_model.joblib")
 
                     return result
                 except Exception as e:

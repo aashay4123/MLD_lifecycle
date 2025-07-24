@@ -19,8 +19,7 @@ def main():
     # ================================
     # STEP 1: Identify numeric features
     # ================================
-    num_cols = df.select_dtypes(
-        include="number").columns.drop(target_col).tolist()
+    num_cols = df.select_dtypes(include="number").columns.drop(target_col).tolist()
     print(len(num_cols))
     for col in num_cols:
         df[col].fillna(df[col].mean(), inplace=True)
@@ -110,8 +109,7 @@ def main():
     # ================================
     # STEP 5: Visualize & Validate PCA
     # ================================
-    pc_cols = [c for c in best_df.columns if c.startswith(
-        best_dr.chosen_technique)]
+    pc_cols = [c for c in best_df.columns if c.startswith(best_dr.chosen_technique)]
     scaler, model = best_dr.models.get(best_dr.chosen_technique, (None, None))
     print(scaler)
 
@@ -160,8 +158,7 @@ def main():
         plt.savefig(f"{DR_Path}/final_pc_correlation.png")
         plt.close()
         mean_corr = (
-            pc_corr.where(
-                ~np.eye(pc_corr.shape[0], dtype=bool)).abs().mean().mean()
+            pc_corr.where(~np.eye(pc_corr.shape[0], dtype=bool)).abs().mean().mean()
         )
         print(f"✔️ Saved PC correlation plot as final_pc_correlation.png")
         print(f"✔️ Mean absolute off-diagonal PC correlation: {mean_corr:.3f}")

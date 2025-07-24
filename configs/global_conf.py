@@ -1,5 +1,6 @@
 # These global parameters should be the same across all workflow stages.
 import optuna
+
 CSV_PATH = "Data/housing.csv"
 DATASET_TARGET_COLUMN_NAME = "label"
 
@@ -76,30 +77,44 @@ SEARCH_SPACES_CLASSIFICATION = {
         "max_depth": lambda t: t.suggest_int("max_depth", 2, 40),
         "min_samples_split": lambda t: t.suggest_int("min_samples_split", 2, 30),
         "min_samples_leaf": lambda t: t.suggest_int("min_samples_leaf", 1, 20),
-        "min_weight_fraction_leaf": lambda t: t.suggest_float("min_weight_fraction_leaf", 0.0, 0.5),
-        "max_features": lambda t: t.suggest_categorical("max_features", ["sqrt", "log2", None]),
-        "min_impurity_decrease": lambda t: t.suggest_float("min_impurity_decrease", 0.0, 1.0),
+        "min_weight_fraction_leaf": lambda t: t.suggest_float(
+            "min_weight_fraction_leaf", 0.0, 0.5
+        ),
+        "max_features": lambda t: t.suggest_categorical(
+            "max_features", ["sqrt", "log2", None]
+        ),
+        "min_impurity_decrease": lambda t: t.suggest_float(
+            "min_impurity_decrease", 0.0, 1.0
+        ),
     },
     "GradientBoostingClassifier": {
         "n_estimators": lambda t: t.suggest_int("n_estimators", 50, 400, step=10),
         "max_depth": lambda t: t.suggest_int("max_depth", 2, 20),
-        "learning_rate": lambda t: t.suggest_float("learning_rate", 0.001, 0.3, log=True),
+        "learning_rate": lambda t: t.suggest_float(
+            "learning_rate", 0.001, 0.3, log=True
+        ),
         "subsample": lambda t: t.suggest_float("subsample", 0.5, 1.0),
         "min_samples_split": lambda t: t.suggest_int("min_samples_split", 2, 30),
         "min_samples_leaf": lambda t: t.suggest_int("min_samples_leaf", 1, 20),
-        "max_features": lambda t: t.suggest_categorical("max_features", ["sqrt", "log2", None]),
+        "max_features": lambda t: t.suggest_categorical(
+            "max_features", ["sqrt", "log2", None]
+        ),
     },
     "ExtraTreesClassifier": {
         "n_estimators": lambda t: t.suggest_int("n_estimators", 50, 400, step=10),
         "max_depth": lambda t: t.suggest_int("max_depth", 2, 40),
         "min_samples_split": lambda t: t.suggest_int("min_samples_split", 2, 30),
         "min_samples_leaf": lambda t: t.suggest_int("min_samples_leaf", 1, 20),
-        "max_features": lambda t: t.suggest_categorical("max_features", ["sqrt", "log2", None]),
+        "max_features": lambda t: t.suggest_categorical(
+            "max_features", ["sqrt", "log2", None]
+        ),
     },
     "XGBClassifier": {
         "n_estimators": lambda t: t.suggest_int("n_estimators", 50, 400, step=10),
         "max_depth": lambda t: t.suggest_int("max_depth", 3, 20),
-        "learning_rate": lambda t: t.suggest_float("learning_rate", 0.001, 0.5, log=True),
+        "learning_rate": lambda t: t.suggest_float(
+            "learning_rate", 0.001, 0.5, log=True
+        ),
         "subsample": lambda t: t.suggest_float("subsample", 0.5, 1.0),
         "colsample_bytree": lambda t: t.suggest_float("colsample_bytree", 0.4, 1.0),
         "gamma": lambda t: t.suggest_float("gamma", 0, 10),
@@ -110,7 +125,9 @@ SEARCH_SPACES_CLASSIFICATION = {
         "n_estimators": lambda t: t.suggest_int("n_estimators", 50, 400, step=10),
         "num_leaves": lambda t: t.suggest_int("num_leaves", 20, 300),
         "max_depth": lambda t: t.suggest_int("max_depth", -1, 40),
-        "learning_rate": lambda t: t.suggest_float("learning_rate", 0.001, 0.5, log=True),
+        "learning_rate": lambda t: t.suggest_float(
+            "learning_rate", 0.001, 0.5, log=True
+        ),
         "subsample": lambda t: t.suggest_float("subsample", 0.5, 1.0),
         "colsample_bytree": lambda t: t.suggest_float("colsample_bytree", 0.4, 1.0),
         "min_child_samples": lambda t: t.suggest_int("min_child_samples", 5, 100),
@@ -120,7 +137,9 @@ SEARCH_SPACES_CLASSIFICATION = {
     "CatBoostClassifier": {
         "iterations": lambda t: t.suggest_int("iterations", 50, 400, step=10),
         "depth": lambda t: t.suggest_int("depth", 3, 12),
-        "learning_rate": lambda t: t.suggest_float("learning_rate", 0.001, 0.5, log=True),
+        "learning_rate": lambda t: t.suggest_float(
+            "learning_rate", 0.001, 0.5, log=True
+        ),
         "l2_leaf_reg": lambda t: t.suggest_float("l2_leaf_reg", 1, 10),
         "bagging_temperature": lambda t: t.suggest_float("bagging_temperature", 0, 1),
     },
@@ -142,23 +161,31 @@ SEARCH_SPACES_REGRESSION = {
         "max_depth": lambda t: t.suggest_int("max_depth", 2, 40),
         "min_samples_split": lambda t: t.suggest_int("min_samples_split", 2, 30),
         "min_samples_leaf": lambda t: t.suggest_int("min_samples_leaf", 1, 20),
-        "max_features": lambda t: t.suggest_categorical("max_features", ["sqrt", "log2", None]),
+        "max_features": lambda t: t.suggest_categorical(
+            "max_features", ["sqrt", "log2", None]
+        ),
     },
     "GradientBoostingRegressor": {
         "n_estimators": lambda t: t.suggest_int("n_estimators", 50, 400, step=10),
         "max_depth": lambda t: t.suggest_int("max_depth", 2, 20),
-        "learning_rate": lambda t: t.suggest_float("learning_rate", 0.001, 0.3, log=True),
+        "learning_rate": lambda t: t.suggest_float(
+            "learning_rate", 0.001, 0.3, log=True
+        ),
         "subsample": lambda t: t.suggest_float("subsample", 0.5, 1.0),
         "min_samples_split": lambda t: t.suggest_int("min_samples_split", 2, 30),
         "min_samples_leaf": lambda t: t.suggest_int("min_samples_leaf", 1, 20),
-        "max_features": lambda t: t.suggest_categorical("max_features", ["sqrt", "log2", None]),
+        "max_features": lambda t: t.suggest_categorical(
+            "max_features", ["sqrt", "log2", None]
+        ),
     },
     "ExtraTreesRegressor": {
         "n_estimators": lambda t: t.suggest_int("n_estimators", 50, 400, step=10),
         "max_depth": lambda t: t.suggest_int("max_depth", 2, 40),
         "min_samples_split": lambda t: t.suggest_int("min_samples_split", 2, 30),
         "min_samples_leaf": lambda t: t.suggest_int("min_samples_leaf", 1, 20),
-        "max_features": lambda t: t.suggest_categorical("max_features", ["sqrt", "log2", None]),
+        "max_features": lambda t: t.suggest_categorical(
+            "max_features", ["sqrt", "log2", None]
+        ),
     },
     "Ridge": {
         "alpha": lambda t: t.suggest_float("alpha", 0.0001, 1000.0, log=True),
@@ -169,7 +196,9 @@ SEARCH_SPACES_REGRESSION = {
     "XGBRegressor": {
         "n_estimators": lambda t: t.suggest_int("n_estimators", 50, 400, step=10),
         "max_depth": lambda t: t.suggest_int("max_depth", 3, 20),
-        "learning_rate": lambda t: t.suggest_float("learning_rate", 0.001, 0.5, log=True),
+        "learning_rate": lambda t: t.suggest_float(
+            "learning_rate", 0.001, 0.5, log=True
+        ),
         "subsample": lambda t: t.suggest_float("subsample", 0.5, 1.0),
         "colsample_bytree": lambda t: t.suggest_float("colsample_bytree", 0.4, 1.0),
         "gamma": lambda t: t.suggest_float("gamma", 0, 10),
@@ -180,7 +209,9 @@ SEARCH_SPACES_REGRESSION = {
         "n_estimators": lambda t: t.suggest_int("n_estimators", 50, 400, step=10),
         "num_leaves": lambda t: t.suggest_int("num_leaves", 20, 300),
         "max_depth": lambda t: t.suggest_int("max_depth", -1, 40),
-        "learning_rate": lambda t: t.suggest_float("learning_rate", 0.001, 0.5, log=True),
+        "learning_rate": lambda t: t.suggest_float(
+            "learning_rate", 0.001, 0.5, log=True
+        ),
         "subsample": lambda t: t.suggest_float("subsample", 0.5, 1.0),
         "colsample_bytree": lambda t: t.suggest_float("colsample_bytree", 0.4, 1.0),
         "min_child_samples": lambda t: t.suggest_int("min_child_samples", 5, 100),
@@ -202,8 +233,13 @@ SEARCH_SPACES_UNSUPERVISED = {
     },
     "GaussianMixture": {
         "n_components": lambda t: t.suggest_int("n_components", 1, 30),
-        "covariance_type": lambda t: t.suggest_categorical("covariance_type", ["full", "tied", "diag", "spherical"]),
+        "covariance_type": lambda t: t.suggest_categorical(
+            "covariance_type", ["full", "tied", "diag", "spherical"]
+        ),
     },
 }
-SEARCH_SPACES = {**SEARCH_SPACES_CLASSIFICATION,
-                 ** SEARCH_SPACES_REGRESSION, **SEARCH_SPACES_UNSUPERVISED}
+SEARCH_SPACES = {
+    **SEARCH_SPACES_CLASSIFICATION,
+    **SEARCH_SPACES_REGRESSION,
+    **SEARCH_SPACES_UNSUPERVISED,
+}

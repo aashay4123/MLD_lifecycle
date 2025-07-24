@@ -33,8 +33,7 @@ def serialize(obj):
 @step
 def FullPEDPipeline(df: pd.DataFrame, project: str = "Default") -> pd.DataFrame:
     if df is None or df.empty:
-        raise ValueError(
-            "DataFrame is None or empty. Cannot run Full PED Pipeline.")
+        raise ValueError("DataFrame is None or empty. Cannot run Full PED Pipeline.")
 
     # 1️⃣ Run ED Analysis
     print(f"[DEBUG] EDAnalyzer type: {EDAnalyze}")
@@ -51,8 +50,7 @@ def FullPEDPipeline(df: pd.DataFrame, project: str = "Default") -> pd.DataFrame:
     # 2️⃣ Run Probabilistic Analysis
     pd_analyze = ProbabilisticAnalysis(df)
     pd_report = pd_analyze.run()
-    pd_report_path = os.path.join(
-        global_conf.EPDA_REPORT_PATH, "pd_summary.json")
+    pd_report_path = os.path.join(global_conf.EPDA_REPORT_PATH, "pd_summary.json")
     with open(pd_report_path, "w") as f:
         json.dump(serialize(pd_report), f, indent=2)
 
@@ -60,7 +58,8 @@ def FullPEDPipeline(df: pd.DataFrame, project: str = "Default") -> pd.DataFrame:
     unified_ped = UnifiedEPDA(df)
     unified_report = unified_ped.run()
     unified_report_path = os.path.join(
-        global_conf.EPDA_REPORT_PATH, "unified_epda_summary.json")
+        global_conf.EPDA_REPORT_PATH, "unified_epda_summary.json"
+    )
     with open(unified_report_path, "w") as f:
         json.dump(serialize(unified_report), f, indent=2)
 
@@ -79,8 +78,7 @@ def FullPEDPipeline(df: pd.DataFrame, project: str = "Default") -> pd.DataFrame:
 @monitor(name="unified_ped_analyze_step", track_memory=True, track_input_size=True)
 def UnifiedPEDAnalyze(df: pd.DataFrame, project: str = "Default") -> pd.DataFrame:
     if df is None or df.empty:
-        raise ValueError(
-            "DataFrame is None or empty. Cannot run UnifiedPED Analysis.")
+        raise ValueError("DataFrame is None or empty. Cannot run UnifiedPED Analysis.")
 
     unified_ped = UnifiedEPDA(df)
     report = unified_ped.run()

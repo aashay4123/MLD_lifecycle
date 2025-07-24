@@ -198,8 +198,7 @@ def encode(
 
     # Save processed final versions
     os.makedirs("artifacts/final_data", exist_ok=True)
-    train_e.to_parquet(
-        "artifacts/final_data/train_encoded.parquet", index=False)
+    train_e.to_parquet("artifacts/final_data/train_encoded.parquet", index=False)
     val_e.to_parquet("artifacts/final_data/val_encoded.parquet", index=False)
     test_e.to_parquet("artifacts/final_data/test_encoded.parquet", index=False)
 

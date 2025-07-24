@@ -1,6 +1,23 @@
 [flake8]
-max-line-length = 79
-max-complexity = 18
+max-line-length = 88
+
+max-complexity = 10
 select = B,C,E,F,W,T4,B9
-ignore = E203, E266, E501, W503, F403, F401
-exclude = __init__.py, pyproject.toml
+
+ignore =
+    E203  
+    W503  
+    D100  
+    D104  
+    D107  
+    
+exclude =
+    .git,
+    __pycache__,
+    build,
+    dist,
+    .venv,
+    .mypy_cache,
+    .pytest_cache,
+    __init__.py,
+    pyproject.toml

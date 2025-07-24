@@ -23,8 +23,7 @@ from configs import global_conf
 
 # Constants
 REPORT_PATH = Path(f"{global_conf.PREPROCESSOR_REPORT_PATH}/missingness")
-MODEL_PATH = Path(
-    f"{global_conf.MODEL_ARTIFACTS_PATH}/missing_model_state.pkl")
+MODEL_PATH = Path(f"{global_conf.MODEL_ARTIFACTS_PATH}/missing_model_state.pkl")
 REPORT_PATH.mkdir(parents=True, exist_ok=True)
 MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)
 
@@ -100,8 +99,7 @@ class MissingImputer(PerfMixin):
         }
         with open(filepath, "wb") as f:
             pickle.dump(state, f)
-        self._log(
-            f"✔ Saved MissingImputer model to {Path(filepath).resolve()}")
+        self._log(f"✔ Saved MissingImputer model to {Path(filepath).resolve()}")
 
     def load(self, filepath: Union[str, Path]):
         with open(filepath, "rb") as f:
@@ -176,7 +174,8 @@ class MissingImputer(PerfMixin):
         # Dropped columns
         if self.cols_to_drop:
             lines.append(
-                f"Dropped {len(self.cols_to_drop)} columns due to high missingness:")
+                f"Dropped {len(self.cols_to_drop)} columns due to high missingness:"
+            )
             for c in self.cols_to_drop:
                 lines.append(f"  • {c}")
 
@@ -184,16 +183,19 @@ class MissingImputer(PerfMixin):
         if self.report.get("missing_numeric"):
             lines.append("\nNumeric Imputation Strategies:")
             for col, data in self.report["missing_numeric"].items():
-                lines.append(f"  • {col}: {data['strategy']} (ks={data['metrics'].get('ks_p', 0):.2f}, "
-                             f"var_ratio={data['metrics'].get('var_ratio', 0):.2f}, "
-                             f"cov_delta={data['metrics'].get('cov_delta', 0):.2f})")
+                lines.append(
+                    f"  • {col}: {data['strategy']} (ks={data['metrics'].get('ks_p', 0):.2f}, "
+                    f"var_ratio={data['metrics'].get('var_ratio', 0):.2f}, "
+                    f"cov_delta={data['metrics'].get('cov_delta', 0):.2f})"
+                )
 
         # Categorical
         if self.report.get("missing_categorical"):
             lines.append("\nCategorical Imputation Strategies:")
             for col, data in self.report["missing_categorical"].items():
                 lines.append(
-                    f"  • {col}: {data['strategy']} (score={max(data['scores'].values()):.2f})")
+                    f"  • {col}: {data['strategy']} (score={max(data['scores'].values()):.2f})"
+                )
 
         # Rare levels
         if self.report.get("rare_levels"):
@@ -212,14 +214,18 @@ class MissingImputer(PerfMixin):
             f.write(self._english_summary())
         self._log(f"🗒️ English summary saved to {txt_path}")
 
-    def _fit_single_numeric(self, series: pd.Series, col: str, cov_before: Optional[np.ndarray]):
+    def _fit_single_numeric(
+        self, series: pd.Series, col: str, cov_before: Optional[np.ndarray]
+    ):
         original = series
         df = pd.DataFrame({col: series})
         imputers = {
             "mean": SimpleImputer(strategy="mean"),
             "median": SimpleImputer(strategy="median"),
             "knn": KNNImputer(n_neighbors=self.knn_neighbors),
-            "mice": IterativeImputer(estimator=BayesianRidge(), random_state=self.random_state),
+            "mice": IterativeImputer(
+                estimator=BayesianRidge(), random_state=self.random_state
+            ),
             "random": None,  # handled separately
         }
 
@@ -231,16 +237,18 @@ class MissingImputer(PerfMixin):
                     imputed = original.copy()
                     mask = imputed.isna()
                     imputed[mask] = np.random.choice(
-                        fill_vals, size=mask.sum(), replace=True)
+                        fill_vals, size=mask.sum(), replace=True
+                    )
                 elif name in {"knn", "mice"}:
                     block = self.train_numeric[self.numeric_cols].copy()
-                    if (block.shape[0] > self.knn_mice_max_rows
-                            or block.shape[1] > self.knn_mice_max_cols):
+                    if (
+                        block.shape[0] > self.knn_mice_max_rows
+                        or block.shape[1] > self.knn_mice_max_cols
+                    ):
                         continue
                     imp_block = imp.fit_transform(block)
                     imputed = pd.Series(
-                        imp_block[:, self.numeric_cols.index(col)],
-                        index=block.index
+                        imp_block[:, self.numeric_cols.index(col)], index=block.index
                     )
                 else:
                     imp.fit(df[[col]])
@@ -269,14 +277,13 @@ class MissingImputer(PerfMixin):
         return col, "mean", None, results.get("mean", {}), imputed
 
     def _fit_numeric(self, df: pd.DataFrame, cov_before: Optional[np.ndarray]):
-        self.numeric_cols = df.select_dtypes(
-            include=np.number).columns.tolist()
+        self.numeric_cols = df.select_dtypes(include=np.number).columns.tolist()
         self.train_numeric = df[self.numeric_cols].copy()
 
         results = Parallel(n_jobs=self.n_jobs)(
-            delayed(self._fit_single_numeric)(
-                df[col], col, cov_before
-            ) for col in self.numeric_cols if df[col].isna().any()
+            delayed(self._fit_single_numeric)(df[col], col, cov_before)
+            for col in self.numeric_cols
+            if df[col].isna().any()
         )
 
         for col, method, imputer_obj, metrics, imputed_col in results:
@@ -288,8 +295,7 @@ class MissingImputer(PerfMixin):
 
     def _fit_single_categorical(self, series: pd.Series, col: str):
         orig = series.astype(str)
-        mode_val = orig.mode().iloc[0] if not orig.mode(
-        ).empty else "__MISSING__"
+        mode_val = orig.mode().iloc[0] if not orig.mode().empty else "__MISSING__"
 
         # Option A: Mode
         mode_filled = orig.fillna(mode_val)
@@ -303,7 +309,8 @@ class MissingImputer(PerfMixin):
         mask = rand_filled.isna()
         if not fill_vals.empty:
             rand_filled[mask] = np.random.choice(
-                fill_vals, size=mask.sum(), replace=True)
+                fill_vals, size=mask.sum(), replace=True
+            )
         else:
             rand_filled[mask] = "__MISSING__"
 
@@ -313,9 +320,21 @@ class MissingImputer(PerfMixin):
             return 0.5 * sum(abs(p.get(v, 0) - q.get(v, 0)) for v in all_vals)
 
         scores = {
-            "mode": 1 - tvd(orig.value_counts(normalize=True), mode_filled.value_counts(normalize=True)),
-            "constant": 1 - tvd(orig.value_counts(normalize=True), const_filled.value_counts(normalize=True)),
-            "random": 1 - tvd(orig.value_counts(normalize=True), rand_filled.value_counts(normalize=True)),
+            "mode": 1
+            - tvd(
+                orig.value_counts(normalize=True),
+                mode_filled.value_counts(normalize=True),
+            ),
+            "constant": 1
+            - tvd(
+                orig.value_counts(normalize=True),
+                const_filled.value_counts(normalize=True),
+            ),
+            "random": 1
+            - tvd(
+                orig.value_counts(normalize=True),
+                rand_filled.value_counts(normalize=True),
+            ),
         }
 
         best_cat = max(scores, key=scores.get)
@@ -326,26 +345,30 @@ class MissingImputer(PerfMixin):
         else:
             val = "__RANDOM__"
 
-        return col, best_cat, val, scores, {
-            "mode": mode_filled,
-            "constant": const_filled,
-            "random": rand_filled
-        }[best_cat]
+        return (
+            col,
+            best_cat,
+            val,
+            scores,
+            {"mode": mode_filled, "constant": const_filled, "random": rand_filled}[
+                best_cat
+            ],
+        )
 
     def _fit_categorical(self, df: pd.DataFrame):
-        self.categorical_cols = df.select_dtypes(
-            exclude=np.number).columns.tolist()
+        self.categorical_cols = df.select_dtypes(exclude=np.number).columns.tolist()
 
         results = Parallel(n_jobs=self.n_jobs)(
             delayed(self._fit_single_categorical)(df[col], col)
-            for col in self.categorical_cols if df[col].isna().any()
+            for col in self.categorical_cols
+            if df[col].isna().any()
         )
 
         for col, strategy, value, scores, imputed_series in results:
             self.categorical_imputers[col] = (strategy, value)
             self.report["missing_categorical"][col] = {
                 "strategy": strategy,
-                "scores": scores
+                "scores": scores,
             }
 
             freqs = df[col].value_counts(normalize=True)
@@ -369,10 +392,8 @@ class MissingImputer(PerfMixin):
         df.drop(columns=self.cols_to_drop, inplace=True)
 
         # Split numeric/categorical
-        self.numeric_cols = df.select_dtypes(
-            include=np.number).columns.tolist()
-        self.categorical_cols = df.select_dtypes(
-            exclude=np.number).columns.tolist()
+        self.numeric_cols = df.select_dtypes(include=np.number).columns.tolist()
+        self.categorical_cols = df.select_dtypes(exclude=np.number).columns.tolist()
         self.train_numeric = df[self.numeric_cols].copy()
 
         self._log("⚙️ Fitting numeric imputers...")
@@ -396,8 +417,11 @@ class MissingImputer(PerfMixin):
     def transform(self, df: pd.DataFrame) -> pd.DataFrame:
         df = df.copy()
         # Drop flagged columns
-        df.drop(columns=[
-                c for c in self.cols_to_drop if c in df.columns], errors="ignore", inplace=True)
+        df.drop(
+            columns=[c for c in self.cols_to_drop if c in df.columns],
+            errors="ignore",
+            inplace=True,
+        )
 
         # Numeric
         for col in self.numeric_cols:
@@ -414,21 +438,28 @@ class MissingImputer(PerfMixin):
                 vals = df[col].dropna()
                 df[col] = df[col].copy()
                 df[col][df[col].isna()] = np.random.choice(
-                    vals, size=df[col].isna().sum(), replace=True)
+                    vals, size=df[col].isna().sum(), replace=True
+                )
             elif method in {"knn", "mice"}:
                 try:
                     sub = df[self.numeric_cols].copy()
-                    _, saved_imp = self.numeric_imputers.get(
-                        col, (method, None))
+                    _, saved_imp = self.numeric_imputers.get(col, (method, None))
                     if saved_imp is None:
-                        imp = KNNImputer(n_neighbors=self.knn_neighbors) if method == "knn" else IterativeImputer(
-                            estimator=BayesianRidge(), random_state=self.random_state)
+                        imp = (
+                            KNNImputer(n_neighbors=self.knn_neighbors)
+                            if method == "knn"
+                            else IterativeImputer(
+                                estimator=BayesianRidge(),
+                                random_state=self.random_state,
+                            )
+                        )
                         arr = imp.fit_transform(sub)
                     else:
                         arr = saved_imp.transform(sub)
 
                     df[self.numeric_cols] = pd.DataFrame(
-                        arr, columns=self.numeric_cols, index=sub.index)
+                        arr, columns=self.numeric_cols, index=sub.index
+                    )
                 except Exception as e:
                     self._log(f"⚠️ {method} failed for {col}, using mean. {e}")
                     df[col] = df[col].fillna(df[col].mean())
@@ -438,14 +469,14 @@ class MissingImputer(PerfMixin):
         for col in self.categorical_cols:
             if col not in df.columns or df[col].isna().sum() == 0:
                 continue
-            method, val = self.categorical_imputers.get(
-                col, ("mode", "__MISSING__"))
+            method, val = self.categorical_imputers.get(col, ("mode", "__MISSING__"))
             if method == "random":
                 vals = df[col].dropna()
                 df[col] = df[col].copy()
                 if not vals.empty:
                     df[col][df[col].isna()] = np.random.choice(
-                        vals, size=df[col].isna().sum(), replace=True)
+                        vals, size=df[col].isna().sum(), replace=True
+                    )
                 else:
                     df[col] = df[col].fillna("__MISSING__")
             else:
@@ -454,17 +485,24 @@ class MissingImputer(PerfMixin):
             # Rare level collapsing
             if col in self.report.get("rare_levels", {}):
                 rare_vals = self.report["rare_levels"][col]
-                df[col] = df[col].astype(str).apply(
-                    lambda x: "__RARE__" if x in rare_vals else x)
+                df[col] = (
+                    df[col]
+                    .astype(str)
+                    .apply(lambda x: "__RARE__" if x in rare_vals else x)
+                )
 
             self._log(self.describe_strategy(col))
 
         return df
 
-    def fit_transform(self, df: pd.DataFrame, save_path: Optional[Union[str, Path]] = None) -> pd.DataFrame:
+    def fit_transform(
+        self, df: pd.DataFrame, save_path: Optional[Union[str, Path]] = None
+    ) -> pd.DataFrame:
         return self.fit(df, save_path=save_path).transform(df)
 
-    def load_and_transform(self, filepath: Union[str, Path], df: pd.DataFrame) -> pd.DataFrame:
+    def load_and_transform(
+        self, filepath: Union[str, Path], df: pd.DataFrame
+    ) -> pd.DataFrame:
         """
         Loads an imputer from a saved pickle and applies transform to the input DataFrame.
         """

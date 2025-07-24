@@ -15,19 +15,19 @@ def load_and_prepare_datasets() -> pd.DataFrame:
     wine = load_wine()
     cancer = load_breast_cancer()
 
-    df_iris = pd.DataFrame(iris.data, columns=[
-                           f"iris_{f}" for f in iris.feature_names])
-    df_wine = pd.DataFrame(wine.data, columns=[
-                           f"wine_{f}" for f in wine.feature_names])
-    df_cancer = pd.DataFrame(cancer.data, columns=[
-                             f"cancer_{f}" for f in cancer.feature_names])
+    df_iris = pd.DataFrame(iris.data, columns=[f"iris_{f}" for f in iris.feature_names])
+    df_wine = pd.DataFrame(wine.data, columns=[f"wine_{f}" for f in wine.feature_names])
+    df_cancer = pd.DataFrame(
+        cancer.data, columns=[f"cancer_{f}" for f in cancer.feature_names]
+    )
 
     # Add constant column
     df_iris["constant_col"] = 5
 
     # Add categorical column
     df_iris["species"] = pd.Series(iris.target).map(
-        {0: "setosa", 1: "versicolor", 2: "virginica"})
+        {0: "setosa", 1: "versicolor", 2: "virginica"}
+    )
 
     # Inject missing values into wine
     df_wine.iloc[::10, 0] = np.nan
@@ -44,8 +44,7 @@ def preprocess_data(df: pd.DataFrame) -> pd.DataFrame:
     nunique = df.nunique(dropna=True)
     constant_cols = nunique[nunique <= 1].index
     if len(constant_cols) > 0:
-        print(
-            f"[Preprocessing] Dropping constant columns: {list(constant_cols)}")
+        print(f"[Preprocessing] Dropping constant columns: {list(constant_cols)}")
         df = df.drop(columns=constant_cols)
 
     # 2️⃣ Drop non-numeric columns (categorical/string/object)
@@ -62,19 +61,21 @@ def preprocess_data(df: pd.DataFrame) -> pd.DataFrame:
     iso = IsolationForest(contamination=0.05, random_state=42)
     preds = iso.fit_predict(df)
     outliers = preds == -1
-    print(
-        f"[Preprocessing] Dropping {outliers.sum()} rows identified as outliers.")
+    print(f"[Preprocessing] Dropping {outliers.sum()} rows identified as outliers.")
     df_clean = df.loc[~outliers].reset_index(drop=True)
 
     return df_clean
 
 
-def sanity_check_transformation(X_transformed: pd.DataFrame, fst: FeatureScalerTransformer):
+def sanity_check_transformation(
+    X_transformed: pd.DataFrame, fst: FeatureScalerTransformer
+):
     print("\n=== Sample of transformed data ===")
     print(X_transformed.head())
 
     assert os.path.isfile(
-        fst.report_file), f"❌ Report file {fst.report_file} not created!"
+        fst.report_file
+    ), f"❌ Report file {fst.report_file} not created!"
     visuals = os.listdir("scaler_visuals")
     assert len(visuals) > 0, "❌ No before/after visualizations were saved!"
 

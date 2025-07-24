@@ -51,8 +51,7 @@ class OutlierDetector(BaseEstimator, TransformerMixin, PerfMixin):
     # ─────────────── Instance Variables ───────────────
     REPORT_PATH = Path(f"{global_conf.PREPROCESSOR_REPORT_PATH}/outliers")
     REPORT_PATH.mkdir(parents=True, exist_ok=True)
-    MODEL_PATH = Path(
-        f"{global_conf.MODEL_ARTIFACTS_PATH}/outlier_model_state.pkl")
+    MODEL_PATH = Path(f"{global_conf.MODEL_ARTIFACTS_PATH}/outlier_model_state.pkl")
     MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)
 
     # ─────────────── Class-Level Constants ───────────────
@@ -84,7 +83,7 @@ class OutlierDetector(BaseEstimator, TransformerMixin, PerfMixin):
         random_state: int = 42,
         verbose: bool = False,
         n_jobs: int = -1,  # Number of parallel jobs for scoring rules
-        max_charts: int = 50
+        max_charts: int = 50,
     ):
         self.outlier_threshold = outlier_threshold
         self.robust_covariance = robust_covariance
@@ -136,8 +135,9 @@ class OutlierDetector(BaseEstimator, TransformerMixin, PerfMixin):
         if hue is not None:
             # Combine data & hue into a long-form DataFrame
             df = pd.DataFrame({"value": data, "is_outlier": hue})
-            sns.histplot(data=df, x="value", hue="is_outlier",
-                         kde=True, palette="muted")
+            sns.histplot(
+                data=df, x="value", hue="is_outlier", kde=True, palette="muted"
+            )
         else:
             sns.histplot(data, kde=True, color="steelblue")
 
@@ -438,10 +438,8 @@ class OutlierDetector(BaseEstimator, TransformerMixin, PerfMixin):
         report = component.report if hasattr(component, "report") else {}
         df = getattr(component, "df", None)
         train_clean = getattr(component, "train_clean_", None)
-        outlier_indices = set(report.get(
-            "real_outliers", {}).get("indices", []))
-        scores = getattr(component, "votes_table_",
-                         {}).get("total_votes", None)
+        outlier_indices = set(report.get("real_outliers", {}).get("indices", []))
+        scores = getattr(component, "votes_table_", {}).get("total_votes", None)
         cols = getattr(component, "numeric_cols", [])
 
         charts = []
@@ -450,16 +448,18 @@ class OutlierDetector(BaseEstimator, TransformerMixin, PerfMixin):
         if df is not None and scores is not None:
             # Add global summary: rows before/after treatment + missing values
             summary["rows_before"] = int(df.shape[0])
-            summary["rows_after"] = int(
-                train_clean.shape[0]) if train_clean is not None else None
+            summary["rows_after"] = (
+                int(train_clean.shape[0]) if train_clean is not None else None
+            )
             summary["rows_dropped"] = (
                 summary["rows_before"] - summary["rows_after"]
                 if summary["rows_after"] is not None
                 else None
             )
             summary["rows_before"] = int(df.shape[0])
-            summary["rows_after"] = int(
-                train_clean.shape[0]) if train_clean is not None else None
+            summary["rows_after"] = (
+                int(train_clean.shape[0]) if train_clean is not None else None
+            )
 
             rows_dropped = (
                 summary["rows_before"] - summary["rows_after"]
@@ -472,8 +472,9 @@ class OutlierDetector(BaseEstimator, TransformerMixin, PerfMixin):
                 summary["rows_dropped"] = rows_dropped
 
             summary["missing_before"] = int(df.isna().sum().sum())
-            summary["missing_after"] = int(
-                train_clean.isna().sum().sum()) if train_clean is not None else None
+            summary["missing_after"] = (
+                int(train_clean.isna().sum().sum()) if train_clean is not None else None
+            )
 
             # Compute standard deviation of outlier rows → prioritize most variable features
             stds = {
@@ -482,40 +483,48 @@ class OutlierDetector(BaseEstimator, TransformerMixin, PerfMixin):
                 if col in df.columns
             }
             top_cols = sorted(stds.items(), key=lambda x: x[1], reverse=True)[
-                : self.max_charts]
+                : self.max_charts
+            ]
 
             def process_col(item):
                 col, _ = item
-                n_outliers = int(
-                    df[col].loc[list(outlier_indices)].dropna().shape[0])
+                n_outliers = int(df[col].loc[list(outlier_indices)].dropna().shape[0])
 
                 fig, axs = plt.subplots(1, 2, figsize=(12, 4))
 
                 # Left: feature histogram with hue
                 if df.index.isin(outlier_indices).any():
-                    plot_df = pd.DataFrame({
-                        "value": df[col],
-                        "is_outlier": df.index.isin(outlier_indices)
-                    })
-                    sns.histplot(data=plot_df, x="value", hue="is_outlier",
-                                 kde=True, ax=axs[0], palette="muted")
+                    plot_df = pd.DataFrame(
+                        {"value": df[col], "is_outlier": df.index.isin(outlier_indices)}
+                    )
+                    sns.histplot(
+                        data=plot_df,
+                        x="value",
+                        hue="is_outlier",
+                        kde=True,
+                        ax=axs[0],
+                        palette="muted",
+                    )
                 else:
-                    sns.histplot(df[col], kde=True,
-                                 color="steelblue", ax=axs[0])
+                    sns.histplot(df[col], kde=True, color="steelblue", ax=axs[0])
                 axs[0].set_title(f"{name}: {col} (highlighted outliers)")
 
                 # Right: votes distribution histogram for same rows
                 if scores is not None:
-                    sns.histplot(scores, bins=range(0, scores.max() + 2),
-                                 discrete=True, ax=axs[1], color="coral")
+                    sns.histplot(
+                        scores,
+                        bins=range(0, scores.max() + 2),
+                        discrete=True,
+                        ax=axs[1],
+                        color="coral",
+                    )
                     axs[1].set_title(f"{name}: votes distribution")
 
                 plt.tight_layout()
 
                 chart_path = Path(f"{self.REPORT_PATH}/histogram")
                 chart_path.mkdir(parents=True, exist_ok=True)
-                fig.savefig(
-                    f"{chart_path}/{name}_{col}_outliers_and_votes.png")
+                fig.savefig(f"{chart_path}/{name}_{col}_outliers_and_votes.png")
                 plt.close(fig)
 
                 return {
@@ -527,8 +536,9 @@ class OutlierDetector(BaseEstimator, TransformerMixin, PerfMixin):
             # Parallel chart creation
             results = self.parallel_map(process_col, top_cols)
             raw_counts = self.report.get("treatment", {}).get("counts", {})
-            filtered_counts = {col: count for col,
-                               count in raw_counts.items() if count > 0}
+            filtered_counts = {
+                col: count for col, count in raw_counts.items() if count > 0
+            }
             if "treatment" in self.report:
                 self.report["treatment"]["counts"] = filtered_counts
             for res in results:
@@ -638,8 +648,7 @@ class OutlierDetector(BaseEstimator, TransformerMixin, PerfMixin):
             best = [r[0] for r in sorted_rules[:2]]
             return col, best, fences
 
-        results = self.parallel_map(
-            score_rules, self.numeric_cols, prefer="threads")
+        results = self.parallel_map(score_rules, self.numeric_cols, prefer="threads")
 
         for col, best_rules, fences in results:
             self.best_rules_per_column_[col] = best_rules
@@ -771,8 +780,7 @@ class OutlierDetector(BaseEstimator, TransformerMixin, PerfMixin):
                 try:
                     Xz = self.scaler.transform(df_num.loc[mask].values)
                     md = self.cov_estimator.mahalanobis(Xz)
-                    votes.loc[df_num.loc[mask].index[md
-                                                     > self.mahal_threshold]] += 1
+                    votes.loc[df_num.loc[mask].index[md > self.mahal_threshold]] += 1
                 except Exception:
                     pass
 

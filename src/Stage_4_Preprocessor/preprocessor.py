@@ -43,8 +43,7 @@ def missing_imputer(
     test_imp = missing_imputer.transform(test)
     val_imp = missing_imputer.transform(val)
 
-    _, missing_imputer_path = missing_imputer.report_missing_imputer(
-        train, train_imp)
+    _, missing_imputer_path = missing_imputer.report_missing_imputer(train, train_imp)
 
     # MLflow logging
     with mlflow.start_run(run_name="missing_imputer", nested=True):
@@ -78,8 +77,7 @@ def outlier_detector(
     test_clean = detector.transform(test)
     val_clean = detector.transform(val)
 
-    report, report_path = detector.report_outlier_detector(
-        "outlier_detector", detector)
+    report, report_path = detector.report_outlier_detector("outlier_detector", detector)
 
     # MLflow logging
     with mlflow.start_run(run_name="outlier_detector", nested=True):
@@ -100,7 +98,7 @@ def categorical_encoding_step(
     freq_frac: float = 0.50,
     output_dir: Path = Path("reports/auto_categorical"),
     n_jobs: int = -1,
-    output_format: str = "parquet"
+    output_format: str = "parquet",
 ) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     cfg = EncodingConfig(
         onehot_frac=onehot_frac,
@@ -108,7 +106,7 @@ def categorical_encoding_step(
         freq_frac=freq_frac,
         n_jobs=n_jobs,
         output_format=output_format,
-        output_dir=output_dir
+        output_dir=output_dir,
     )
     encoder = AutoCategoricalEncoder(cfg)
     return encoder.fit_transform(df, y)

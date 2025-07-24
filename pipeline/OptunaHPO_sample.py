@@ -52,9 +52,7 @@ def baseline_step(train: pd.DataFrame, val: pd.DataFrame) -> None:
     print(f"🚦 Baseline task: {task} | Models: {list(baseline_models.keys())}")
 
     baseline_tuner = OptunaHyperTuner(
-        X_train, y_train,
-        n_trials=3,
-        mlflow_run=mlflow.active_run()
+        X_train, y_train, n_trials=3, mlflow_run=mlflow.active_run()
     )
     baseline_tuner.models = baseline_models
     baseline_tuner.tune()
@@ -79,19 +77,26 @@ def ensemble_step(train: pd.DataFrame, val: pd.DataFrame, best_models: dict) -> 
     X_full = pd.concat([X_train, X_val])
     y_full = pd.concat([y_train, y_val])
 
-    task = next(iter(best_models.values()))[
-        1].best_trial.user_attrs.get("task", "classification")
+    task = next(iter(best_models.values()))[1].best_trial.user_attrs.get(
+        "task", "classification"
+    )
     scoring = global_conf.DEFAULT_SCORING
 
     ensembler = OptunaEnsembler(
-        best_models, X_full.to_numpy(), y_full.to_numpy(),
-        task=task, scoring=scoring, cv_folds=global_conf.DEFAULT_CV_FOLDS,
-        top_n=global_conf.ENSEMBLE_TOP_N, mlflow_run=mlflow.active_run()
+        best_models,
+        X_full.to_numpy(),
+        y_full.to_numpy(),
+        task=task,
+        scoring=scoring,
+        cv_folds=global_conf.DEFAULT_CV_FOLDS,
+        top_n=global_conf.ENSEMBLE_TOP_N,
+        mlflow_run=mlflow.active_run(),
     )
     ensembler.build_ensemble()
     final_ensemble = ensembler.get_ensemble()
     mlflow.sklearn.log_model(
-        final_ensemble, artifact_path=global_conf.MLFLOW_ENSEMBLE_ARTIFACT_PATH)
+        final_ensemble, artifact_path=global_conf.MLFLOW_ENSEMBLE_ARTIFACT_PATH
+    )
     return ensembler.get_ensemble_info()
 
 

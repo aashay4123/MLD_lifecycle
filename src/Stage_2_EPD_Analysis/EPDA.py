@@ -65,10 +65,8 @@ class UnifiedEPDA(PerfMixin):
         self.out_dir.mkdir(exist_ok=True, parents=True)
         self.start_time = datetime.now()
 
-        self.numeric_cols = df.select_dtypes(
-            include=np.number).columns.tolist()
-        self.categorical_cols = df.select_dtypes(
-            exclude=np.number).columns.tolist()
+        self.numeric_cols = df.select_dtypes(include=np.number).columns.tolist()
+        self.categorical_cols = df.select_dtypes(exclude=np.number).columns.tolist()
         if target and target in df.columns:
             self.y = df[target]
         else:
@@ -142,8 +140,7 @@ class UnifiedEPDA(PerfMixin):
                 results.append((col, shapiro_p, jb_p))
             except Exception:
                 continue
-        norm_df = pd.DataFrame(
-            results, columns=["column", "shapiro_p", "jb_p"])
+        norm_df = pd.DataFrame(results, columns=["column", "shapiro_p", "jb_p"])
         norm_df.to_csv(self.out_dir / "normality_tests.csv", index=False)
 
     def _run_vif_analysis(self):
@@ -164,8 +161,7 @@ class UnifiedEPDA(PerfMixin):
             var_ratio = pca.explained_variance_ratio_
 
             fig, ax = plt.subplots(figsize=(8, 4))
-            sns.lineplot(x=range(1, len(var_ratio) + 1),
-                         y=var_ratio, marker="o", ax=ax)
+            sns.lineplot(x=range(1, len(var_ratio) + 1), y=var_ratio, marker="o", ax=ax)
             ax.set_title("PCA Scree Plot")
             ax.set_xlabel("Component")
             ax.set_ylabel("Explained Variance Ratio")
@@ -186,8 +182,7 @@ class UnifiedEPDA(PerfMixin):
 
             rand_pts = uniform(X.min().values, X.max().values, (m, d))
             u_dist, _ = nbrs.kneighbors(rand_pts, 2, return_distance=True)
-            x_dist, _ = nbrs.kneighbors(
-                X.sample(m).values, 2, return_distance=True)
+            x_dist, _ = nbrs.kneighbors(X.sample(m).values, 2, return_distance=True)
 
             H = u_dist[:, 0].sum() / (u_dist[:, 0].sum() + x_dist[:, 0].sum())
             return H
@@ -447,8 +442,7 @@ class UnifiedEPDA(PerfMixin):
             else:
                 model = RandomForestRegressor()
             model.fit(X, self.y)
-            importances = pd.Series(
-                model.feature_importances_, index=self.numeric_cols)
+            importances = pd.Series(model.feature_importances_, index=self.numeric_cols)
             importances.sort_values(ascending=False).to_csv(
                 self.out_dir / "feature_importance.csv"
             )
@@ -498,8 +492,7 @@ class UnifiedEPDA(PerfMixin):
             "timestamp": self.start_time.strftime("%Y-%m-%d %H:%M:%S"),
             "plots_generated": self.plot_counter,
         }
-        pd.Series(manifest).to_json(
-            self.out_dir / "epda_manifest.json", indent=4)
+        pd.Series(manifest).to_json(self.out_dir / "epda_manifest.json", indent=4)
 
         print(
             f"[UnifiedEPDA] Completed in {round(duration.total_seconds(), 2)} seconds"

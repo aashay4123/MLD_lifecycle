@@ -12,8 +12,7 @@ def load_global_conf(conf_path: Path):
     Dynamically load a Python module from the given path
     and return it.
     """
-    spec = importlib.util.spec_from_file_location(
-        "global_conf", str(conf_path))
+    spec = importlib.util.spec_from_file_location("global_conf", str(conf_path))
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
@@ -23,11 +22,7 @@ def extract_constants(module):
     """
     Return a dict of all-uppercase attributes in the module.
     """
-    return {
-        name: value
-        for name, value in vars(module).items()
-        if name.isupper()
-    }
+    return {name: value for name, value in vars(module).items() if name.isupper()}
 
 
 def build_structure(constants: dict):
@@ -102,16 +97,18 @@ def main():
         description="Generate params.yaml from your global_conf.py"
     )
     p.add_argument(
-        "--conf", "-c",
+        "--conf",
+        "-c",
         type=Path,
         default=Path(__file__).parents[2] / "configs" / "global_conf.py",
-        help="path to global_conf.py"
+        help="path to global_conf.py",
     )
     p.add_argument(
-        "--output", "-o",
+        "--output",
+        "-o",
         type=Path,
         default=Path(__file__).parents[2] / "params.yaml",
-        help="where to write params.yaml"
+        help="where to write params.yaml",
     )
     args = p.parse_args()
 

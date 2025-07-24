@@ -1,7 +1,10 @@
 import optuna
 import numpy as np
 from sklearn.ensemble import (
-    VotingClassifier, VotingRegressor, StackingClassifier, StackingRegressor
+    VotingClassifier,
+    VotingRegressor,
+    StackingClassifier,
+    StackingRegressor,
 )
 from sklearn.base import BaseEstimator, ClassifierMixin, RegressorMixin
 from sklearn.linear_model import LogisticRegression, Ridge, RidgeClassifier
@@ -13,8 +16,21 @@ import mlflow
 
 
 class OptunaEnsembler:
-    def __init__(self, best_models, X, y, task, scoring, cv_folds=5, top_n=3,
-                 optimize_weights=True, n_trials=30, mlflow_run=None, X_val=None, y_val=None):
+    def __init__(
+        self,
+        best_models,
+        X,
+        y,
+        task,
+        scoring,
+        cv_folds=5,
+        top_n=3,
+        optimize_weights=True,
+        n_trials=30,
+        mlflow_run=None,
+        X_val=None,
+        y_val=None,
+    ):
         self.best_models = best_models
         self.X, self.y = X, y
         self.X_val, self.y_val = X_val, y_val
@@ -42,8 +58,7 @@ class OptunaEnsembler:
             return
 
         def objective(trial):
-            method = trial.suggest_categorical(
-                "method", self._available_methods())
+            method = trial.suggest_categorical("method", self._available_methods())
             try:
                 ens = self._build_candidate_ensemble(estimators, trial, method)
                 if ens is None:
@@ -53,16 +68,21 @@ class OptunaEnsembler:
                 print(f"⚠️ Ensemble candidate {method} failed: {e}")
                 return -np.inf
 
-        reverse = "roc_auc" in str(self.scoring).lower(
-        ) or "accuracy" in str(self.scoring).lower()
+        reverse = (
+            "roc_auc" in str(self.scoring).lower()
+            or "accuracy" in str(self.scoring).lower()
+        )
         self.ensemble_study = optuna.create_study(
-            direction="maximize" if reverse else "minimize")
+            direction="maximize" if reverse else "minimize"
+        )
         self.ensemble_study.optimize(
-            objective, n_trials=self.n_trials, show_progress_bar=True)
+            objective, n_trials=self.n_trials, show_progress_bar=True
+        )
 
         best_method = self.ensemble_study.best_params["method"]
         self.ensemble = self._build_candidate_ensemble(
-            estimators, self.ensemble_study, best_method, final=True)
+            estimators, self.ensemble_study, best_method, final=True
+        )
         self.ensemble.fit(self.X, self.y)
         self._finalize_ensemble(selected, best_method)
 
@@ -71,12 +91,13 @@ class OptunaEnsembler:
             (name, model, getattr(study, "best_value", None) or 0.0)
             for name, (model, study) in self.best_models.items()
         ]
-        reverse = "roc_auc" in str(self.scoring).lower(
-        ) or "accuracy" in str(self.scoring).lower()
+        reverse = (
+            "roc_auc" in str(self.scoring).lower()
+            or "accuracy" in str(self.scoring).lower()
+        )
         model_scores.sort(key=lambda x: x[2], reverse=reverse)
-        selected = model_scores[:self.top_n]
-        print(
-            f"🔗 Selected top-{self.top_n} models: {[e[0] for e in selected]}")
+        selected = model_scores[: self.top_n]
+        print(f"🔗 Selected top-{self.top_n} models: {[e[0] for e in selected]}")
         return selected
 
     def _refit_models(self, estimators):
@@ -89,8 +110,7 @@ class OptunaEnsembler:
     def _available_methods(self):
         if self.task == "classification":
             n_classes = len(np.unique(self.y))
-            methods = ["soft", "hard", "weighted",
-                       "stack_logreg", "stack_ridge"]
+            methods = ["soft", "hard", "weighted", "stack_logreg", "stack_ridge"]
             if n_classes > 2:
                 # residuals meaningful for ordered multiclass
                 methods.append("residual")
@@ -100,7 +120,11 @@ class OptunaEnsembler:
         return []
 
     def _default_ensemble(self, estimators):
-        return VotingClassifier(estimators=estimators, voting="soft") if self.task == "classification" else VotingRegressor(estimators=estimators)
+        return (
+            VotingClassifier(estimators=estimators, voting="soft")
+            if self.task == "classification"
+            else VotingRegressor(estimators=estimators)
+        )
 
     def _cross_val_score(self, ensemble):
         cv = get_cv(self.cv_folds, self.task)
@@ -139,11 +163,18 @@ class OptunaEnsembler:
             return VotingClassifier(estimators=estimators, voting=method)
         elif method == "weighted":
             weights = self._get_weights(estimators, trial, final)
-            return VotingClassifier(estimators=estimators, voting="soft", weights=weights)
+            return VotingClassifier(
+                estimators=estimators, voting="soft", weights=weights
+            )
         elif method.startswith("stack"):
-            final_est = LogisticRegression(
-                max_iter=1000) if method == "stack_logreg" else RidgeClassifier()
-            return StackingClassifier(estimators=estimators, final_estimator=final_est, passthrough=True)
+            final_est = (
+                LogisticRegression(max_iter=1000)
+                if method == "stack_logreg"
+                else RidgeClassifier()
+            )
+            return StackingClassifier(
+                estimators=estimators, final_estimator=final_est, passthrough=True
+            )
         elif method == "residual":
             return self._build_residual_classifier(estimators)
         return None
@@ -156,7 +187,9 @@ class OptunaEnsembler:
             return VotingRegressor(estimators=estimators, weights=weights)
         elif method == "stack_ridge":
             final_est = getattr(global_conf, "STACK_FINAL_ESTIMATOR", Ridge())
-            return StackingRegressor(estimators=estimators, final_estimator=final_est, passthrough=True)
+            return StackingRegressor(
+                estimators=estimators, final_estimator=final_est, passthrough=True
+            )
         elif method == "residual":
             return self._build_residual_regressor(estimators)
         return None
@@ -167,10 +200,10 @@ class OptunaEnsembler:
         residual = self.y - base.predict(self.X)
         if len(np.unique(residual)) < 2:
             print(
-                "⚠️ Residuals have only one class — skipping residual ensemble candidate.")
+                "⚠️ Residuals have only one class — skipping residual ensemble candidate."
+            )
             return None
-        residual_model = LogisticRegression(
-            max_iter=1000).fit(self.X, residual)
+        residual_model = LogisticRegression(max_iter=1000).fit(self.X, residual)
 
         class ResidualBlend(BaseEstimator, ClassifierMixin):
             def __init__(self, base_model, residual_model):
@@ -184,8 +217,15 @@ class OptunaEnsembler:
                 return self
 
             def predict(self, X):
-                preds = np.clip(self.base_model.predict(
-                    X) + self.residual_model.predict(X), 0, len(self.classes_) - 1).round().astype(int)
+                preds = (
+                    np.clip(
+                        self.base_model.predict(X) + self.residual_model.predict(X),
+                        0,
+                        len(self.classes_) - 1,
+                    )
+                    .round()
+                    .astype(int)
+                )
                 return preds
 
             def predict_proba(self, X):
@@ -201,7 +241,8 @@ class OptunaEnsembler:
         residual = self.y - base.predict(self.X)
         if np.allclose(residual, 0):
             print(
-                "⚠️ Residuals are effectively zero — skipping residual ensemble candidate.")
+                "⚠️ Residuals are effectively zero — skipping residual ensemble candidate."
+            )
             return None
         residual_model = Ridge().fit(self.X, residual)
 
@@ -222,8 +263,11 @@ class OptunaEnsembler:
 
     def _get_weights(self, estimators, trial, final):
         return [
-            trial.suggest_float(
-                f"weight_{name}", 0.5, 2.0) if not final else trial.best_params[f"weight_{name}"]
+            (
+                trial.suggest_float(f"weight_{name}", 0.5, 2.0)
+                if not final
+                else trial.best_params[f"weight_{name}"]
+            )
             for name, _ in estimators
         ]
 
@@ -234,10 +278,12 @@ class OptunaEnsembler:
             print("⚠️ No holdout set provided; evaluating ensemble on train data.")
             self.ensemble_score = self._evaluate(self.ensemble)
         self._check_fallback(selected_models)
-        self._log_mlflow({
-            "ensemble_type": method,
-            "ensemble_score": self.ensemble_score,
-        })
+        self._log_mlflow(
+            {
+                "ensemble_type": method,
+                "ensemble_score": self.ensemble_score,
+            }
+        )
         print(f"✅ Final ensemble built with method: {method}")
 
     def _evaluate(self, ensemble):
@@ -263,7 +309,8 @@ class OptunaEnsembler:
             for k, v in data.items():
                 mlflow.log_param(k, v)
             mlflow.sklearn.log_model(
-                self.ensemble, artifact_path="final_ensemble_model")
+                self.ensemble, artifact_path="final_ensemble_model"
+            )
 
     def get_ensemble(self):
         return self.ensemble

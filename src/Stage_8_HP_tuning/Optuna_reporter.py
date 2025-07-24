@@ -13,7 +13,9 @@ class OptunaReporter:
     and logs them optionally to MLflow.
     """
 
-    def __init__(self, best_models, output_dir="reports", ensemble=None, mlflow_run=None):
+    def __init__(
+        self, best_models, output_dir="reports", ensemble=None, mlflow_run=None
+    ):
         """
         best_models: dict of model_name -> (best_model, study)
         ensemble: trained ensemble model (optional)
@@ -50,8 +52,7 @@ class OptunaReporter:
                     if self.mlflow_run:
                         mlflow.log_artifact(str(out_file))
                 except Exception as e:
-                    print(
-                        f"[WARN] Could not create {suffix} plot for {name}: {e}")
+                    print(f"[WARN] Could not create {suffix} plot for {name}: {e}")
 
         if self.ensemble:
             print("📊 Adding ensemble summary")

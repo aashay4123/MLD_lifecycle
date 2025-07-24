@@ -96,8 +96,7 @@ def perfclass(
                         dict(
                             method=name,
                             seconds=dt,
-                            delta_mb=round(
-                                (rss_after - rss_before) / 2**20, 3),
+                            delta_mb=round((rss_after - rss_before) / 2**20, 3),
                             rss_mb=round(rss_after / 2**20, 1),
                         )
                     )
@@ -117,8 +116,7 @@ def perfclass(
             agg: Dict[str, Dict] = {}
             for rec in self._perf_log:
                 d = agg.setdefault(
-                    rec["method"], dict(
-                        calls=0, seconds=0.0, delta_mb=0.0, rss_mb=0.0)
+                    rec["method"], dict(calls=0, seconds=0.0, delta_mb=0.0, rss_mb=0.0)
                 )
                 d["calls"] += 1
                 d["seconds"] += rec["seconds"]
@@ -220,8 +218,7 @@ class ParallelMixin:
             prefer = self._auto_prefer(items)
 
         log.debug(
-            "Parallel → %d jobs (%s) × %d tasks", self._n_jobs, prefer, len(
-                items)
+            "Parallel → %d jobs (%s) × %d tasks", self._n_jobs, prefer, len(items)
         )
         return Parallel(n_jobs=self._n_jobs, prefer=prefer)(
             delayed(fn)(x) for x in items
@@ -248,16 +245,20 @@ class _CuPyLoader:
         # 1️⃣ Try PyTorch + MPS (Apple Silicon)
         try:
             import torch
+
             if torch.backends.mps.is_available():
+
                 class TorchArrayWrapper:
                     def array(self, data):
                         return torch.tensor(data, device="mps")
 
                     def to_numpy(self, t):
                         return t.cpu().numpy()
+
                 cls._cached = TorchArrayWrapper()
                 log.info(
-                    "PyTorch MPS detected – GPU fast-path enabled on macOS/Apple Silicon.")
+                    "PyTorch MPS detected – GPU fast-path enabled on macOS/Apple Silicon."
+                )
                 return cls._cached
         except Exception:
             pass

@@ -76,22 +76,18 @@ class DataHealthCheck:
         self._plot_bar(miss, "Missingness per column", "missingness.png")
 
     def _check_dtypes(self):
-        self.results["dtypes"] = self.df.dtypes.value_counts().astype(
-            str).to_dict()
+        self.results["dtypes"] = self.df.dtypes.value_counts().astype(str).to_dict()
 
     def _check_skewness(self):
         num = self.df.select_dtypes(include=np.number)
         skew = num.skew()
-        self.results["skewness"] = skew.sort_values(
-            ascending=False).head(10).to_dict()
-        self._plot_bar(
-            skew.abs(), "Skewness of numeric columns", "skewness.png")
+        self.results["skewness"] = skew.sort_values(ascending=False).head(10).to_dict()
+        self._plot_bar(skew.abs(), "Skewness of numeric columns", "skewness.png")
 
     def _check_cardinality(self):
         cat = self.df.select_dtypes(include=["object", "category"])
         card = {col: cat[col].nunique() for col in cat.columns}
-        top_card = dict(
-            sorted(card.items(), key=lambda x: x[1], reverse=True)[:10])
+        top_card = dict(sorted(card.items(), key=lambda x: x[1], reverse=True)[:10])
         self.results["cardinality"] = top_card
         self._plot_bar(
             pd.Series(top_card), "Categorical cardinality", "cardinality.png"
@@ -156,8 +152,7 @@ class DataHealthCheck:
         if self.batch_col and self.batch_col in self.df:
             counts = self.df[self.batch_col].value_counts(normalize=True)
             self.results["batch_distribution"] = counts.round(3).to_dict()
-            self._plot_bar(counts, "Batch Distribution",
-                           "batch_distribution.png")
+            self._plot_bar(counts, "Batch Distribution", "batch_distribution.png")
 
     def _plot_bar(self, series: pd.Series, title: str, filename: str):
         try:

@@ -13,8 +13,12 @@ import mlflow
 from joblib import Parallel, delayed
 from sklearn.preprocessing import OneHotEncoder, OrdinalEncoder
 from category_encoders import (
-    BinaryEncoder, HashingEncoder, HelmertEncoder, JamesSteinEncoder,
-    LeaveOneOutEncoder, TargetEncoder
+    BinaryEncoder,
+    HashingEncoder,
+    HelmertEncoder,
+    JamesSteinEncoder,
+    LeaveOneOutEncoder,
+    TargetEncoder,
 )
 
 # zenml integrations
@@ -68,24 +72,30 @@ class AutoCategoricalEncoder(PerfMixin):
         with open(self.output_dir / f"encoders/{name}.pkl", "rb") as f:
             return pickle.load(f)
 
-    def fit_transform(self, df: pd.DataFrame, y: Optional[pd.Series] = None) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    def fit_transform(
+        self, df: pd.DataFrame, y: Optional[pd.Series] = None
+    ) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
         self.y_train = y
         df0 = df.reset_index(drop=True)
         self.categorical_cols = df0.select_dtypes(
-            include=["object", "category"]).columns.tolist()
+            include=["object", "category"]
+        ).columns.tolist()
         n = len(df0)
-        self.unique_frac = {c: df0[c].nunique(
-            dropna=False) / n for c in self.categorical_cols}
+        self.unique_frac = {
+            c: df0[c].nunique(dropna=False) / n for c in self.categorical_cols
+        }
         mlflow.set_experiment(MLFLOW_EXPERIMENT)
 
         with mlflow.start_run():
-            mlflow.log_params({
-                "onehot_frac": self.cfg.onehot_frac,
-                "ordinal_frac": self.cfg.ordinal_frac,
-                "freq_frac": self.cfg.freq_frac,
-                "n_jobs": self.cfg.n_jobs,
-                "n_categoricals": len(self.categorical_cols)
-            })
+            mlflow.log_params(
+                {
+                    "onehot_frac": self.cfg.onehot_frac,
+                    "ordinal_frac": self.cfg.ordinal_frac,
+                    "freq_frac": self.cfg.freq_frac,
+                    "n_jobs": self.cfg.n_jobs,
+                    "n_categoricals": len(self.categorical_cols),
+                }
+            )
 
             results = {}
             for variant in ("linear", "tree", "knn"):
@@ -93,8 +103,7 @@ class AutoCategoricalEncoder(PerfMixin):
                 results[variant] = df_variant
                 path = self._save(df_variant, variant)
                 self.report.setdefault(variant, {})
-                self.report[variant]["path"] = str(
-                    path.relative_to(self.output_dir))
+                self.report[variant]["path"] = str(path.relative_to(self.output_dir))
                 self.report[variant]["rules"] = self.rules[variant]
                 mlflow.log_metric(f"{variant}_rows", df_variant.shape[0])
                 mlflow.log_metric(f"{variant}_cols", df_variant.shape[1])
@@ -118,7 +127,7 @@ class AutoCategoricalEncoder(PerfMixin):
                 "jstein": self._encode_jstein,
                 "hashing": self._encode_hashing,
                 "target": self._encode_target,
-                "loo": self._encode_loo
+                "loo": self._encode_loo,
             }.get(rule)
             return enc_func(df, cols) if enc_func else pd.DataFrame(index=df.index)
 
@@ -130,9 +139,20 @@ class AutoCategoricalEncoder(PerfMixin):
         return pd.concat(parts, axis=1)
 
     def _decide_rules(self, df: pd.DataFrame, variant: str) -> Dict[str, List[str]]:
-        rules = {k: [] for k in [
-            "onehot", "ordinal", "frequency", "target", "loo", "binary", "hashing", "helmert", "backdiff"
-        ]}
+        rules = {
+            k: []
+            for k in [
+                "onehot",
+                "ordinal",
+                "frequency",
+                "target",
+                "loo",
+                "binary",
+                "hashing",
+                "helmert",
+                "backdiff",
+            ]
+        }
         for col in self.categorical_cols:
             if col in self.cfg.forced_strategies:
                 bucket = self.cfg.forced_strategies[col].lower()
@@ -182,13 +202,13 @@ class AutoCategoricalEncoder(PerfMixin):
         for variant, df_variant in results.items():
             n_rows = len(df_variant)
             mem_bytes = df_variant.memory_usage(deep=True).sum()
-            card = {col: int(self.unique_frac.get(col, 0) * n_rows)
-                    for col in self.categorical_cols}
-            self.report[variant].update({
-                "memory_bytes": int(mem_bytes),
-                "n_rows": n_rows,
-                "cardinality": card
-            })
+            card = {
+                col: int(self.unique_frac.get(col, 0) * n_rows)
+                for col in self.categorical_cols
+            }
+            self.report[variant].update(
+                {"memory_bytes": int(mem_bytes), "n_rows": n_rows, "cardinality": card}
+            )
 
         with open(self.output_dir / "encoding_report.json", "w") as f:
             json.dump(self.report, f, indent=2)
@@ -196,10 +216,14 @@ class AutoCategoricalEncoder(PerfMixin):
 
     def transform(self, df: pd.DataFrame, variant: str = "linear") -> pd.DataFrame:
         path = self.output_dir / f"processed_{variant}.{self.output_format}"
-        template = pd.read_parquet(
-            path) if self.output_format == "parquet" else pd.read_csv(path)
-        df = df.drop(columns=self.categorical_cols,
-                     errors="ignore").reset_index(drop=True)
+        template = (
+            pd.read_parquet(path)
+            if self.output_format == "parquet"
+            else pd.read_csv(path)
+        )
+        df = df.drop(columns=self.categorical_cols, errors="ignore").reset_index(
+            drop=True
+        )
         for col in template.columns:
             if col not in df.columns:
                 df[col] = 0
@@ -216,13 +240,14 @@ class AutoCategoricalEncoder(PerfMixin):
         enc = OneHotEncoder(sparse=False, handle_unknown="ignore")
         arr = enc.fit_transform(df[cols])
         self._save_pickle(enc, "onehot")
-        return pd.DataFrame(arr, columns=enc.get_feature_names_out(cols), index=df.index)
+        return pd.DataFrame(
+            arr, columns=enc.get_feature_names_out(cols), index=df.index
+        )
 
     def _encode_ordinal(self, df, cols):
         if not cols:
             return pd.DataFrame(index=df.index)
-        enc = OrdinalEncoder(
-            handle_unknown="use_encoded_value", unknown_value=-1)
+        enc = OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1)
         arr = enc.fit_transform(df[cols])
         self._save_pickle(enc, "ordinal")
         return pd.DataFrame(arr, columns=cols, index=df.index)

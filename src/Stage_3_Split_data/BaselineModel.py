@@ -36,8 +36,7 @@ class AutoBaseline:
         if is_regression:
             self._run_regression_baselines(train_df, test_df, y_train, y_test)
         else:
-            self._run_classification_baselines(
-                train_df, test_df, y_train, y_test)
+            self._run_classification_baselines(train_df, test_df, y_train, y_test)
 
         # TODO: Add Report to HTML file named baseline model stats
         # self.REPORT_DIR

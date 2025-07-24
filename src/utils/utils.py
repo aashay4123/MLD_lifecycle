@@ -13,7 +13,9 @@ def get_cv(n_splits, task, random_state=42):
     Returns appropriate cross-validator based on explicit task input.
     """
     if task == "classification":
-        return StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=random_state)
+        return StratifiedKFold(
+            n_splits=n_splits, shuffle=True, random_state=random_state
+        )
     elif task == "regression":
         return KFold(n_splits=n_splits, shuffle=True, random_state=random_state)
     elif task == "unsupervised":
@@ -62,7 +64,8 @@ def compute_metric(y_true, model, X, metric_name, task=None):
             y_score = model.decision_function(X)
         else:
             raise ValueError(
-                f"Model {model.__class__.__name__} lacks predict_proba and decision_function, cannot compute ROC AUC.")
+                f"Model {model.__class__.__name__} lacks predict_proba and decision_function, cannot compute ROC AUC."
+            )
 
         # 🔥 FIX: ensure y_score shape is 1D for binary
         if y_score.ndim == 2 and y_score.shape[1] == 2:
@@ -82,8 +85,7 @@ def cross_val_objective(model, X, y, cv, scoring, task):
     Returns mean cross-validation score across folds, explicitly requiring task.
     """
     if task in ["classification", "regression"]:
-        scores = cross_val_score(
-            model, X, y, cv=cv, scoring=scoring, n_jobs=-1)
+        scores = cross_val_score(model, X, y, cv=cv, scoring=scoring, n_jobs=-1)
         return np.mean(scores)
     elif task == "unsupervised":
         # No objective for unsupervised → return dummy zero (or you can implement clustering scores)
@@ -118,14 +120,15 @@ def detect_task_and_search_space(models, y, scoring=None):
 
         scoring_metric = get_metric(task, scoring)
         search_spaces = (
-            global_conf.SEARCH_SPACES_CLASSIFICATION if task == "classification"
+            global_conf.SEARCH_SPACES_CLASSIFICATION
+            if task == "classification"
             else global_conf.SEARCH_SPACES_REGRESSION
         )
 
     print(
-        f"🔎 Detected task: {task} (unique={unique_values}, unique_ratio={unique_ratio:.4f})")
-    print(
-        f"🔎 Models detected: {[m.__class__.__name__ for m in models.values()]}")
+        f"🔎 Detected task: {task} (unique={unique_values}, unique_ratio={unique_ratio:.4f})"
+    )
+    print(f"🔎 Models detected: {[m.__class__.__name__ for m in models.values()]}")
     print(f"🔎 Available search space keys: {list(search_spaces.keys())}")
 
     return task, scoring_metric, search_spaces

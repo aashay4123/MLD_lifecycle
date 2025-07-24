@@ -25,8 +25,7 @@ from configs import global_conf
 REPORT_DIR = Path(global_conf.PREPROCESSOR_REPORT_PATH) / "missingness"
 REPORT_DIR.mkdir(parents=True, exist_ok=True)
 
-DEFAULT_MODEL_PATH = Path(
-    global_conf.MODEL_ARTIFACTS_PATH) / "missing_model.pkl"
+DEFAULT_MODEL_PATH = Path(global_conf.MODEL_ARTIFACTS_PATH) / "missing_model.pkl"
 DEFAULT_MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)
 
 ALPHA = 0.05
@@ -60,7 +59,7 @@ class MissingnessAnalyzer:
                 results[col] = {
                     "fraction_missing": y.mean(),
                     "mechanism": "undetermined",
-                    "p_value": np.nan
+                    "p_value": np.nan,
                 }
                 continue
 
@@ -83,13 +82,13 @@ class MissingnessAnalyzer:
                 results[col] = {
                     "fraction_missing": y.mean(),
                     "mechanism": mechanism,
-                    "p_value": p_combined
+                    "p_value": p_combined,
                 }
             except Exception:
                 results[col] = {
                     "fraction_missing": y.mean(),
                     "mechanism": "fit_failed",
-                    "p_value": np.nan
+                    "p_value": np.nan,
                 }
 
         # Optional: Little’s MCAR global test if available
@@ -98,13 +97,13 @@ class MissingnessAnalyzer:
             results["_global_Little_MCAR"] = {
                 "statistic": res.statistic,
                 "p_value": res.pvalue,
-                "is_MCAR": bool(res.pvalue > ALPHA)
+                "is_MCAR": bool(res.pvalue > ALPHA),
             }
         except Exception:
             results["_global_Little_MCAR"] = {
                 "statistic": np.nan,
                 "p_value": np.nan,
-                "is_MCAR": False
+                "is_MCAR": False,
             }
 
         return results
@@ -115,18 +114,21 @@ class MissingnessAnalyzer:
         outpath.parent.mkdir(parents=True, exist_ok=True)
 
         if html:
-            html_lines = [
-                "<html><body><h2>Missingness Analysis</h2><table border='1'>"]
+            html_lines = ["<html><body><h2>Missingness Analysis</h2><table border='1'>"]
             html_lines.append(
-                "<tr><th>Column</th><th>Fraction Missing</th><th>P-Value</th><th>Mechanism</th></tr>")
+                "<tr><th>Column</th><th>Fraction Missing</th><th>P-Value</th><th>Mechanism</th></tr>"
+            )
             for col, vals in results.items():
                 if col.startswith("_global"):
                     continue
                 frac = f"{vals['fraction_missing']:.2%}"
-                pval = f"{vals['p_value']:.4f}" if vals['p_value'] is not None else "N/A"
+                pval = (
+                    f"{vals['p_value']:.4f}" if vals["p_value"] is not None else "N/A"
+                )
                 mech = vals["mechanism"]
                 html_lines.append(
-                    f"<tr><td>{col}</td><td>{frac}</td><td>{pval}</td><td>{mech}</td></tr>")
+                    f"<tr><td>{col}</td><td>{frac}</td><td>{pval}</td><td>{mech}</td></tr>"
+                )
             html_lines.append("</table></body></html>")
             outpath.with_suffix(".html").write_text("\n".join(html_lines))
         else:

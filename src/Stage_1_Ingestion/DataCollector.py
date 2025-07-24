@@ -10,6 +10,7 @@ import re
 import time
 import pandas as pd
 from configs import global_conf
+
 with contextlib.suppress(ImportError):
     import boto3
     import requests
@@ -36,8 +37,7 @@ REPORT_DIR.mkdir(parents=True, exist_ok=True)
 log = logging.getLogger("collector")
 
 # ─── PII Regex Patterns ────────────────────────────────────────────────────────
-EMAIL_PATTERN = re.compile(
-    r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b")
+EMAIL_PATTERN = re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b")
 PHONE_PATTERN = re.compile(r"\b\d{10,}\b")
 
 # ─── Supported File Suffixes ───────────────────────────────────────────────────
@@ -103,8 +103,7 @@ def _semantic_type_profile(df: pd.DataFrame, source: str) -> pd.DataFrame:
 
     def is_datetime(series: pd.Series) -> bool:
         try:
-            parsed = pd.to_datetime(
-                series, errors="coerce", infer_datetime_format=True)
+            parsed = pd.to_datetime(series, errors="coerce", infer_datetime_format=True)
             return parsed.notna().mean() > 0.9
         except:
             return False
@@ -236,8 +235,7 @@ def _semantic_type_profile(df: pd.DataFrame, source: str) -> pd.DataFrame:
 
         elif is_currency(series):
             semantic = "Currency"
-            df_clean[col] = series.replace(
-                r"[^\d.]", "", regex=True).astype(float)
+            df_clean[col] = series.replace(r"[^\d.]", "", regex=True).astype(float)
             converted = True
 
         elif is_email(series):
@@ -308,8 +306,7 @@ class DataCollector:
         if not self.validate:
             return
         if "great_expectations" not in globals():
-            log.warning(
-                "Great Expectations not installed—skipping validation.")
+            log.warning("Great Expectations not installed—skipping validation.")
             return
         try:
             ctx = ge.DataContext()
@@ -357,8 +354,7 @@ class DataCollector:
         if path.startswith("s3://"):
             bucket_key = path.split("s3://", 1)[1]
             bucket, key = bucket_key.split("/", 1)
-            obj = boto3.client("s3").get_object(
-                Bucket=bucket, Key=key, **storage_opts)
+            obj = boto3.client("s3").get_object(Bucket=bucket, Key=key, **storage_opts)
             buffer = io.BytesIO(obj["Body"].read())
             suffix = Path.Path(key).suffix.lower()
         else:
@@ -393,8 +389,7 @@ class DataCollector:
         return self._postprocess(df, "mongo")
 
     def read_rest(self, url: str, *, params=None, headers=None) -> pd.DataFrame:
-        payload = requests.get(
-            url, params=params, headers=headers, timeout=20).json()
+        payload = requests.get(url, params=params, headers=headers, timeout=20).json()
         df = pd.json_normalize(payload)
         return self._postprocess(df, "rest")
 
@@ -417,8 +412,7 @@ class DataCollector:
 
     def read_gsheet(self, sheet_key: str, creds_json: str) -> pd.DataFrame:
         sheet = (
-            gspread.service_account(
-                filename=creds_json).open_by_key(sheet_key).sheet1
+            gspread.service_account(filename=creds_json).open_by_key(sheet_key).sheet1
         )
         df = pd.DataFrame(sheet.get_all_records())
         return self._postprocess(df, "gsheet")
