@@ -354,11 +354,24 @@ https://github.com/mljar/mljar-supervised
 https://github.com/AxeldeRomblay/MLBox/blob/master/mlbox/model/regression/stacking_regressor.py
 https://khiops.org/tutorials/Notebooks/Use_in_any_ML_pipeline/
 
-https://github.com/mlflow/mlflow/tree/master/docs
+<!-- Tools for AutoML -->
+
 https://github.com/AutoViML/AutoViz
 https://github.com/cod3licious/autofeat/tree/main/src/autofeat
-https://github.com/automl/DeepCAVE
-https://github.com/Shriram-Vibhute/CampusX-DSMP2.0/tree/main
-https://github.com/Yash-Kavaiya/CampusX-courses/tree/main
-https://github.com/zenml-io/zenml-workshop-mlops
 https://github.com/zenml-io/zenml-projects
+https://github.com/automl/DeepCAVE
+
+<!-- Github Repo Must Checkout -->
+
+https://github.com/Yash-Kavaiya/CampusX-courses/tree/main
+https://github.com/Shriram-Vibhute/CampusX-DSMP2.0/tree/main
+https://github.com/zenml-io/zenml-workshop-mlops
+
+<!-- Tools Need to Know in depth -->
+
+https://scikit-learn.org/stable/user_guide.html
+https://github.com/mlflow/mlflow/tree/master/docs
+https://docs.zenml.io/
+https://xgboost.readthedocs.io/en/stable/
+https://docs.docker.com/manuals/
+https://docs.streamlit.io/
