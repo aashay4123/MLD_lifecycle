@@ -1,6 +1,4 @@
-# tests/test_mlflow_utils.py
-
-import importlib  # ← make sure this is here
+import importlib
 import os
 import subprocess
 from unittest.mock import MagicMock
@@ -12,7 +10,25 @@ from mlflow.entities import ViewType
 from mlflow.tracking import MlflowClient
 
 from src.utils import mlflow_utils
-from src.utils.mlflow_utils import *
+from src.utils.mlflow_utils import (
+    archive_model,
+    download_artifact,
+    enable_autologging,
+    end_run,
+    list_artifacts,
+    list_model_flavors,
+    list_runs,
+    load_sklearn_model,
+    log_artifacts,
+    log_conda_env,
+    log_metrics,
+    log_params,
+    log_sklearn_model,
+    promote_model,
+    register_model,
+    serve_model,
+    start_run,
+)
 
 # Top‐level stubs so imports never break
 mlflow.set_experiment = lambda *a, **k: None
@@ -258,5 +274,5 @@ def test_real_mlflow_run(tmp_path):
     assert fetched.info.run_name == "integration_smoke"
 
     print(
-        f"\n✅ Successfully logged and fetched run {run_id!r} in '{exp_name}' (ID={exp.experiment_id})"
+        f"\n✅ Successfully logged and fetched run {run_id!r} in {exp_name!r} (ID={exp.experiment_id})"
     )
